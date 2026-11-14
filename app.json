@@ -1,4 +1,6 @@
-{
+"android": {
+  "package": "com.afilli.app"
+},{
   "expo": {
     "name": "Afilli",
     "slug": "afilli",
