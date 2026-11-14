@@ -1,0 +1,45 @@
+{
+  "created_at_utc": "2026-11-14T12:58:10.699902+00:00",
+  "kind": "source_handoff_not_android_release",
+  "source_files": 286,
+  "source_bytes": 2822584,
+  "app_version": "1.0.0",
+  "runtime_checked": {
+    "node": "v24.22.1",
+    "pnpm": "10.26.1"
+  },
+  "checks": {
+    "shared_libraries_typescript": "passed: pnpm run typecheck:libs",
+    "mobile_typescript": "passed: pnpm --filter @workspace/afilli run typecheck",
+    "server_typescript": "passed: pnpm --filter @workspace/api-server run typecheck",
+    "workspace_dependency_sources": "passed",
+    "configured_local_images": "passed",
+    "source_snapshot_unchanged_during_copy": "passed",
+    "sensitive_file_exclusions": "passed",
+    "known_secret_patterns": "passed; limited packaging check, not full security audit",
+    "non_example_email_check": "passed",
+    "archive_crc_and_sha256": "passed; validated after creation"
+  },
+  "not_performed": [
+    "clean installation outside Replit",
+    "Android native build",
+    "AAB signing",
+    "physical Android device testing",
+    "production service connectivity",
+    "Google Play submission",
+    "full security audit"
+  ],
+  "excluded": [
+    "environment values and credentials",
+    "signing material",
+    "Git history",
+    "workspace settings and agent context",
+    "user data and database backups",
+    "user uploads and recordings",
+    "generated build output and dependencies",
+    "mockup sandbox and uploaded reference attachments"
+  ],
+  "git_remote_modified": false,
+  "github_push_performed": false,
+  "application_source_modified": false
+}

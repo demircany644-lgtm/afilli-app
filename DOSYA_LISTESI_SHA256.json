@@ -1,0 +1,1432 @@
+[
+  {
+    "path": ".gitignore",
+    "bytes": 737,
+    "sha256": "4bd10f88b9584e03c22ea6693895cf280a902df6d2413a4467c74fd95abab1ab"
+  },
+  {
+    "path": ".npmrc",
+    "bytes": 56,
+    "sha256": "1ded4f26f4851b35dae702edd5719d1be5ff31db6983858d088d5e6593ea7c99"
+  },
+  {
+    "path": ".replitignore",
+    "bytes": 223,
+    "sha256": "1f78f03e45e9d00e6c41e12971d437fd2ae184f2b976fafab408d895ba529e8c"
+  },
+  {
+    "path": "artifacts/afilli/.gitignore",
+    "bytes": 417,
+    "sha256": "89b4e2fe3cd2b48b0702443bc16f3e21718ebe65bd47076ad3f40ccabfb2ef8f"
+  },
+  {
+    "path": "artifacts/afilli/app.json",
+    "bytes": 1406,
+    "sha256": "a221ee8f0061418904863fefcb23f9398d771f0adf49165de52c72de2dce291e"
+  },
+  {
+    "path": "artifacts/afilli/app/(tabs)/_layout.tsx",
+    "bytes": 817,
+    "sha256": "c4aec7a99a124b53d9719270b284ae841ab93f8f4c53d912b73e674749d997d5"
+  },
+  {
+    "path": "artifacts/afilli/app/(tabs)/index.tsx",
+    "bytes": 10458,
+    "sha256": "9b53ff1dd6d925bffc9fd72dbae68574ee5367a169da185368731e1a3338b715"
+  },
+  {
+    "path": "artifacts/afilli/app/(tabs)/library.tsx",
+    "bytes": 5642,
+    "sha256": "0cbaadae4a878079a033607075f154878a3d79cca9384d3d6c2db1d318c71c12"
+  },
+  {
+    "path": "artifacts/afilli/app/(tabs)/profile.tsx",
+    "bytes": 4765,
+    "sha256": "6d4a88b254f4600f34fade1e0ce11ca75b5d151552b8745aac5b08f7ca5bf01c"
+  },
+  {
+    "path": "artifacts/afilli/app/(tabs)/saved.tsx",
+    "bytes": 7066,
+    "sha256": "37dc795a964b27189e609e5b677fe57f56f6aa67c399ac60e60b52a4f34405c5"
+  },
+  {
+    "path": "artifacts/afilli/app/(tabs)/write.tsx",
+    "bytes": 5461,
+    "sha256": "55758360f2cc9594e01517762a1adfe671f6928ee3bbaad38fa8a8575179ad0f"
+  },
+  {
+    "path": "artifacts/afilli/app/+not-found.tsx",
+    "bytes": 1005,
+    "sha256": "4ce0de1be2578ecf74b8b2f7761a145cbe834a33a07741a08e377fc76bc7c03b"
+  },
+  {
+    "path": "artifacts/afilli/app/_layout.tsx",
+    "bytes": 3309,
+    "sha256": "fe0ba82b62da13bf4a74dc8a912e3868d34acacf2830da34c8b34a6428b685d4"
+  },
+  {
+    "path": "artifacts/afilli/app/article/[id].tsx",
+    "bytes": 1738,
+    "sha256": "cd628856ea8d45a0d24da2f69b2a55b4d96b2a58138e645f2c02b9d9d01e53b6"
+  },
+  {
+    "path": "artifacts/afilli/app/authored-book/[id].tsx",
+    "bytes": 11935,
+    "sha256": "771f92f6139af13d695212ae269183db4a141732afd5bd88f0b6f2d3878495eb"
+  },
+  {
+    "path": "artifacts/afilli/app/book/[id].tsx",
+    "bytes": 4284,
+    "sha256": "d3faf75a437d8d4be8b5610edf39c621edb7647886840afee27dc8c175ea545f"
+  },
+  {
+    "path": "artifacts/afilli/app/bulletin/[id].tsx",
+    "bytes": 2555,
+    "sha256": "9362435ebe86365f4a4fedaa0135168748a857a5831a4154d8d8e797b8c241ca"
+  },
+  {
+    "path": "artifacts/afilli/app/bultenler.tsx",
+    "bytes": 9062,
+    "sha256": "51199d049e0252d6c2d8895b588d732c5d873f6ef86ea583909a4057fe2f1422"
+  },
+  {
+    "path": "artifacts/afilli/app/chat/[id].tsx",
+    "bytes": 13856,
+    "sha256": "58b76217f9c4de619bf8bd63480a8a490d0940b1943bd78de705c26e8eeb8bd1"
+  },
+  {
+    "path": "artifacts/afilli/app/dergi.tsx",
+    "bytes": 17504,
+    "sha256": "4fdc3c5715aa6c364476b47bfaa5fbc059aaa6834f0cbc503329128a9cfe504c"
+  },
+  {
+    "path": "artifacts/afilli/app/magazine/[id].tsx",
+    "bytes": 3748,
+    "sha256": "ab3fe8ceb3d0e0eda387497f8991b9d4c398ae1aa1ebe1944ef7435006fc2830"
+  },
+  {
+    "path": "artifacts/afilli/app/magazine/comments/[id].tsx",
+    "bytes": 4696,
+    "sha256": "6035bf7ffd1335e35f7d2b606ca9dcd0dd4e0fd8eb45c5a0435c74a35d5c0d07"
+  },
+  {
+    "path": "artifacts/afilli/app/messages.tsx",
+    "bytes": 5667,
+    "sha256": "962381fd80fd9e8fa5dbf8f518d5b79dcd9376a2c8c5f587a869df76316862da"
+  },
+  {
+    "path": "artifacts/afilli/app/ozel.tsx",
+    "bytes": 248,
+    "sha256": "5c9ceb288056b63cf1da50f3e221b224c935fb8cd7ae8cf7ac5da44e3c34b87f"
+  },
+  {
+    "path": "artifacts/afilli/app/people.tsx",
+    "bytes": 4964,
+    "sha256": "d220a2c2cbf817b222d25d7d77b2b09ed844439219f7dbe8ec7d067d18d7c682"
+  },
+  {
+    "path": "artifacts/afilli/app/people/[id].tsx",
+    "bytes": 5099,
+    "sha256": "4cee28486683f62ef204dc49463445d9a1555662600375dbb33411e22bf4afb1"
+  },
+  {
+    "path": "artifacts/afilli/app/profile-edit.tsx",
+    "bytes": 8503,
+    "sha256": "25c655fd22d69bb7c7da5ff37368901d59c6db0b4cd8eeede7995236efa6ffa5"
+  },
+  {
+    "path": "artifacts/afilli/app/profile-settings.tsx",
+    "bytes": 7968,
+    "sha256": "745bb53e81cde43086f64c8319b00ae716e4981e0e5146166d052bc4538ab1d4"
+  },
+  {
+    "path": "artifacts/afilli/app/read/[id].tsx",
+    "bytes": 3387,
+    "sha256": "27710cb4e25f30467292d4c123d6835c6476bf715648496101d0b17ad251120c"
+  },
+  {
+    "path": "artifacts/afilli/app/search.tsx",
+    "bytes": 2988,
+    "sha256": "7a6c03f1572ba5143094082c1b208a8df83ed0e1b40b0b94c2a0f9b6de437469"
+  },
+  {
+    "path": "artifacts/afilli/app/sign-in.tsx",
+    "bytes": 7431,
+    "sha256": "13c2b7bacebf57a28be16728281b8a5d2875be9a19a97df36e48c7a4bc7fc95f"
+  },
+  {
+    "path": "artifacts/afilli/app/sign-up.tsx",
+    "bytes": 4399,
+    "sha256": "20e3688427f095a8c8635a5419d7bd4ef4f9c691e0ab9568dd9e33172e9d866e"
+  },
+  {
+    "path": "artifacts/afilli/app/social-admin.tsx",
+    "bytes": 6256,
+    "sha256": "2eb67d8831b19eb8cb13c3b0a43bf2684de85a31cb74cf6ecd23dfced6359642"
+  },
+  {
+    "path": "artifacts/afilli/app/store.tsx",
+    "bytes": 3777,
+    "sha256": "f9b15cdf8fc71fbc3edd203d3004c63653e486be1548576f4e8cc5d86ef0f9e7"
+  },
+  {
+    "path": "artifacts/afilli/app/subscription.tsx",
+    "bytes": 3068,
+    "sha256": "35d0e89fb3271e12ad05e41fa50cbffb9c36217007a964b03b3f0116c86d3e1e"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/icon.png",
+    "bytes": 874904,
+    "sha256": "7ef4f0d7ca9fada2e49f6b99f3ddee29e6dd4288e54f9627004c21c83d257416"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/magazine/autumn-cover.webp",
+    "bytes": 10612,
+    "sha256": "9f9c9d6389e7f8996cd1aa8ccdd6fe8ebca446d1c4da2b700d929fcedca2a024"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/reference/afilli-logo.png",
+    "bytes": 60893,
+    "sha256": "5729d7e9547c779024695d4875cd55a95211bd5f06bf4bb223dc8789e9c136ae"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/reference/forest.webp",
+    "bytes": 6558,
+    "sha256": "87c7980826e22aa72a822af6d89afdbd8a9815758f70b28b14b84bb979d544e8"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/reference/night.webp",
+    "bytes": 3630,
+    "sha256": "9fda25a30d0baba7c880f29e66b285bc62193b69dcc51befca6c3862a704a961"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/reference/paper.webp",
+    "bytes": 738,
+    "sha256": "011491c792e7733d42ed751c686c759c792ffd828c8def1c5b39ef1bcfabba1a"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/reference/shadows.webp",
+    "bytes": 6458,
+    "sha256": "6bfb538a78120dfe3db2e8775ffc292628aa40c895439a51c3d275e15c334453"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/reference/stone.webp",
+    "bytes": 4172,
+    "sha256": "f6a471231ac1c75991a49f4439f1c08cd7f2f86a113fc4a8b2a0c38717b9ab7d"
+  },
+  {
+    "path": "artifacts/afilli/assets/images/reference/time.webp",
+    "bytes": 4536,
+    "sha256": "8e1e5ef27744dc61cf263fdfab0b80dcc66313a5abf9455dfb913b17253a81e6"
+  },
+  {
+    "path": "artifacts/afilli/components/ArticleList.tsx",
+    "bytes": 2557,
+    "sha256": "dc57a7e88587d75d368e85759e784dec7feb95261fe97c590b48957b9504ce84"
+  },
+  {
+    "path": "artifacts/afilli/components/BookList.tsx",
+    "bytes": 1443,
+    "sha256": "18e0c294e724acf05ae1ed6ce36431d35c46793af6129a0b63c22bb8c77b3714"
+  },
+  {
+    "path": "artifacts/afilli/components/BottomNavigation.tsx",
+    "bytes": 5710,
+    "sha256": "33a8d1cbc0d785525ccd8a8b97dfee5588b591e4829d9d3687b2ced50435cd1b"
+  },
+  {
+    "path": "artifacts/afilli/components/ErrorBoundary.tsx",
+    "bytes": 1673,
+    "sha256": "4e6d457cbb4b8c25922e431e08f3a60c036bada40482999ccd897d510334c846"
+  },
+  {
+    "path": "artifacts/afilli/components/ErrorFallback.tsx",
+    "bytes": 6702,
+    "sha256": "afd5093c4c57531ba51fd1c4698177064c2576ce43d9a65978c9bf1b0f2aa531"
+  },
+  {
+    "path": "artifacts/afilli/components/KeyboardAwareScrollViewCompat.tsx",
+    "bytes": 747,
+    "sha256": "5f55681a8a1f4293cf3c5da92a42cbdf22eceec50d71437b78e43ffdfa6bbb88"
+  },
+  {
+    "path": "artifacts/afilli/components/MagazineUI.tsx",
+    "bytes": 7940,
+    "sha256": "d20b589f0fdc886ba635676379986c1a8343dc8267fd59775077c7c1acb08135"
+  },
+  {
+    "path": "artifacts/afilli/components/TabTitle.tsx",
+    "bytes": 793,
+    "sha256": "a9c19d9889bceda16314ee92c65ea64341f358a212da56527bfb1f167bb20c3a"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/Auth.tsx",
+    "bytes": 6323,
+    "sha256": "01c81d39e427e6df1dfef58bccc5908037e9c99bb2b13ae9004b96cdbd1c4448"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/BookPicker.tsx",
+    "bytes": 6718,
+    "sha256": "33cd0ec347a14b124bc783079e921d8c96e52a043413c1b0782d645d8f215ee2"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/BulletinCard.tsx",
+    "bytes": 11978,
+    "sha256": "9798638c051b2109a917bb5a9effa090349c99485fc9989ebdb35bfea5437358"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/Comments.tsx",
+    "bytes": 11147,
+    "sha256": "7771800ab4e976654f18a927fd3d8c788e9a031678d1277d4e838d90c92fe289"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/Composer.tsx",
+    "bytes": 13779,
+    "sha256": "00e249f1e369a2fa4d40b74ab2b4aea96cb211012f2bf126c7aba7be02df0c6d"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/PhotoTools.tsx",
+    "bytes": 5661,
+    "sha256": "0f7e9048195746ef911b09d448b0dccfedb4d47a5605b89b3feb8d8b1dc24fd6"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/Reactions.tsx",
+    "bytes": 5762,
+    "sha256": "e402eb193cf72f9e1c5f4fadb45b2b6f17654f9b592db8db5823561b01df94cf"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/TopBar.tsx",
+    "bytes": 2276,
+    "sha256": "5fcb96ce36185a6db76a2ea9f41b19acb00db219ba670a31e9bd0dcd4994aef8"
+  },
+  {
+    "path": "artifacts/afilli/components/bulletins/common.tsx",
+    "bytes": 9574,
+    "sha256": "ff0826e4fd8c04999dc8c39e02ee81fcc2b1cf2165cbc5af84185c6c4733200d"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/ChatComposer.tsx",
+    "bytes": 7086,
+    "sha256": "843dd7614e89169e4a534fd6f666a55710ff8a27dbfb5f6be9752adcfb6078f4"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/ConnectionsSheet.tsx",
+    "bytes": 3109,
+    "sha256": "9b35d20b15f8dccc04b8da7e6bff18bf81963a4b638a01b4def3a5bf52aaff74"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/LocalShelf.tsx",
+    "bytes": 3829,
+    "sha256": "bc5edfb2368a4f1266441a035a40d72f8d1340655c9d671f8a0dbbd2d6764679"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/MediaField.tsx",
+    "bytes": 5465,
+    "sha256": "4d38855517e3743111ec0a436ce87d5b2ed64c05510a13d41009e741131ac2aa"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/ProfileHeader.tsx",
+    "bytes": 4537,
+    "sha256": "5fee3226ff6481095713ffa9b13c3ce61ef88f58bba8077961a828a9c1a7a4ea"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/ProfileTabs.tsx",
+    "bytes": 6217,
+    "sha256": "cc70fe062228cd8c0d99b1a528ccf653a97ded1421993b69e6444239b3715d1d"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/SocialRow.tsx",
+    "bytes": 6469,
+    "sha256": "9ed231ebc49c8c6dbd6f8e9766efb7a8065438ceae5692c3a162ccd526bf7b50"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/hooks.ts",
+    "bytes": 3649,
+    "sha256": "747ab9a70ebaf685473a5343ab69f7e40d00effc73f93dcea96a25c8e1a00007"
+  },
+  {
+    "path": "artifacts/afilli/components/profile/kit.tsx",
+    "bytes": 15500,
+    "sha256": "ee9d72cf49ae4a92aeb68049afa6e0c4494b3efcf279af50171bd17e899dbe04"
+  },
+  {
+    "path": "artifacts/afilli/components/ui.tsx",
+    "bytes": 8353,
+    "sha256": "88616a8b3f02942efafafe4c0280398e3d64bbfef98a330250077b3817045406"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/BookComments.tsx",
+    "bytes": 4461,
+    "sha256": "7c155346896d1da3eafe57a38e9ad5555a08d72295eb5ab36733a4356609be1c"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/BookInfo.tsx",
+    "bytes": 4193,
+    "sha256": "e592cb9296116f69a984435cdb4e0610fd064ec357cb85abd7a377eb435dbac6"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/ChapterList.tsx",
+    "bytes": 12281,
+    "sha256": "bb31e05be51442da91446e6d11a889e4c9b9a9899d293f64f6918497caa8aed7"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/CoverCard.tsx",
+    "bytes": 9056,
+    "sha256": "858b22eeb0ea9409df18a2280fcae8d3a29b74568ce3b15df32367137751c55d"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/CropSheet.tsx",
+    "bytes": 6283,
+    "sha256": "e30d85a41039b2e2465443c789fd2a731cb4c02380e5e97502994d85f1c2c80e"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/EditorPanel.tsx",
+    "bytes": 12361,
+    "sha256": "200fd0f80b543b6f1722ae13795a59e8a9237cebbb45979c6812381b6da6e8a1"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/HtmlView.tsx",
+    "bytes": 10684,
+    "sha256": "8419380c3dae03eb9bbe48c6491add9805f259ea71fded8cca6eb82c051d393e"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/RichEditor.tsx",
+    "bytes": 1779,
+    "sha256": "75e0c6d85172d3f37e43cc9ca26fa1831b89d35b1758008d5d1a8ce86d9a9b3e"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/RichEditor.web.tsx",
+    "bytes": 1421,
+    "sha256": "071d6912f700df7b6af6166a0410d30c800dd382faebd980bd2974fe897aad6a"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/Toolbar.tsx",
+    "bytes": 6616,
+    "sha256": "385bb09a3c9d0016b07a2af907a45e5a7f96286335ff36afe846f5a8a00defc2"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/VoiceSheet.tsx",
+    "bytes": 9944,
+    "sha256": "cd05122b4bba24cda0e03f994ea9b14cc73b5e0938dcab4368b2f18fb12fd054"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/WriterScreen.tsx",
+    "bytes": 17321,
+    "sha256": "5b27699ebff2fe397676bfcfea3f1c846d34d213557db89aae36763ed50f54e5"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/WriterShelf.tsx",
+    "bytes": 14512,
+    "sha256": "ba438a1ecd8d2148a288017ced9b40e55a312d88f6704d93f30cbc1f7fe83786"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/editor-types.ts",
+    "bytes": 475,
+    "sha256": "e845b0701463f52308a10168b6f64aa3d1b449f4ae0796832f17581ce980cd1d"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/parts.tsx",
+    "bytes": 13174,
+    "sha256": "82e2d913777f25d11a77a594a1139b0efac6201d441961d88ad9de4d4d0dc293"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/useEditorChannel.ts",
+    "bytes": 3499,
+    "sha256": "357b88f36ee824ca315883cc2c7eb9da886f6fb2123a51fb0b130495b684835f"
+  },
+  {
+    "path": "artifacts/afilli/components/writer/useWriterBook.ts",
+    "bytes": 18746,
+    "sha256": "86620f348802fc573204955987d00d749223a15d1c4dc1c6c6910ecf63b1b92c"
+  },
+  {
+    "path": "artifacts/afilli/constants/colors.ts",
+    "bytes": 1446,
+    "sha256": "a2136be9235db5aea8be5ef56621cac23eb2d951a18284ba91a0f61eead07a37"
+  },
+  {
+    "path": "artifacts/afilli/context/AppContext.tsx",
+    "bytes": 7539,
+    "sha256": "3792c45b7d6df6b5a238b09323c25aae6c5342331812f028ebb0d1dc2e2bfabc"
+  },
+  {
+    "path": "artifacts/afilli/context/CommunityContext.tsx",
+    "bytes": 4304,
+    "sha256": "0495f56c1b8ec775deadc1d5bec84b063aebb2c6b4be54212101154304166887"
+  },
+  {
+    "path": "artifacts/afilli/context/MagazineContext.tsx",
+    "bytes": 6570,
+    "sha256": "c297eb3988934593bdc9ef227e715e1defd5384d2e6ef48470d94b6b0896d16b"
+  },
+  {
+    "path": "artifacts/afilli/data/catalog.ts",
+    "bytes": 11189,
+    "sha256": "4f9dbbd89df9eaa72e98786decffd5b3c605dd0f29cda0d060e1b9c4b005f1d2"
+  },
+  {
+    "path": "artifacts/afilli/data/magazine.ts",
+    "bytes": 3242,
+    "sha256": "847192b1178057fbd3aaefac0d2a1b7d1f062f783d19e66615a4668220b1aa29"
+  },
+  {
+    "path": "artifacts/afilli/hooks/useColors.ts",
+    "bytes": 842,
+    "sha256": "97903ab1026b192b71c9088183d395f97f471f60a3d89d8e2c9894f37f4bcafb"
+  },
+  {
+    "path": "artifacts/afilli/lib/bulletin-photos.ts",
+    "bytes": 4504,
+    "sha256": "2457e9ecf5f6b9cb61feb712c94d19f1b4021bfe71f0d165ced97004bc59d90b"
+  },
+  {
+    "path": "artifacts/afilli/lib/chat-drafts.ts",
+    "bytes": 4291,
+    "sha256": "82915981ff2cdcc92c8376f296d0d745a1eb53de7392f949def0ee7963c0620b"
+  },
+  {
+    "path": "artifacts/afilli/lib/local-account-data.ts",
+    "bytes": 6551,
+    "sha256": "9967c736ba9520a47fa139b7885de73e887997ec3dae3c6c360709d060585073"
+  },
+  {
+    "path": "artifacts/afilli/lib/profile-media.ts",
+    "bytes": 2627,
+    "sha256": "a02662f0242b257e70285ef169e93d58f8acd1556d6b1d524460c17caf4e9617"
+  },
+  {
+    "path": "artifacts/afilli/lib/social-links.ts",
+    "bytes": 2976,
+    "sha256": "4a93b27a5b9b94f5b940a8f50cde2ee173b5d3d939e90183c23e1d08268f59d0"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-editor-html.ts",
+    "bytes": 14307,
+    "sha256": "84ee099121dff0dc85aebccdf7015ce32ca34476949b30b4b4a14d1ca298ad09"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-media.ts",
+    "bytes": 7106,
+    "sha256": "cbea10efc34960fa60bc3635aa7943c1b11f4b77bd092a9d96e8ba288e64d0b5"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-storage.ts",
+    "bytes": 3889,
+    "sha256": "32b8eba17887a39a661820b5ab1eb0e28b813573fc0b80b0cbe4b38a22d17fea"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-storage.web.ts",
+    "bytes": 2612,
+    "sha256": "d66f745530013a2bcdc07110df21bbb1f8764f5e0ff1365fbb0a6a3372aa9dc5"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-store.ts",
+    "bytes": 20707,
+    "sha256": "fbefd386eebb2cf080de8e783aa95c77421032093ac207d7665032325a76ab81"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-sync.ts",
+    "bytes": 8370,
+    "sha256": "554c9276524ed02ebefd56128f5d121663f2ecbf2886692f435c1b1e102e89ec"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-text.ts",
+    "bytes": 5164,
+    "sha256": "02494fe6f0f9d8a8f5d304b72bbc9617d145a3bd51ac05fa4788a00aa691625d"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-voice-types.ts",
+    "bytes": 586,
+    "sha256": "9a926e446fa3862d3557f1c4e4e5a18d45e3860daad703a392ee484095be0220"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-voice.ts",
+    "bytes": 2735,
+    "sha256": "4b610d14224cc915b58d8d7e67bec2cf7a20c64a23641e9f1bd9eed8625ffd98"
+  },
+  {
+    "path": "artifacts/afilli/lib/writer-voice.web.ts",
+    "bytes": 3576,
+    "sha256": "19f23b22f927936b280cbe95cac31cd46212da81bd1a2b34141c528d8fe99bbc"
+  },
+  {
+    "path": "artifacts/afilli/metro.config.js",
+    "bytes": 106,
+    "sha256": "0d2906cd24cc51269fbca472f3f68ab2fd79ad2347f301745811363270943d7c"
+  },
+  {
+    "path": "artifacts/afilli/package.json",
+    "bytes": 2783,
+    "sha256": "26295acc2ec9829214ffe8e1751f1dce51598c0fb4acfcbea8e23c0f50f05939"
+  },
+  {
+    "path": "artifacts/afilli/scripts/build.js",
+    "bytes": 15826,
+    "sha256": "8d17e754d2135646c6eed95aa605b515d77fa074e631e2fe5e021dec3bf2b32c"
+  },
+  {
+    "path": "artifacts/afilli/server/serve.js",
+    "bytes": 4694,
+    "sha256": "2e1e13c722bf0aafe6a961ab6c2773621994ccabdc4655f6c9b11d3ad2237341"
+  },
+  {
+    "path": "artifacts/afilli/server/templates/landing-page.html",
+    "bytes": 12572,
+    "sha256": "ac1c8a3673ab020e2132a4675425addd243f8a2bfb6fdfaed3bfc3d474244ae1"
+  },
+  {
+    "path": "artifacts/afilli/tests/magazine-browser.mjs",
+    "bytes": 9091,
+    "sha256": "2a73094946757154838b83a642cf03e6679b00f6c74c51efc65ac543630defb1"
+  },
+  {
+    "path": "artifacts/afilli/tests/magazine.test.mjs",
+    "bytes": 2095,
+    "sha256": "045aa8054acceec28470a6fcfa3758aa0b340cc8bc4a7529d4346f48beb8c836"
+  },
+  {
+    "path": "artifacts/afilli/tsconfig.json",
+    "bytes": 284,
+    "sha256": "4369de09d3bd3375af64d495c1f3ce3f682dbe41b4162cdbfebec837012288e3"
+  },
+  {
+    "path": "artifacts/api-server/build.mjs",
+    "bytes": 3478,
+    "sha256": "942a2e291e1edffcd0388869cd0d4ebf1bc044dd1df6c232cc9cf3d7b103d05b"
+  },
+  {
+    "path": "artifacts/api-server/package.json",
+    "bytes": 1847,
+    "sha256": "2bbb6b24475005a6cd7e5e8e5d7b7fddfe82dbe9c1f6f08383433db19da27a02"
+  },
+  {
+    "path": "artifacts/api-server/src/app.ts",
+    "bytes": 2039,
+    "sha256": "4ed9b90a292d874ed40c97020ee2564983301c7c761598fbff5f95695cf0e066"
+  },
+  {
+    "path": "artifacts/api-server/src/index.ts",
+    "bytes": 1265,
+    "sha256": "9189e8384036e1fb43292e0dacdfbc6e4ed1785724dca820c7e6da6cc3f7f098"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/.gitkeep",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/admin-bootstrap.ts",
+    "bytes": 1839,
+    "sha256": "7e45b8c804156c32d14f9d531df536a30e8a12bb7f6e1e2273173ae36473253e"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/book-access.ts",
+    "bytes": 351,
+    "sha256": "a8964c3a31504789d60040154c06ad6d22dd976af35b107a2b1d0fbc2f820ca4"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/bulletin-storage.ts",
+    "bytes": 3657,
+    "sha256": "1049151c5c518815ea61a2d8d5ac0f0466b06c6307a9d4ba8191e1e2b37aa4dd"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/community.ts",
+    "bytes": 7102,
+    "sha256": "fdf7722d3a37bde1f1de5f3ac94934ef227339fc7299edf66ae203ac76d32084"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/logger.ts",
+    "bytes": 421,
+    "sha256": "29e1ca75036fe917595a3a74fd450857d845836fe0625c30b9caa02df4acba62"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/social.ts",
+    "bytes": 5934,
+    "sha256": "cb865fc3aceb3a8e25b27ba0b147927827f29b1e55804649967c6b3da88adb9e"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/writer-cleanup-health.ts",
+    "bytes": 4855,
+    "sha256": "aab30abec44d22f2146c2f98a42f75b6baa3451abdd8694e7f19caf863472206"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/writer-document.ts",
+    "bytes": 7790,
+    "sha256": "b66b7e5656cfadb5b01cd195f1f03a7c5a867b7da52c9a99e0bd8008ffccb7c3"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/writer-retention.ts",
+    "bytes": 7316,
+    "sha256": "349b414a79f35915421ce629acc7dd62a76b43c622feb3839cb6684c292a0837"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/writer-service.ts",
+    "bytes": 19733,
+    "sha256": "0045a3f5f7ca66f9bc928bcbe56ca1be493e4bec64b78dc17e33a1e04eb4009e"
+  },
+  {
+    "path": "artifacts/api-server/src/lib/writer-voice.ts",
+    "bytes": 7327,
+    "sha256": "915be768ced1d917908760b91f404112415110e925a4827c9cb408f8774fc047"
+  },
+  {
+    "path": "artifacts/api-server/src/middlewares/.gitkeep",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "artifacts/api-server/src/middlewares/clerkProxyMiddleware.ts",
+    "bytes": 2728,
+    "sha256": "c6ace691696f64720dc7c5f0165190989781f252a828ad08c11b348728cd8daa"
+  },
+  {
+    "path": "artifacts/api-server/src/routes/bulletins.ts",
+    "bytes": 14785,
+    "sha256": "e626d7575e76d3910b3ab647228726a1168e589eb0122af010b005ec61cc3756"
+  },
+  {
+    "path": "artifacts/api-server/src/routes/health.ts",
+    "bytes": 288,
+    "sha256": "0386ceddb4ff4bff220af72ca38a62191ad95a2f41fd619df3bb9ceffce03db2"
+  },
+  {
+    "path": "artifacts/api-server/src/routes/index.ts",
+    "bytes": 596,
+    "sha256": "449e3b3a189c0782c56df9299400a5824a7f6debdec9a52de6da83efacd5f3e2"
+  },
+  {
+    "path": "artifacts/api-server/src/routes/messages.ts",
+    "bytes": 7993,
+    "sha256": "8a2d9711cbfa952de9d554f4babb7ba9b3cca36f942a8bb4182b9851dd253692"
+  },
+  {
+    "path": "artifacts/api-server/src/routes/profiles.ts",
+    "bytes": 9927,
+    "sha256": "0adaa93ee0131d4efd19b63de0344a782dfe3f43b05568cee83ec154c171a75c"
+  },
+  {
+    "path": "artifacts/api-server/src/routes/writer-media.ts",
+    "bytes": 7508,
+    "sha256": "302df9729e47a9765d2572cdbf684d83e13dd93dbe34437391d3474c6a9f6124"
+  },
+  {
+    "path": "artifacts/api-server/src/routes/writer-tools.ts",
+    "bytes": 3058,
+    "sha256": "6c00bc7de305152e10275436a014a2d8b45120ed8bf5a50b1960bd6c7027e3c1"
+  },
+  {
+    "path": "artifacts/api-server/src/routes/writer.ts",
+    "bytes": 7945,
+    "sha256": "604fe6acbc9d0f63990227dcd2b5a180b754c9a503208bbd9df17c9ee269e75d"
+  },
+  {
+    "path": "artifacts/api-server/tests/bulletins-browser.mjs",
+    "bytes": 11248,
+    "sha256": "a64876bae88d1e721301f12c7758d2a37fe6be6f91ffcd61228cd653a9862358"
+  },
+  {
+    "path": "artifacts/api-server/tests/bulletins.mjs",
+    "bytes": 9686,
+    "sha256": "c84e63ac0db35d218e1a0ec7cf6d0f36a978405b3e3cf60c52b0852445c4a908"
+  },
+  {
+    "path": "artifacts/api-server/tests/chat-drafts.mjs",
+    "bytes": 2556,
+    "sha256": "64f152cb7422c2b1058d89a0062d7c9d9fbd369d1b8f3ab9a73467f73130ff6e"
+  },
+  {
+    "path": "artifacts/api-server/tests/helpers/writer-retention-worker.mjs",
+    "bytes": 3457,
+    "sha256": "183429ca8266f984a33b066b9b970512c55b4f16f0c5e72d0cb13eaab8df2c1c"
+  },
+  {
+    "path": "artifacts/api-server/tests/local-account-data.mjs",
+    "bytes": 3923,
+    "sha256": "4c4d315257ca5ebab29cbd541cf339164bf8de0c428b582b630db730328771ed"
+  },
+  {
+    "path": "artifacts/api-server/tests/profiles-browser.mjs",
+    "bytes": 15447,
+    "sha256": "7b9b9658f824c43a494560cbd02c06ec231a1c79aa816ee2cdf74c22215b9032"
+  },
+  {
+    "path": "artifacts/api-server/tests/profiles.mjs",
+    "bytes": 11755,
+    "sha256": "bf0c660ede2be552351317400c6021f4ad33768ca66906d92af95f382a3926ee"
+  },
+  {
+    "path": "artifacts/api-server/tests/social-links.mjs",
+    "bytes": 2472,
+    "sha256": "c7900175fa32c43e7a10bf1855eb9c4dd7675b1edcce1942494ebd4f8bdeec8c"
+  },
+  {
+    "path": "artifacts/api-server/tests/writer-local.mjs",
+    "bytes": 18993,
+    "sha256": "d55aa9b8af2d6984c00245fcc448b164c591eab335e33f215f6f55ffc78964ac"
+  },
+  {
+    "path": "artifacts/api-server/tests/writer-performance.mjs",
+    "bytes": 5346,
+    "sha256": "519bd1ad80e8f71664d92e98d7d3551461e7cfec4a3713f8efbb72fa76dce076"
+  },
+  {
+    "path": "artifacts/api-server/tests/writer-retention-process.mjs",
+    "bytes": 15391,
+    "sha256": "f84b2e4d72006036357e6eef8527de8bab4262dbdc4f663ec962b0fcd84091e9"
+  },
+  {
+    "path": "artifacts/api-server/tests/writer-retention.mjs",
+    "bytes": 16227,
+    "sha256": "7d1e3dead06f19d5b0ac553dcc5420d8a6d227032bb46e0a93060bbe44b4ba43"
+  },
+  {
+    "path": "artifacts/api-server/tests/writer-storage.mjs",
+    "bytes": 8871,
+    "sha256": "b98193eff62b4cd3922210f16003b06dd1eae97ed8088e1df429dd0a6cdd88af"
+  },
+  {
+    "path": "artifacts/api-server/tests/writer.mjs",
+    "bytes": 20503,
+    "sha256": "e0f3bb77c6a4dca47ec1c2b183f25df57db5e8b689c2c2ac8821b418a1c4663a"
+  },
+  {
+    "path": "artifacts/api-server/tools/writer-cleanup.ts",
+    "bytes": 2056,
+    "sha256": "95369791c7edf287e8c62b183db28247c8ed72a07a6af2cd04cbb47fc7c46535"
+  },
+  {
+    "path": "artifacts/api-server/tsconfig.json",
+    "bytes": 404,
+    "sha256": "c36cdc2bec8ff7c78b6b1d0892c93a10dd66fd417a99c883f66498116e28e4df"
+  },
+  {
+    "path": "docs/afilli-writer-verification.md",
+    "bytes": 4191,
+    "sha256": "546a06fbf56e5a30287174a8d1e670af045b086341485413ba63bb2964413f09"
+  },
+  {
+    "path": "docs/writer-delta-sync.md",
+    "bytes": 3608,
+    "sha256": "6ec5be12161ed2c7d9824584f61ea61ec1213c1b50f7026eb074a3c91dd8c318"
+  },
+  {
+    "path": "docs/writer-retention-process-tests.md",
+    "bytes": 2908,
+    "sha256": "bdea4709a171a5e0c3b323c9bb98410ba6172fde069f6498b5a45cc4112a9647"
+  },
+  {
+    "path": "docs/writer-retention.md",
+    "bytes": 8616,
+    "sha256": "8d59399bbd0bbfca3aad82dbb40f63e894091572151de5ea71c8bbfdc64a60f7"
+  },
+  {
+    "path": "docs/writer-save-performance.md",
+    "bytes": 7301,
+    "sha256": "04192c3b30ffae9d8dfff374be33e1ca120e8bb5c122219333779e758e952c8d"
+  },
+  {
+    "path": "lib/api-client-react/package.json",
+    "bytes": 265,
+    "sha256": "ae70f97a12d1f7e7cbb291b5ffd1d6893f0d7a0ff7721a21e615d47bccfad789"
+  },
+  {
+    "path": "lib/api-client-react/src/custom-fetch.ts",
+    "bytes": 11377,
+    "sha256": "3a5605ea89571cca7ea9412a230a40954e3a3f1d94d7a566271480165bf5e03c"
+  },
+  {
+    "path": "lib/api-client-react/src/generated/api.schemas.ts",
+    "bytes": 14928,
+    "sha256": "7f7c520ecf69da09e930ff4b6a1bb370f0be008ac8cb52dfae635aafa5956d6e"
+  },
+  {
+    "path": "lib/api-client-react/src/generated/api.ts",
+    "bytes": 215247,
+    "sha256": "6d339935ff26c99131581ca1e5366ef4fa442caaaee857d0de2e1a004fa7a0b5"
+  },
+  {
+    "path": "lib/api-client-react/src/index.ts",
+    "bytes": 194,
+    "sha256": "7974b36e3973a8d0c403589bcf8d8aca7547c5c42c4b73924d05f49de18809e5"
+  },
+  {
+    "path": "lib/api-client-react/tsconfig.json",
+    "bytes": 267,
+    "sha256": "a00fda842228e3478705abcf2c76d9641f5d6263cd5d2df0b613d5379088ad73"
+  },
+  {
+    "path": "lib/api-spec/openapi.yaml",
+    "bytes": 38528,
+    "sha256": "ca6809460e2e4e765b819439fcb8d0845ad98f3d3ac6a0c7a41f7d45633c7588"
+  },
+  {
+    "path": "lib/api-spec/orval.config.ts",
+    "bytes": 2082,
+    "sha256": "c8c5abc36e3fcdd8963de8473007ff6d08027788ec780ced570a1e579df25539"
+  },
+  {
+    "path": "lib/api-spec/package.json",
+    "bytes": 228,
+    "sha256": "15dacbf426eae69915fc57094cbd0345a198aa0f305eb0ff33915ac17de04dd0"
+  },
+  {
+    "path": "lib/api-zod/package.json",
+    "bytes": 189,
+    "sha256": "07009861b2ba8decccb4e9d78d743cb7273bd91915231b5eb1463b296efca13e"
+  },
+  {
+    "path": "lib/api-zod/src/generated/api.ts",
+    "bytes": 51738,
+    "sha256": "b7cd9ff55e486b24aeafd43100a5c3776168b8196fdfedf6ebda5f9eeab87586"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/authoredBook.ts",
+    "bytes": 754,
+    "sha256": "4d61a35df3cd5e3ada2d9224b1d9ecb131fe120d19a33a7db94cb677f95e2218"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/authoredBookInput.ts",
+    "bytes": 294,
+    "sha256": "d98d9dc663f1adb3c02831865bc56c2f5aa50636394092c4b9a8e66c7a33b647"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletin.ts",
+    "bytes": 645,
+    "sha256": "145db8e8332272dce1f39ee9fa356fb4f3008a2aa99693d6a5265f3af4a74730"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinComment.ts",
+    "bytes": 579,
+    "sha256": "cdc8047f8246ff2314b625693c919cc8a6519323198bf47cb55340e8712fcdff"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinCommentInput.ts",
+    "bytes": 282,
+    "sha256": "0baa413c97887088acff734d23b8477b1430308a4b4e677c8189b717c750088f"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinFeed.ts",
+    "bytes": 267,
+    "sha256": "85648f1e2df52a04fb70fbeee3d60844d97875d0d07e6ff9015c0161e2d75c10"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinInput.ts",
+    "bytes": 304,
+    "sha256": "b8db5f52eb1b1a0442c9e799880f69b8cfd705004234490ffeddfe04971e5ed5"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinLikeInput.ts",
+    "bytes": 177,
+    "sha256": "1729232327b9757092f81f5ac4a56ddc8448cf6c78e562f9d1dc5348080e687c"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinNotification.ts",
+    "bytes": 295,
+    "sha256": "1d0e22c77e304bcfed917e31ba3b27e8466a7bce2df879d7902e36ea27c789eb"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinPhoto.ts",
+    "bytes": 184,
+    "sha256": "a63f48ddbdea1b09e2d2585ea7ac5bb6631c4f3389dfcc3aca1929327e531f71"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinReaction.ts",
+    "bytes": 213,
+    "sha256": "b38cc43915a293f871b678061abea66f4dafb737073d562c8e419a59d58ca6ee"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinReactionInput.ts",
+    "bytes": 363,
+    "sha256": "4564ff92b38764838216b219e6d2dd985c6cc57a166d8f38943b406a33d887ea"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinReactionInputTargetType.ts",
+    "bytes": 353,
+    "sha256": "774499f06f3e0ca6c3cb6e759ec31c6c71ec15dc185287e7ad2d449a530061a7"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinReactionPerson.ts",
+    "bytes": 266,
+    "sha256": "29696d0ab23d2b163e5f87f1eec941b3a9cc834ac6c0536b378f63be2bdc3845"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinUploadInput.ts",
+    "bytes": 369,
+    "sha256": "10d562e61731b53e233fcc25a869936a500e86047268800c46c1fd177aae8ec2"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/bulletinUploadInputContentType.ts",
+    "bytes": 399,
+    "sha256": "e58a623ddc4d1933adafc4fce003ca409a2b09b93233dc42605b1819c204a39d"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/communityPerson.ts",
+    "bytes": 235,
+    "sha256": "1f633155042e41b8aa2929f53d503b1df9205820e39a580802c4968da7e0a9df"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/communityProfileInput.ts",
+    "bytes": 238,
+    "sha256": "e44863c97833e4616d9455147697955da8b8461e75b3439eb569c800dc86ddb1"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/conversation.ts",
+    "bytes": 440,
+    "sha256": "5f5893d2f0b437be4cf632a381484b3c6351e621310ae78b4ef56b21d4897807"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/directMessage.ts",
+    "bytes": 355,
+    "sha256": "27d943df8efe56158714c96dabc605fe5ab031bed18ef1cce8415977b39c148b"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/followInput.ts",
+    "bytes": 175,
+    "sha256": "a06d96e55ca81b7eba2737f84d3a432e8cb1d8dd1646061ead7aa8f5e54eab68"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getBulletinReactionPeopleParams.ts",
+    "bytes": 336,
+    "sha256": "7c95f72626716b46e37068a0dcbdb4604985d2f558e269aeb37a9a26e9b598e3"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getBulletinReactionPeopleTargetType.ts",
+    "bytes": 369,
+    "sha256": "0b701f69931825c65125b622d32ea8322e644b2e32bc463d2e066df994b0fb66"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getBulletinsParams.ts",
+    "bytes": 175,
+    "sha256": "33a75d9c0317bcd06f2dc15de1f484597697812909de7da1c8fb8cbb58c26fb9"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getConversationMessagesParams.ts",
+    "bytes": 186,
+    "sha256": "487dc4853061029764f95b9be8f5e71c60a9009c9335fe4c278467c8b2033ee8"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getPeopleParams.ts",
+    "bytes": 189,
+    "sha256": "f174b89c78bb0c52e7b6a258e984decb1b9a2cac5cc1f98e810ad7a08dc1173e"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getProfileConnectionsKind.ts",
+    "bytes": 343,
+    "sha256": "3575f79b70432b2087bc40b952316fdd061bd805d1f790bddcbf16020b30d455"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getProfileConnectionsParams.ts",
+    "bytes": 295,
+    "sha256": "cc42fead82a4b3c37ced7fcf6ed7dd799c3e3ba2fed0fbffef02a4e305b05d73"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getProfileContentParams.ts",
+    "bytes": 275,
+    "sha256": "031e01f3a2fca717f5362d4579271de64b04d0c178f4ea84e17f9555167475ef"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/getProfileContentTab.ts",
+    "bytes": 333,
+    "sha256": "8284d45bc4c274945019ae8832cd04043f4e557e1a3ccbd9ea7ac8d5ee18b403"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/healthStatus.ts",
+    "bytes": 172,
+    "sha256": "cbf343355d947ee2a2fc7c6ff659866f5620a9fd2f1c84de981041f5b4aefc87"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/index.ts",
+    "bytes": 3126,
+    "sha256": "595d8e0e3622555351069484794df8dcfea9f241a0629efa6faa0ee2d395da44"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/messageInput.ts",
+    "bytes": 247,
+    "sha256": "230d6a7da2ee65784931313aba547a1fce2e864d09b3f6eda9fbedadf06eaf17"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/messagePage.ts",
+    "bytes": 281,
+    "sha256": "8be0f2c43cb9f88d78f38ab629685598d94e04cc0fddb1d60ad228d9451dbe7a"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/peoplePage.ts",
+    "bytes": 286,
+    "sha256": "d67743e3b25076fee48592a2bbe8bcbebbfdcb27e514e6f918a73508999b354b"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/presenceInput.ts",
+    "bytes": 174,
+    "sha256": "781cd6f11537769efc125867f6893981c69a69491913afad089b5ca78088310d"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/profileBook.ts",
+    "bytes": 439,
+    "sha256": "10cb6acd07ee357cf6d1d0cc283fd8086a0a582da3aedc3f5d881111c92ab873"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/profileContent.ts",
+    "bytes": 347,
+    "sha256": "a86a4bfeee990bea6574864849c18d54563e5a5cab24c629480b71dbb86d3326"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/profileEditInput.ts",
+    "bytes": 571,
+    "sha256": "166acd4ac794d0151e76ba24c26f01356dc72960ee664b6fb37b4772fc8f746f"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/profileUpload.ts",
+    "bytes": 190,
+    "sha256": "433a39a7356f71b9cba237e6ae156096567e038a731433dfd08866ba4d4f6d3b"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/profileUploadInput.ts",
+    "bytes": 481,
+    "sha256": "d8889faed814e0af75beb74289489a871a24663ae06a262a36740bcecdbbdc31"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/profileUploadInputContentType.ts",
+    "bytes": 395,
+    "sha256": "72fee022ac791c3e1c663a0740d5b78c38bc0f1b6342160a6128140e11eac73c"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/profileUploadInputPurpose.ts",
+    "bytes": 329,
+    "sha256": "b8e20245c42e688439c7e50abff8f80229cbc36e73ab715aa91a77eb4ae2b00a"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/readerProfile.ts",
+    "bytes": 629,
+    "sha256": "35742f4d848410cce9d459bd35716cb46146b369c4fe63b526a282db64dd6857"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/requestBulletinUpload200.ts",
+    "bytes": 199,
+    "sha256": "d91b02fe9f8ac08eb56d20bd5cc892913fd63f9ca9151ee2598d9f22e3055c98"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/socialNotification.ts",
+    "bytes": 337,
+    "sha256": "cecf960ee1f73e76c8bea49fcf546fdadb45781cae629d098dad5d54474579e5"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/socialSettings.ts",
+    "bytes": 548,
+    "sha256": "9bc06f665be918fd6e44b2c473dcd6e4fc5922a3008f6b793f6eae61aa7911eb"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/startConversationInput.ts",
+    "bytes": 182,
+    "sha256": "6604f7ab2f2ed56e40c7d31a99f2aadb64a5eb3ac7c3f57988f9e2b90556319a"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/typingInput.ts",
+    "bytes": 172,
+    "sha256": "606e4daf4f7bd77e0aac36a0047f353725cffbfc1e9fb59ffd96492c578c32f7"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerBook.ts",
+    "bytes": 493,
+    "sha256": "64b8ac16dc007a7697be914ac13650451323c7fe6c23f991b8dbc0f2bd3f7c9f"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerBookPublication.ts",
+    "bytes": 319,
+    "sha256": "dc86551e7c05742b9d83516a6f5f6b0491f1e8a68a9c21ab4eb81a2a31837db3"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerChapter.ts",
+    "bytes": 350,
+    "sha256": "6636e55e969ab3de4c8123299ffeec1cd957e4646a4400262c742e809c826753"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerChapterStatus.ts",
+    "bytes": 311,
+    "sha256": "6684fce70175dda60b642ab3ff8167a99f1c95d8e474c6473cabe85741309770"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerComment.ts",
+    "bytes": 338,
+    "sha256": "b7b90057f0642b41156cb36a9b7276e621fdf33ea5284b77fbb603e8ee9c405b"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerCommentInput.ts",
+    "bytes": 301,
+    "sha256": "5a4cfc07ee009b125aef4dfd2a0e97ebe882ced3f741603e0146e24523185812"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerDeltaInput.ts",
+    "bytes": 623,
+    "sha256": "8d1ebaabeac40d43e003e69621d5ecbf94a0eb932227fd1dfc5159b74fc05bb5"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerDocument.ts",
+    "bytes": 831,
+    "sha256": "52fb80a1a515604b9b73e8b437ef06dd1eeff8ad43b2fc4c20e088103cad0be0"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerDocumentAgeRating.ts",
+    "bytes": 335,
+    "sha256": "d0c7afdf1adabcaaa01cea15bc32c8560bcde1a6465786b0c41008e932a7d4c6"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerDocumentCompletion.ts",
+    "bytes": 335,
+    "sha256": "ad0820c6b3d7182f05a3629019b3385688ba388e452ced03f81a9b0c695c41cc"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerDocumentGenresItem.ts",
+    "bytes": 495,
+    "sha256": "5f9b0eb29f0940ed94f7a0e3a4b6f5936370569b48c07817bd9e9a411e3a22d0"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerImage.ts",
+    "bytes": 182,
+    "sha256": "b35130eda15ecab11b107379e1f5a0bcbbb2036c6aec3961bc6daac10c17c7d4"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerLikeInput.ts",
+    "bytes": 175,
+    "sha256": "a0400bfc9811f4485747e616fdb511cc412f154644e6f8249e78624697494f78"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerMetadata.ts",
+    "bytes": 725,
+    "sha256": "759504fb539605365cf9c9b3b787246a124c7c0cbc00e5844b51624cc9a0df5c"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerMetadataAgeRating.ts",
+    "bytes": 335,
+    "sha256": "a911aeeb173ebf76a823e2d08a409526340278b96082177cef54109c1621c246"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerMetadataCompletion.ts",
+    "bytes": 335,
+    "sha256": "96db69c226e980a02258708d8501bcab10619c5444d350f2d6585bc070a1a6d7"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerMetadataGenresItem.ts",
+    "bytes": 495,
+    "sha256": "1d32a8e982a1b1af13f4da79b436377720c55aa94e19a1d033dae1dd9f43c2d1"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerPreset.ts",
+    "bytes": 217,
+    "sha256": "b1a019feec0e683ab2c52167116712caf620312d09861ab0ebd393534738a46d"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerPublicationInput.ts",
+    "bytes": 358,
+    "sha256": "85c26c5ab264857ed039db66dc92aeca349d296897aa74981bbb86798b92ebf7"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerPublicationInputAction.ts",
+    "bytes": 419,
+    "sha256": "ac3f1c71334d3e246ecc70a204621a7c01b1883e4f8b329311715e0125192cb4"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerRevisionInput.ts",
+    "bytes": 209,
+    "sha256": "6859e522dea15377e9b6cdbc316818ec8d46e58b8019fdf7f6a49c5d9e7a0a58"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerSaveAck.ts",
+    "bytes": 274,
+    "sha256": "c74a70d6cbc3f44ce6bb88732ac8fd60e569a6cf5f992b5e1698e8fae74b4e86"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerSaveInput.ts",
+    "bytes": 351,
+    "sha256": "156fab0f6c7cda28bd5ca7d67fd98ec34e00440c1a9f8af27d1ae21957169ce8"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerSpellingInput.ts",
+    "bytes": 203,
+    "sha256": "d9c8cc34bc115620c466c8efb884170e71fa5ecb0273d35e2f624394fbb0dab2"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerSpellingIssue.ts",
+    "bytes": 238,
+    "sha256": "b9394d3f14fff931d368d9ada20a3fca8356dbd17124f605d002dbeba7e47e23"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerSummary.ts",
+    "bytes": 459,
+    "sha256": "fb2c01b2a3a7d9d49638da22bea2ce53cb55d20a3ef93311f6486b99cf44fb94"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerSummaryPublication.ts",
+    "bytes": 331,
+    "sha256": "dd23a8f18608a56b82fd75b51458b630d67c3b924a3b722a449a798a673b620c"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerUpload.ts",
+    "bytes": 189,
+    "sha256": "8786fbc8880f70aaadf32e443bd363ce790f4c7634f89d6cd1170cc569d0b961"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerVoiceInput.ts",
+    "bytes": 364,
+    "sha256": "753a2a8cf88493afbddb60e7e5059d63c6e0d77795cd73993e3bad7d64d1df61"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerVoiceInputMimeType.ts",
+    "bytes": 429,
+    "sha256": "2a017299b944760f1bef8236e60d03a99bd2b999503f2e060ab3ff07a16966be"
+  },
+  {
+    "path": "lib/api-zod/src/generated/types/writerVoiceStatus.ts",
+    "bytes": 204,
+    "sha256": "ad43aea720af19521699a7f002add1fb23d9cec680a7e8f5ea783b56e47adee8"
+  },
+  {
+    "path": "lib/api-zod/src/index.ts",
+    "bytes": 271,
+    "sha256": "3a4dbed23e894b6d06059b30975a18879d6e73941ce307ed39c4819c2a1ec3f5"
+  },
+  {
+    "path": "lib/api-zod/tsconfig.json",
+    "bytes": 221,
+    "sha256": "bb52c0e8b13e658570a208d946cb874fdf2b8d990f7c228f96fb24254c9c5a95"
+  },
+  {
+    "path": "lib/db/drizzle.config.ts",
+    "bytes": 352,
+    "sha256": "57862221556f24a1accd28b283876930c403ad7c86b79d87cfb5c9c200ba6258"
+  },
+  {
+    "path": "lib/db/package.json",
+    "bytes": 578,
+    "sha256": "b3a3034936a6c5251cf1d8d9bdbde1471580db520456dd2af27a8f42208fd2c5"
+  },
+  {
+    "path": "lib/db/src/index.ts",
+    "bytes": 454,
+    "sha256": "fc8d0730d4343a71fe7ba4e777a8ec102504a4d20f007d6483c6dcd86d5f5aa6"
+  },
+  {
+    "path": "lib/db/src/schema/community.ts",
+    "bytes": 5644,
+    "sha256": "0b273d48f290b8df4652b9beffdf8270906571155fca8cf900459d305e2ac714"
+  },
+  {
+    "path": "lib/db/src/schema/index.ts",
+    "bytes": 848,
+    "sha256": "941c16ac2741dc5bdd8d5fdd29f97b5d1b9c8cc5c8209d5ed71d81ab970754e4"
+  },
+  {
+    "path": "lib/db/src/schema/social.ts",
+    "bytes": 4515,
+    "sha256": "afa6d2919141e98c6a52df67858a8d87a11df02858036e4ae5b1d2ff1dda3f70"
+  },
+  {
+    "path": "lib/db/src/schema/writer-cleanup.ts",
+    "bytes": 734,
+    "sha256": "9e79af18e571a84714d1dc34e1ffe78e4da568e26a4af71ebcdbc6cc85e11713"
+  },
+  {
+    "path": "lib/db/src/schema/writer.ts",
+    "bytes": 3586,
+    "sha256": "3bbe5f1c592e2310e41f0a6165b15b9f6b126f2e93a8203df240079688272fd8"
+  },
+  {
+    "path": "lib/db/tsconfig.json",
+    "bytes": 244,
+    "sha256": "69c976d11de35f0ac391934625beeccdd1b2689ba5d0f14c54b5384d4c30a9c9"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/package.json",
+    "bytes": 438,
+    "sha256": "413b5dfa691e70a477c9ca884c1b330f91ed8c003d4310548aee3c78218397da"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/src/audio/client.ts",
+    "bytes": 7946,
+    "sha256": "f5a8305b30de6d2149ad346efeda35e487fee1768aa8d3f854255c336c710a0e"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/src/audio/index.ts",
+    "bytes": 229,
+    "sha256": "46a81c3a1de8e8b21d3c77aa76041c6528ea6bcecc9de54a207435a76f99ff39"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/src/batch/index.ts",
+    "bytes": 107,
+    "sha256": "cb320b7313f831e4cd8eb7f3e8b354d0b2dab5e1b5fd36e94041605e6b6200a4"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/src/batch/utils.ts",
+    "bytes": 3872,
+    "sha256": "0f97ee9883e780a67c4e0a3b051ce947603c4bb82f307d4d2e470d7f8a63c252"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/src/client.ts",
+    "bytes": 549,
+    "sha256": "98a4a1c30b44462bc6456c6c05a94325ee4049d1f07b8a6a5a2441c6d200309d"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/src/image/client.ts",
+    "bytes": 1566,
+    "sha256": "cec58d7a7c9a0d8a85a6a67b0f0d0f573b2db02dd6592c54d73dc109d9262aae"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/src/image/index.ts",
+    "bytes": 68,
+    "sha256": "31eda81d6e721f2988e2d4712a6769ec4a80562b11adfd28a993d5c50ca35932"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/src/index.ts",
+    "bytes": 192,
+    "sha256": "16bb8a72af90ed0fc25e77b76c8d26b9cc432dba9a6a6306f7aa588b32707f17"
+  },
+  {
+    "path": "lib/integrations-openai-ai-server/tsconfig.json",
+    "bytes": 244,
+    "sha256": "69c976d11de35f0ac391934625beeccdd1b2689ba5d0f14c54b5384d4c30a9c9"
+  },
+  {
+    "path": "package.json",
+    "bytes": 686,
+    "sha256": "7cbb2a6a984896dac53de82c736ee5ed733558fbac67cb0a712f458456d5fd53"
+  },
+  {
+    "path": "pnpm-lock.yaml",
+    "bytes": 479715,
+    "sha256": "a7a8d6509cdfede14fdeccd855995780efa6f6215e5fd8d82863eef49f70058d"
+  },
+  {
+    "path": "pnpm-workspace.yaml",
+    "bytes": 6793,
+    "sha256": "9b698a8784609f86c0850c71da84d64fd0c2ae6519fae3a4ab04d784064aa12e"
+  },
+  {
+    "path": "scripts/package.json",
+    "bytes": 281,
+    "sha256": "e321044da26540ad84f56fcbe985013f369c3b18ba06c233f1db99f488df0f8b"
+  },
+  {
+    "path": "scripts/post-merge.sh",
+    "bytes": 72,
+    "sha256": "b9e43e43dcbacd4bd26b84d68dd616270a6aacbd51ab25a2f6b1b81484eadc37"
+  },
+  {
+    "path": "scripts/src/hello.ts",
+    "bytes": 46,
+    "sha256": "9a865c3de9900891e697e1ee8632dd565ce69bd7cb6b610e48b26bc0ee9e81e9"
+  },
+  {
+    "path": "scripts/tsconfig.json",
+    "bytes": 157,
+    "sha256": "636dea76ed898c62e56d6657ed97bb3edc85feb0ea8256b5198849d5c6cf462a"
+  },
+  {
+    "path": "tsconfig.base.json",
+    "bytes": 692,
+    "sha256": "2dfaa6f6168f618e0e6deff048c17e4f5f73d59325bd935d471905ae6773585c"
+  },
+  {
+    "path": "tsconfig.json",
+    "bytes": 301,
+    "sha256": "855659684df3fee76025595967ffec8fcdb9fec96f352a059031c8ccf52d7ff7"
+  }
+]
