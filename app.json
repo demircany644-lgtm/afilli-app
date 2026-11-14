@@ -1,6 +1,4 @@
-"android": {
-  "package": "com.afilli.app"
-},{
+{
   "expo": {
     "name": "Afilli",
     "slug": "afilli",
@@ -12,12 +10,12 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "LSApplicationQueriesSchemes": [
-          "instagram"
-        ]
+        "LSApplicationQueriesSchemes": ["Instagram"]
       }
     },
-    "android": {},
+    "android": {
+      "package": "com.afilli.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png",
       "output": "static"
@@ -25,25 +23,7 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Kitap kapağı, bölüm, profil ve bülten fotoğraflarını seçebilmen için galeri erişimi kullanılır.",
-          "cameraPermission": "Kitap kapağı, bölüm, profil veya bülten için fotoğraf çekebilmen için kamera erişimi kullanılır.",
-          "microphonePermission": "Sesli yazmada konuşmanı kaydetmek için mikrofon izni gerekir. Sesin yalnızca gönderim onayından sonra metne dönüştürülür."
-        }
-      ],
-      [
-        "expo-audio",
-        {
-          "microphonePermission": "Sesli yazmada konuşmanı kaydetmek için mikrofon izni gerekir. Sesin yalnızca gönderim onayından sonra metne dönüştürülür."
-        }
-      ],
-      "expo-asset"
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
+      "expo-image-picker"
+    ]
   }
 }
