@@ -4,7 +4,8 @@
 
 `demircany644-lgtm/afilli-app` deposunun incelenen sürümü temel alınarak
 hazırlanan düzeltilmiş kaynak koddur. AAB veya APK değildir.
-GitHub deposuna henüz gönderilmemiştir.
+Düzeltmeler GitHub'da `fix/pnpm-workspace-install` dalında sunulmaktadır.
+Ana dala otomatik birleştirme veya yayınlama yapılmamıştır.
 
 ## Neler düzeltildi?
 
@@ -49,8 +50,13 @@ Yeni oluşturulan kilit dosyası kullanıldığı için `--no-frozen-lockfile` g
 
 ## GitHub'a nasıl aktarılır?
 
-Bu paketin hazırlanması, GitHub'daki dosyaların değiştiği anlamına gelmez.
-Bu oturumdaki GitHub bağlantısının yeni depoya yazma izni yoktu.
+Düzeltme dalı GitHub'a gönderilmiştir. Ana dalı güncellemek için dalın
+değişikliklerini inceleyip bir pull request üzerinden birleştirmek gerekir.
+Bu birleştirme kullanıcı onayına bırakılmıştır.
+
+Aşağıdaki adımlar, ZIP kopyasını bilgisayarından ayrıca uygulamak isterseniz
+kullanılabilir. Düzeltme dalını kullanıyorsanız aynı dosyaları tekrar
+yüklemeniz gerekmez.
 
 GitHub Desktop kullanıyorsanız:
 
