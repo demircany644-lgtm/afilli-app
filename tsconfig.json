@@ -7,9 +7,19 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": [
+    "node_modules",
+    "api-client-react",
+    "api-server",
+    "api-spec",
+    "api-zod",
+    "db",
+    "integrations-openai-ai-server",
+    "generated-artifacts"
+  ],
   "references": [
     {
-      "path": "../../lib/api-client-react"
+      "path": "./api-client-react"
     }
   ]
 }
