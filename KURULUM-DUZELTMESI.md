@@ -75,6 +75,32 @@ körlemesine değiştirmeyin; yeni değişiklikleri de koruyarak birleştirin.
 
 ## Doğrulananlar ve sınırlar
 
+### Bulut kurulumundaki pnpm sürümü
+
+`packageManager` alanının bulunması, her dış derleme ortamının aynı pnpm
+sürümünü çalıştırdığını tek başına kanıtlamaz. Aynı kaynakla pnpm 9.15.9
+üzerinde yapılan yalıtılmış kilit dosyası kontrolü,
+`ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` hatasını yeniden üretti.
+pnpm 10.26.1 ile kilitli kurulum daha önce başarıyla tamamlandı.
+
+Mevcut dış derleme yapılandırmasındaki üç profile de `pnpm: "10.26.1"`
+eklendi. Paket sürümleri, kilit dosyası, güvenlik düzeltmeleri, kurulum
+betiği izinleri, uygulama kimlikleri ve derleme türleri değiştirilmedi.
+Sürüm seçiminin tekrar kaybolmasını veya farklılaşmasını yakalayan kontrol:
+
+```text
+node --test tests/package-manager-config.test.mjs
+```
+
+Bu kontrolü bir terminalde çalıştırın; komutu kaynak dosyalarına yazmayın.
+Bu test bir bulut derlemesi başlatmaz.
+
+Paylaşılan hata fotoğrafında uzak ortamın gerçek pnpm sürümü görünmüyordu.
+Yeni bir denemede ortam hazırlığı kaydında gerçekten 10.26.1 seçildiği ve
+güncel düzeltme kaynağının kullanıldığı ayrıca kontrol edilmelidir.
+Bu düzeltme için uzak derleme başlatılmadı; uzakta başarı veya AAB üretimi
+iddia edilmemektedir.
+
 Linux ortamında, Node v24.22.1 ve pnpm 10.26.1 ile:
 
 - Boş `node_modules` durumundan `pnpm install --frozen-lockfile`: başarılı.
