@@ -1,3 +1,11 @@
+# 1.1.1
+
+Eksik giriş yapılandırmasının açılış hatası, kök hata sınırında karşılanır.
+Android/iOS derlemesi eksik istemci ayarlarını paketleme öncesinde kontrol eder.
+Bu korumalar üretim ayarlarının yerine geçmez; doğru ayarlarla yeni AAB ve cihaz testi gerekir.
+
+Android sürüm kodu 3 olarak hazırlandı. Play Console'da 3 veya daha yüksek bir kod kullanıldıysa bu değer artırılmalıdır.
+
 # 1.1.0
 
 Profilde sosyal medya bağlantıları artık sadece küçük ikon olarak görünüyor.

@@ -8,7 +8,7 @@
         "projectId": "79fa2605-dc0c-49fe-aa68-f8e25615de8e"
       }
     },
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "afilli",
@@ -21,7 +21,7 @@
     },
     "android": {
       "package": "com.afilli.app",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/images/icon.png",
