@@ -21,6 +21,7 @@
       }
     },
     "production": {
+      "environment": "production",
       "node": "24.22.1",
       "pnpm": "10.26.1",
       "android": {

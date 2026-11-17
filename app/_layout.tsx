@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorFallback, type ErrorFallbackProps } from '@/components/ErrorFallback';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, useFonts } from '@expo-google-fonts/inter';
 import { GreatVibes_400Regular } from '@expo-google-fonts/great-vibes';
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold, PlayfairDisplay_400Regular_Italic } from '@expo-google-fonts/playfair-display';
@@ -25,6 +26,10 @@ if (apiDomain) setBaseUrl(`https://${apiDomain}`);
 
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
+
+function StartupErrorFallback(props: ErrorFallbackProps) {
+  return <SafeAreaProvider><ErrorFallback {...props} /></SafeAreaProvider>;
+}
 
 function RootLayoutNav() {
   return (
@@ -48,10 +53,10 @@ export default function RootLayout() {
   useEffect(() => { if (fontsLoaded || fontError) SplashScreen.hideAsync(); }, [fontsLoaded, fontError]);
   if (!fontsLoaded && !fontError) return null;
   return (
+    <ErrorBoundary FallbackComponent={StartupErrorFallback}>
     <ClerkProvider publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!} tokenCache={tokenCache} proxyUrl={process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined}>
       <ClerkLoaded>
     <SafeAreaProvider>
-      <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <AppProvider>
             <CommunityProvider>
@@ -66,9 +71,9 @@ export default function RootLayout() {
             </CommunityProvider>
           </AppProvider>
         </QueryClientProvider>
-      </ErrorBoundary>
     </SafeAreaProvider>
       </ClerkLoaded>
     </ClerkProvider>
+    </ErrorBoundary>
   );
 }
