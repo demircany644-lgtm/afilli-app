@@ -6,6 +6,7 @@ export const communityUsers = pgTable('community_users', {
   id: text('id').primaryKey(), nickname: text('nickname').notNull(), avatar: text('avatar'),
   handle: text('handle'), bio: text('bio').notNull().default(''),
   quote: text('quote').notNull().default(''), instagram: text('instagram'), cover: text('cover'),
+  facebookUrl: text('facebook_url'), xUrl: text('x_url'),
   lastSeen: timestamp('last_seen', { withTimezone: true }),
   presenceActive: boolean('presence_active').notNull().default(false),
 }, (t) => [uniqueIndex('community_handle_unique').on(t.handle)]);

@@ -3,29 +3,49 @@ import { Linking, Platform } from 'react-native';
 export const OFFLINE_MESSAGE = 'İnternet bağlantısı yok, tekrar dene';
 export const IG_HANDLE_RE = /^[A-Za-z0-9_.]{1,30}$/;
 export const PROFILE_HANDLE_RE = /^[a-z0-9_.]{3,30}$/;
+export const INVALID_LINK = 'Geçersiz bağlantı';
 
 /** Accepts "@name", "name" or an instagram.com URL; returns the bare handle. */
 export function normalizeInstagram(value: string): string {
-  return value.trim()
-    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
-    .replace(/^@/, '')
-    .replace(/[/?#].*$/, '');
+  const v = value.trim();
+  if (!v) return '';
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v) || /^(www\.)?instagram\.com\//i.test(v)) {
+    try {
+      const u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`);
+      const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+      if (!/^https?:$/.test(u.protocol) || host !== 'instagram.com' || u.username || u.password || u.port) return v;
+      const parts = u.pathname.split('/').filter(Boolean);
+      return parts.length === 1 && IG_HANDLE_RE.test(parts[0]) ? parts[0] : v;
+    } catch { return v; }
+  }
+  return v.replace(/^@/, '');
+}
+export function parseInstagram(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const h = normalizeInstagram(value);
+  return IG_HANDLE_RE.test(h) ? h : null;
+}
+export function parseSocialUrl(value: string | null | undefined, kind: 'facebook' | 'x'): string | null {
+  if (!value) return null;
+  const v = value.trim();
+  return isValidSocialUrl(v, kind) ? new URL(v).toString() : null;
 }
 export function isValidInstagram(value: string): boolean { return IG_HANDLE_RE.test(value); }
 export function instagramWebUrl(handle: string): string { return `https://www.instagram.com/${encodeURIComponent(handle)}/`; }
 export function instagramAppUrl(handle: string): string { return `instagram://user?username=${encodeURIComponent(handle)}`; }
 
-const HOSTS: Record<'facebook' | 'x', string[]> = {
-  facebook: ['facebook.com'],
-  x: ['x.com', 'twitter.com'],
-};
 /** Only verified https links on the platform's own host (www./m. allowed). */
 export function isValidSocialUrl(url: string, kind: 'facebook' | 'x'): boolean {
   try {
     const u = new URL(url.trim());
-    if (u.protocol !== 'https:') return false;
-    const host = u.hostname.toLowerCase().replace(/^(www|m|mobile)\./, '');
-    return HOSTS[kind].includes(host) && u.pathname.length > 1;
+    if (u.protocol !== 'https:' || u.username || u.password || u.port) return false;
+    const host = u.hostname.toLowerCase();
+    const allowed = kind === 'facebook' ? ['facebook.com', 'www.facebook.com', 'm.facebook.com']
+      : ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'];
+    if (url.length > 300 || !allowed.includes(host) || !u.pathname.replaceAll('/', '').trim()) return false;
+    if (kind === 'x' && !/^\/[A-Za-z0-9_]{1,15}\/?$/.test(u.pathname)) return false;
+    if (kind === 'facebook' && /^\/(l\.php|login|sharer|dialog)(\/|$)/i.test(u.pathname)) return false;
+    return true;
   } catch { return false; }
 }
 

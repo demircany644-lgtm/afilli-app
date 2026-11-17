@@ -18,6 +18,10 @@ export interface ReaderProfile {
   quote: string;
   /** @nullable */
   instagram: string | null;
+  /** @nullable */
+  facebookUrl?: string | null;
+  /** @nullable */
+  xUrl?: string | null;
   bookCount: number;
   followersCount: number;
   followingCount: number;

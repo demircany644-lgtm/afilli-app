@@ -7,7 +7,6 @@ import { FoilButton, MarbleBackground, Notice, P, ProfileSkeleton, RoundIcon, St
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileTabs, type ContentTab } from '@/components/profile/ProfileTabs';
 import { LocalShelf } from '@/components/profile/LocalShelf';
-import { SocialRow } from '@/components/profile/SocialRow';
 import { go, scoped, withIdentity } from '@/components/profile/hooks';
 
 function Guest() {
@@ -22,7 +21,6 @@ function Guest() {
           <FoilButton variant="outline" label="Hesap oluştur" icon="user-plus" testID="profile-guest-signup" onPress={() => go('/sign-up')} />
         </View>
       </View>
-      <SocialRow />
       <LocalShelf signedIn={false} />
     </View>
   );

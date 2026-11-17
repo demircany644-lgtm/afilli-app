@@ -5,12 +5,15 @@ import type { ReaderProfile } from '@workspace/api-client-react';
 import { F } from '@/components/ui';
 import { mediaUrl } from '@/components/bulletins/common';
 import { GoldAvatar, P, S, StatCard, StatusLine } from './kit';
-import { SocialRow } from './SocialRow';
+import { PersonalSocialIcons } from './SocialRow';
+import { useCommunity } from '@/context/CommunityContext';
 import { ConnectionsSheet } from './ConnectionsSheet';
 import { compactCount } from './hooks';
 
 /** Order is part of the spec: name, bio, Instagram CTA, then genuine counts, then actions. */
-export function ProfileHeader({ profile, actions, onBooks, viewerIsAdmin }: { profile: ReaderProfile; actions: React.ReactNode; onBooks: () => void; viewerIsAdmin?: boolean }) {
+export function ProfileHeader({ profile, actions, onBooks }: { profile: ReaderProfile; actions: React.ReactNode; onBooks: () => void; viewerIsAdmin?: boolean }) {
+  const { userId } = useCommunity();
+  const isOwn = !!userId && userId === profile.id;
   const [list, setList] = useState<null | 'followers' | 'following'>(null);
   const crown = profile.premium ? 'premium' : profile.popular ? 'popular' : null;
   const presence = { online: profile.online, typing: profile.typing, lastSeen: profile.lastSeen };
@@ -31,12 +34,12 @@ export function ProfileHeader({ profile, actions, onBooks, viewerIsAdmin }: { pr
         ) : null}
         <Text style={st.name} accessibilityRole="header" testID="profile-name">{profile.nickname}</Text>
         <Text style={st.handle}>@{profile.handle}</Text>
+        <PersonalSocialIcons instagram={profile.instagram} facebookUrl={profile.facebookUrl} xUrl={profile.xUrl} isOwn={isOwn} />
         <StatusLine presence={presence} />
         {bioLines.map((l, i) => <Text key={i} style={st.bio}>{l}</Text>)}
         {profile.quote ? <Text style={st.quote}>"{profile.quote}"</Text> : null}
         {profile.isAdmin ? <Text style={st.role}>Afilli ekibi</Text> : null}
       </View>
-      <SocialRow personalInstagram={profile.instagram} isAdmin={viewerIsAdmin} />
       <View style={st.stats}>
         <StatCard testID="profile-stat-books" icon="book-open-page-variant" value={compactCount(profile.bookCount)} label="Kitap" onPress={onBooks} />
         <StatCard testID="profile-stat-followers" icon="account-group" value={compactCount(profile.followersCount)} label="Takipçi" onPress={() => setList('followers')} />

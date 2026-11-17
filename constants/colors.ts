@@ -22,6 +22,7 @@ const colors = {
   },
   // Profile/social tokens. Brand colors are the platforms' own, used only on their marks.
   social: {
+    fbBlue: '#1877F2', xBlack: '#0F1419',
     igYellow: '#FEDA75', igOrange: '#F58529', igPink: '#DD2A7B', igPurple: '#8134AF', igBlue: '#515BD4',
     onBrand: '#FFFFFF', online: '#3F9A5B', offline: '#9C9187', typing: '#E07A1F',
     foilLight: '#F3DE9F', foilMid: '#C9A24B', foilDeep: '#9A7430', vein: '#C9A24B', ink: '#3E2A1A',

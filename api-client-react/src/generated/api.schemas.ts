@@ -45,6 +45,10 @@ export interface ReaderProfile {
   quote: string;
   /** @nullable */
   instagram: string | null;
+  /** @nullable */
+  facebookUrl?: string | null;
+  /** @nullable */
+  xUrl?: string | null;
   bookCount: number;
   followersCount: number;
   followingCount: number;
@@ -79,6 +83,16 @@ export interface ProfileEditInput {
      * @nullable
      */
   instagram: string | null;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  facebookUrl?: string | null;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  xUrl?: string | null;
   /** @nullable */
   avatarUploadId?: string | null;
   /** @nullable */
