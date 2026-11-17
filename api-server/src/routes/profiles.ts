@@ -6,6 +6,7 @@ import { route, parse, fail, viewer, requirePerson, transaction, uuid, postData 
 import { PERSON, personId, profileData, getSettings, instagramHandle, socialUrl, requireAdministrator, socialNotify, pageCursor } from '../lib/social';
 import { profileObject, profileUploadUrl, validateProfileObject } from '../lib/bulletin-storage';
 import { publicBook } from '../lib/book-access';
+import { profileSocialUrl } from '../lib/profile-social';
 
 const router: IRouter = Router();
 router.get('/social-settings', route(async (_req, res) => { res.json(await getSettings()); }));
@@ -25,6 +26,11 @@ router.patch('/my-profile', route(async (req, res) => {
   const nickname = input.nickname.trim(), handle = input.handle.trim().replace(/^@/, '').toLowerCase();
   if (!nickname || !/^[a-z0-9_.]{3,30}$/.test(handle)) return fail(400, 'Takma adını ve 3–30 karakterlik kullanıcı adını kontrol et.');
   const instagram = instagramHandle(input.instagram);
+  let facebookUrl: string | null = null, xUrl: string | null = null;
+  try {
+    if (input.facebookUrl !== undefined) facebookUrl = profileSocialUrl(input.facebookUrl, 'facebook');
+    if (input.xUrl !== undefined) xUrl = profileSocialUrl(input.xUrl, 'x');
+  } catch { return fail(400, 'Geçersiz bağlantı'); }
   try {
     await transaction(async (client) => {
       const before = (await client.query<{ avatar: string | null; cover: string | null }>('SELECT avatar,cover FROM community_users WHERE id=$1 FOR UPDATE', [actor.id])).rows[0];
@@ -47,8 +53,11 @@ router.patch('/my-profile', route(async (req, res) => {
         }
         values[purpose] = url;
       }
-      await client.query(`UPDATE community_users SET nickname=$2,handle=$3,bio=$4,quote=$5,instagram=$6,avatar=$7,cover=$8 WHERE id=$1`,
-        [actor.id, nickname, handle, input.bio.trim(), input.quote.trim(), instagram, values.avatar, values.cover]);
+      await client.query(`UPDATE community_users SET nickname=$2,handle=$3,bio=$4,quote=$5,instagram=$6,avatar=$7,cover=$8,
+        facebook_url=CASE WHEN $9::boolean THEN $10::text ELSE facebook_url END,
+        x_url=CASE WHEN $11::boolean THEN $12::text ELSE x_url END WHERE id=$1`,
+        [actor.id, nickname, handle, input.bio.trim(), input.quote.trim(), instagram, values.avatar, values.cover,
+          input.facebookUrl !== undefined, facebookUrl, input.xUrl !== undefined, xUrl]);
     });
   } catch (error) {
     if ((error as { code?: string }).code === '23505') return fail(409, 'Bu kullanıcı adı zaten kullanılıyor.');

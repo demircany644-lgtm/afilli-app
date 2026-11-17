@@ -55,7 +55,7 @@ export async function profileData(id: string, viewer: string | null): Promise<Re
   }
   const settings = await getSettings();
   const result = await pool.query<ReaderProfile>(`SELECT u.id,u.nickname,coalesce(u.handle,'okur_'||substr(md5(u.id),1,12)) AS handle,
-    u.avatar,u.cover,u.bio,u.quote,u.instagram,
+    u.avatar,u.cover,u.bio,u.quote,u.instagram,u.facebook_url AS "facebookUrl",u.x_url AS "xUrl",
     (SELECT count(*)::int FROM authored_books b WHERE b.author_id=u.id AND
       (u.id=$2 OR ${publicBook()})) AS "bookCount",
     (SELECT count(*)::int FROM profile_follows WHERE followed_id=u.id) AS "followersCount",

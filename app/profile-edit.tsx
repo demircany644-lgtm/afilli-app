@@ -9,11 +9,11 @@ import { apiError } from '@/components/bulletins/common';
 import { FoilButton, MarbleBackground, Notice, P, ProfileSkeleton, StateCard, TopBar, k } from '@/components/profile/kit';
 import { MediaField, type MediaChange } from '@/components/profile/MediaField';
 import { actorRequest, go, goBack, scoped, useOwnerGuard, withIdentity } from '@/components/profile/hooks';
-import { PROFILE_HANDLE_RE, isValidInstagram, normalizeInstagram } from '@/lib/social-links';
+import { INVALID_LINK, PROFILE_HANDLE_RE, isValidInstagram, isValidSocialUrl, normalizeInstagram } from '@/lib/social-links';
 
 const AUTHOR_CACHES = ['/api/my-profile', '/api/profiles', '/api/bulletins', '/api/bulletin-notifications', '/api/conversations', '/api/social-notifications', '/api/authored-books'];
 
-type Form = { nickname: string; handle: string; bio: string; quote: string; instagram: string };
+type Form = { nickname: string; handle: string; bio: string; quote: string; instagram: string; facebook: string; x: string };
 
 function Field({ label, hint, error, testID, ...rest }: TextInputProps & { label: string; hint?: string; error?: string | null; testID: string }) {
   return (
@@ -28,13 +28,13 @@ function Field({ label, hint, error, testID, ...rest }: TextInputProps & { label
 function ProfileEdit() {
   const { ready, userId, refreshProfile } = useCommunity();
   const alive = useOwnerGuard(userId);
-  const params = useLocalSearchParams<{ prefillName?: string; prefillBio?: string }>();
+  const params = useLocalSearchParams<{ prefillName?: string; prefillBio?: string; focus?: string }>();
   const qc = useQueryClient();
   const me = useGetMyProfile({ query: { enabled: ready && !!userId, queryKey: scoped(getGetMyProfileQueryKey(), userId) } });
   // Only a profile that provably belongs to this session may seed or show the form.
   const mine = ready && userId && me.data && me.data.id === userId ? me.data : undefined;
   const update = useUpdateMyProfile({ request: actorRequest(userId) });
-  const [form, setForm] = useState<Form>({ nickname: '', handle: '', bio: '', quote: '', instagram: '' });
+  const [form, setForm] = useState<Form>({ nickname: '', handle: '', bio: '', quote: '', instagram: '', facebook: '', x: '' });
   const [avatar, setAvatar] = useState<MediaChange>({ kind: 'keep' });
   const [cover, setCover] = useState<MediaChange>({ kind: 'keep' });
   const [uploading, setUploading] = useState(0);
@@ -53,6 +53,7 @@ function ProfileEdit() {
       handle: p.handle,
       bio: usePrefill && typeof params.prefillBio === 'string' ? params.prefillBio.slice(0, 500) : p.bio,
       quote: p.quote, instagram: p.instagram ?? '',
+      facebook: p.facebookUrl ?? '', x: p.xUrl ?? '',
     });
     setPrefilled(usePrefill);
     setAvatar({ kind: 'keep' }); setCover({ kind: 'keep' }); setErr(null);
@@ -63,7 +64,9 @@ function ProfileEdit() {
   const errors = {
     nickname: !form.nickname.trim() ? 'Görünen ad boş olamaz.' : null,
     handle: !PROFILE_HANDLE_RE.test(form.handle) ? '3-30 karakter; küçük harf, rakam, alt çizgi ve nokta.' : null,
-    instagram: ig && !isValidInstagram(ig) ? 'Yalnızca harf, rakam, alt çizgi ve nokta; en fazla 30 karakter.' : null,
+    instagram: ig && !isValidInstagram(ig) ? INVALID_LINK : null,
+    facebook: form.facebook.trim() && !isValidSocialUrl(form.facebook, 'facebook') ? INVALID_LINK : null,
+    x: form.x.trim() && !isValidSocialUrl(form.x, 'x') ? INVALID_LINK : null,
   };
   const invalid = Object.values(errors).some(Boolean);
 
@@ -72,6 +75,8 @@ function ProfileEdit() {
     const data: ProfileEditInput = {
       nickname: form.nickname.trim(), handle: form.handle, bio: form.bio.trim(), quote: form.quote.trim(),
       instagram: ig || null,
+      facebookUrl: form.facebook.trim() || null,
+      xUrl: form.x.trim() || null,
       ...(avatar.kind === 'set' ? { avatarUploadId: avatar.uploadId } : avatar.kind === 'remove' ? { avatarUploadId: null } : {}),
       ...(cover.kind === 'set' ? { coverUploadId: cover.uploadId } : cover.kind === 'remove' ? { coverUploadId: null } : {}),
     };
@@ -102,10 +107,12 @@ function ProfileEdit() {
       <Field testID="profile-edit-handle" label="Kullanıcı adı" value={form.handle} onChangeText={(t) => set('handle')(t.toLowerCase().replace(/^@/, ''))} autoCapitalize="none" autoCorrect={false} maxLength={30} error={errors.handle} hint="Profil adresinde @ ile görünür." />
       <Field testID="profile-edit-bio" label="Biyografi" value={form.bio} onChangeText={set('bio')} multiline maxLength={500} hint={`${form.bio.length}/500 · Örn. Yazar | Hayalperest | Kitap Kurdu`} />
       <Field testID="profile-edit-quote" label="Alıntı" value={form.quote} onChangeText={set('quote')} maxLength={200} hint="İtalik olarak görünür." />
-      <Field testID="profile-edit-instagram" label="Instagram Adresim" value={form.instagram} onChangeText={set('instagram')} autoCapitalize="none" autoCorrect={false} placeholder="@kullaniciadi" error={errors.instagram} hint="Boş bırakırsan yalnızca Afilli'nin Instagram butonu görünür." />
+      <Field testID="profile-edit-instagram" label="Instagram Adresim" value={form.instagram} onChangeText={set('instagram')} autoCapitalize="none" autoCorrect={false} placeholder="@kullaniciadi" error={errors.instagram} autoFocus={params.focus === 'instagram'} hint="@kullaniciadi ya da instagram.com adresi. Silmek için boş bırak." />
+      <Field testID="profile-edit-facebook" label="Facebook Adresim" value={form.facebook} onChangeText={set('facebook')} autoCapitalize="none" autoCorrect={false} keyboardType="url" placeholder="https://facebook.com/..." error={errors.facebook} autoFocus={params.focus === 'facebook'} hint="Tam https adresi. Silmek için boş bırak." />
+      <Field testID="profile-edit-x" label="X Adresim" value={form.x} onChangeText={set('x')} autoCapitalize="none" autoCorrect={false} keyboardType="url" placeholder="https://x.com/..." error={errors.x} autoFocus={params.focus === 'x'} hint="Tam https adresi. Silmek için boş bırak." />
       {err ? <Notice tone="error" text={err} testID="profile-edit-error" /> : null}
-      <FoilButton label={uploading > 0 ? 'Fotoğraf yükleniyor' : 'Kaydet'} icon="check" testID="profile-edit-save" busy={update.isPending} disabled={invalid || uploading > 0} onPress={save} style={{ flex: 0 }} />
-      <FoilButton variant="outline" label="Vazgeç" testID="profile-edit-cancel" onPress={() => goBack('/profile')} style={{ flex: 0 }} />
+      <FoilButton label={uploading > 0 ? 'Fotoğraf yükleniyor' : 'Kaydet'} icon="check" testID="profile-edit-save" busy={update.isPending} disabled={invalid || uploading > 0} onPress={save} style={{ flex: 0, minHeight: 46, flexShrink: 0 }} />
+      <FoilButton variant="outline" label="Vazgeç" testID="profile-edit-cancel" onPress={() => goBack('/profile')} style={{ flex: 0, minHeight: 46, flexShrink: 0 }} />
     </View>
   );
 

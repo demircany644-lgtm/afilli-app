@@ -474,6 +474,8 @@ components:
         bio: { type: string }
         quote: { type: string }
         instagram: { type: string, nullable: true }
+        facebookUrl: { type: string, nullable: true }
+        xUrl: { type: string, nullable: true }
         bookCount: { type: integer }
         followersCount: { type: integer }
         followingCount: { type: integer }
@@ -494,6 +496,8 @@ components:
         bio: { type: string, maxLength: 500 }
         quote: { type: string, maxLength: 200 }
         instagram: { type: string, nullable: true, maxLength: 30 }
+        facebookUrl: { type: string, nullable: true, maxLength: 300 }
+        xUrl: { type: string, nullable: true, maxLength: 300 }
         avatarUploadId: { type: string, nullable: true }
         coverUploadId: { type: string, nullable: true }
     PeoplePage:

@@ -88,6 +88,8 @@ export const GetMyProfileResponse = zod.object({
   "bio": zod.string(),
   "quote": zod.string(),
   "instagram": zod.string().nullable(),
+  "facebookUrl": zod.string().nullish(),
+  "xUrl": zod.string().nullish(),
   "bookCount": zod.number().int(),
   "followersCount": zod.number().int(),
   "followingCount": zod.number().int(),
@@ -113,6 +115,10 @@ export const updateMyProfileBodyQuoteMax = 200;
 
 export const updateMyProfileBodyInstagramMax = 30;
 
+export const updateMyProfileBodyFacebookUrlMax = 300;
+
+export const updateMyProfileBodyXUrlMax = 300;
+
 
 
 export const UpdateMyProfileBody = zod.object({
@@ -121,6 +127,8 @@ export const UpdateMyProfileBody = zod.object({
   "bio": zod.string().max(updateMyProfileBodyBioMax),
   "quote": zod.string().max(updateMyProfileBodyQuoteMax),
   "instagram": zod.string().max(updateMyProfileBodyInstagramMax).nullable(),
+  "facebookUrl": zod.string().max(updateMyProfileBodyFacebookUrlMax).nullish(),
+  "xUrl": zod.string().max(updateMyProfileBodyXUrlMax).nullish(),
   "avatarUploadId": zod.string().nullish(),
   "coverUploadId": zod.string().nullish()
 })
@@ -134,6 +142,8 @@ export const UpdateMyProfileResponse = zod.object({
   "bio": zod.string(),
   "quote": zod.string(),
   "instagram": zod.string().nullable(),
+  "facebookUrl": zod.string().nullish(),
+  "xUrl": zod.string().nullish(),
   "bookCount": zod.number().int(),
   "followersCount": zod.number().int(),
   "followingCount": zod.number().int(),
@@ -176,6 +186,8 @@ export const GetReaderProfileResponse = zod.object({
   "bio": zod.string(),
   "quote": zod.string(),
   "instagram": zod.string().nullable(),
+  "facebookUrl": zod.string().nullish(),
+  "xUrl": zod.string().nullish(),
   "bookCount": zod.number().int(),
   "followersCount": zod.number().int(),
   "followingCount": zod.number().int(),
@@ -207,6 +219,8 @@ export const SetProfileFollowResponse = zod.object({
   "bio": zod.string(),
   "quote": zod.string(),
   "instagram": zod.string().nullable(),
+  "facebookUrl": zod.string().nullish(),
+  "xUrl": zod.string().nullish(),
   "bookCount": zod.number().int(),
   "followersCount": zod.number().int(),
   "followingCount": zod.number().int(),

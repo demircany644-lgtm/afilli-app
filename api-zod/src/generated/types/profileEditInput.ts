@@ -26,6 +26,16 @@ export interface ProfileEditInput {
      * @nullable
      */
   instagram: string | null;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  facebookUrl?: string | null;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  xUrl?: string | null;
   /** @nullable */
   avatarUploadId?: string | null;
   /** @nullable */

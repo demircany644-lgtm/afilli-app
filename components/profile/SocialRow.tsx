@@ -5,7 +5,7 @@ import { FontAwesome6, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useGetSocialSettings, getGetSocialSettingsQueryKey } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { Sheet } from '@/components/bulletins/common';
-import { openExternalUrl, openInstagram } from '@/lib/social-links';
+import { INVALID_LINK, openExternalUrl, openInstagram, parseInstagram, parseSocialUrl } from '@/lib/social-links';
 import { FoilButton, Notice, P, S, Skeleton } from './kit';
 import { go, useOffline } from './hooks';
 
@@ -88,7 +88,59 @@ export function SocialRow({ personalInstagram, isAdmin }: { personalInstagram?: 
   );
 }
 
+type Platform3 = 'instagram' | 'facebook' | 'x';
+
+/** Personal links as a compact centered icon row. Absent links are not rendered. */
+export function PersonalSocialIcons({ instagram, facebookUrl, xUrl, isOwn }: { instagram?: string | null; facebookUrl?: string | null; xUrl?: string | null; isOwn?: boolean }) {
+  const offline = useOffline();
+  const [error, setError] = useState<string | null>(null);
+  const items = ([
+    { kind: 'instagram', raw: instagram, label: 'Instagram' },
+    { kind: 'facebook', raw: facebookUrl, label: 'Facebook' },
+    { kind: 'x', raw: xUrl, label: 'X' },
+  ] as { kind: Platform3; raw?: string | null; label: string }[]).filter((i) => !!i.raw && i.raw.trim().length > 0);
+  if (!items.length) return null;
+
+  const press = (kind: Platform3, raw: string) => {
+    tap(); setError(null);
+    if (isOwn) return go(`/profile-edit?focus=${kind}`);
+    try {
+      if (kind === 'instagram') {
+        const h = parseInstagram(raw);
+        if (!h) return setError(INVALID_LINK);
+        return openInstagram(h, offline, setError);
+      }
+      const url = parseSocialUrl(raw, kind);
+      if (!url) return setError(INVALID_LINK);
+      openExternalUrl(url, offline, setError);
+    } catch { setError(INVALID_LINK); }
+  };
+
+  return (
+    <View style={{ alignItems: 'center', gap: 6, marginTop: 6 }}>
+      <View style={st.iconRow} testID="profile-social-icons">
+        {items.map((i) => {
+          const glyph = i.kind === 'instagram'
+            ? <LinearGradient colors={[S.igOrange, S.igPink, S.igPurple]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={st.dot}><MaterialCommunityIcons name="instagram" size={17} color={S.onBrand} /></LinearGradient>
+            : <View style={[st.dot, { backgroundColor: i.kind === 'facebook' ? S.fbBlue : S.xBlack }]}><FontAwesome6 name={i.kind === 'facebook' ? 'facebook-f' : 'x-twitter'} size={i.kind === 'facebook' ? 14 : 13} color={S.onBrand} /></View>;
+          return (
+            <Pressable key={i.kind} testID={`profile-social-${i.kind}`} accessibilityRole={isOwn ? 'button' : 'link'}
+              accessibilityLabel={isOwn ? `${i.label} bağlantını düzenle` : i.label} hitSlop={8}
+              onPress={() => press(i.kind, i.raw!)} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.92 : 1 }] })}>
+              {glyph}
+            </Pressable>
+          );
+        })}
+      </View>
+      {error ? <Text testID="profile-social-error" accessibilityLiveRegion="polite" style={st.iconErr}>{error}</Text> : null}
+    </View>
+  );
+}
+
 const st = StyleSheet.create({
+  iconRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12 },
+  dot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  iconErr: { fontFamily: F.med, fontSize: 12, color: P.danger, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   cta: { minHeight: 64, borderRadius: 20, borderWidth: 1, borderColor: S.foilMid, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10, shadowColor: S.igPurple, shadowOpacity: 0.22, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   ctaText: { flex: 1, color: S.onBrand, fontFamily: F.semi, fontWeight: '700', fontSize: 14, lineHeight: 19 },
