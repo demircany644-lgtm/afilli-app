@@ -4,15 +4,18 @@
   },
   "build": {
     "development": {
+      "node": "24.22.1",
       "pnpm": "10.26.1",
       "developmentClient": true,
       "distribution": "internal"
     },
     "preview": {
+      "node": "24.22.1",
       "pnpm": "10.26.1",
       "distribution": "internal"
     },
     "production": {
+      "node": "24.22.1",
       "pnpm": "10.26.1",
       "android": {
         "buildType": "app-bundle"
