@@ -2,6 +2,12 @@
   "expo": {
     "name": "Afilli",
     "slug": "afilli",
+    "owner": "afillis-team",
+    "extra": {
+      "eas": {
+        "projectId": "79fa2605-dc0c-49fe-aa68-f8e25615de8e"
+      }
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
