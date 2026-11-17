@@ -6,9 +6,13 @@ import messageRouter from './messages';
 import writerRouter from './writer';
 import writerMediaRouter from './writer-media';
 import writerToolsRouter from './writer-tools';
+import authRouter from './auth';
+import adminRouter from './admin';
 
 const router: IRouter = Router();
 
+router.use(authRouter);
+router.use(adminRouter);
 router.use(healthRouter);
 router.use(bulletinRouter);
 router.use(profileRouter);

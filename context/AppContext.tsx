@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '@clerk/expo';
+import { useAuth } from '@/context/AuthContext';
 import { localKey, loadLocalAccount, legacyToImport, mergeLegacy } from '@/lib/local-account-data';
+import { removeLibraryEntry } from '@/lib/library';
 
 export type Draft = { id: string; title: string; body: string; updatedAt: number; ownerId?: string };
 export type StoreItem = { id: string; title: string; note: string; createdAt: number };
@@ -16,6 +17,7 @@ type Ctx = State & {
   importLocalData: () => Promise<{ name: string; bio: string }>; retryLoad: () => void;
   toggleSave: (id: string) => void; isSaved: (id: string) => boolean;
   openBook: (id: string, chapter: number) => void;
+  removeFromLibrary: (id: string) => void;
   saveDraft: (d: { id?: string; title: string; body: string }) => Draft;
   deleteDraft: (id: string) => void;
   addStoreItem: (title: string, note: string) => void; removeStoreItem: (id: string) => void;
@@ -79,6 +81,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const toggleSave = useCallback((id: string) => updateState((p) => ({ ...p, saved: p.saved.includes(id) ? p.saved.filter((x) => x !== id) : [id, ...p.saved] })), [updateState]);
   const openBook = useCallback((id: string, chapter: number) => updateState((p) => ({ ...p, library: { ...p.library, [id]: chapter } })), [updateState]);
+  const removeFromLibrary = useCallback((id: string) => updateState((p) => removeLibraryEntry(p, id)), [updateState]);
   const saveDraft = useCallback((d: { id?: string; title: string; body: string }) => {
     const draft: Draft = {
       id: d.id ?? uid(), title: d.title, body: d.body, updatedAt: Date.now(),
@@ -101,9 +104,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return {
       ...visible, ready: ready && loadedFor.current === userId, legacyAvailable: loadedFor.current === userId && legacyAvailable,
       storageError, importLocalData, retryLoad, unread: visible.messages.filter((m) => !m.read).length,
-      toggleSave, isSaved: (id) => visible.saved.includes(id), openBook, saveDraft, deleteDraft, addStoreItem, removeStoreItem, markAllRead, setProfile, markNotificationRead,
+      toggleSave, isSaved: (id) => visible.saved.includes(id), openBook, removeFromLibrary, saveDraft, deleteDraft, addStoreItem, removeStoreItem, markAllRead, setProfile, markNotificationRead,
     };
-  }, [s, ready, userId, legacyAvailable, storageError, importLocalData, retryLoad, toggleSave, openBook, saveDraft, deleteDraft, addStoreItem, removeStoreItem, markAllRead, setProfile, markNotificationRead]);
+  }, [s, ready, userId, legacyAvailable, storageError, importLocalData, retryLoad, toggleSave, openBook, removeFromLibrary, saveDraft, deleteDraft, addStoreItem, removeStoreItem, markAllRead, setProfile, markNotificationRead]);
   return <C.Provider value={value}>{children}</C.Provider>;
 }
 export function useApp() { const c = useContext(C); if (!c) throw new Error('useApp outside provider'); return c; }

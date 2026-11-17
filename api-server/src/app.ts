@@ -3,11 +3,10 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { clerkMiddleware, getAuth } from '@clerk/express';
-import { publishableKeyFromHost } from '@clerk/shared/keys';
-import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from './middlewares/clerkProxyMiddleware';
+import { allowedOrigin, authenticatedUserId, authMiddleware } from './lib/auth-session';
 
 const app: Express = express();
+app.set('trust proxy', 1);
 
 app.use(
   pinoHttp({
@@ -28,14 +27,11 @@ app.use(
     },
   }),
 );
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-app.use(cors({ credentials: true, origin: true }));
-app.use(clerkMiddleware((req) => ({
-  publishableKey: publishableKeyFromHost(getClerkProxyHost(req) ?? '', process.env.CLERK_PUBLISHABLE_KEY),
-})));
+app.use(cors({ credentials: true, origin: (origin, cb) => cb(null, !origin || allowedOrigin(origin)) }));
+app.use(authMiddleware);
 // Larger manuscript/audio bodies remain authenticated and bounded.
 app.use(['/api/writer-books', '/api/writer-voice'], (req, res, next) => {
-  if (req.method !== 'GET' && !getAuth(req).userId) { res.status(401).json({ error: 'Devam etmek için giriş yap.' }); return; }
+  if (req.method !== 'GET' && !authenticatedUserId(req)) { res.status(401).json({ error: 'Devam etmek için giriş yap.' }); return; }
   next();
 });
 app.use('/api/writer-books', express.json({ limit: '32mb' }));

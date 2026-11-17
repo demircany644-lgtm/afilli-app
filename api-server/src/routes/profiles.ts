@@ -3,20 +3,16 @@ import { randomUUID } from 'node:crypto';
 import { pool } from '@workspace/db';
 import { UpdateMyProfileBody, SetProfileFollowBody, UpdateSocialSettingsBody, UpdatePresenceBody, RequestProfileUploadBody, type ProfileBook } from '@workspace/api-zod';
 import { route, parse, fail, viewer, requirePerson, transaction, uuid, postData } from '../lib/community';
-import { PERSON, personId, profileData, getSettings, instagramHandle, socialUrl, requireAdministrator, socialNotify, pageCursor } from '../lib/social';
+import { PERSON, personId, profileData, getSettings, socialNotify, pageCursor } from '../lib/social';
 import { profileObject, profileUploadUrl, validateProfileObject } from '../lib/bulletin-storage';
 import { publicBook } from '../lib/book-access';
-import { profileSocialUrl } from '../lib/profile-social';
+import { saveAdminSettings } from '../lib/admin';
 
 const router: IRouter = Router();
 router.get('/social-settings', route(async (_req, res) => { res.json(await getSettings()); }));
 router.put('/social-settings', route(async (req, res) => {
-  const actor = await requirePerson(req); await requireAdministrator(actor.id);
   const input = parse(UpdateSocialSettingsBody, req.body);
-  const handle = instagramHandle(input.instagramHandle) ?? fail(400, 'Resmî Instagram kullanıcı adını yaz.');
-  await pool.query(`UPDATE social_settings SET instagram_handle=$1,facebook_url=$2,x_url=$3,popular_days=$4,popular_limit=$5 WHERE id=true`,
-    [handle, socialUrl(input.facebookUrl, 'facebook'), socialUrl(input.xUrl, 'x'), input.popularDays, input.popularLimit]);
-  res.json(await getSettings());
+  res.json(await saveAdminSettings(req, input));
 }));
 router.get('/my-profile', route(async (req, res) => {
   const actor = await requirePerson(req); res.json(await profileData(actor.id, actor.id));
@@ -25,12 +21,6 @@ router.patch('/my-profile', route(async (req, res) => {
   const actor = await requirePerson(req), input = parse(UpdateMyProfileBody, req.body);
   const nickname = input.nickname.trim(), handle = input.handle.trim().replace(/^@/, '').toLowerCase();
   if (!nickname || !/^[a-z0-9_.]{3,30}$/.test(handle)) return fail(400, 'Takma adını ve 3–30 karakterlik kullanıcı adını kontrol et.');
-  const instagram = instagramHandle(input.instagram);
-  let facebookUrl: string | null = null, xUrl: string | null = null;
-  try {
-    if (input.facebookUrl !== undefined) facebookUrl = profileSocialUrl(input.facebookUrl, 'facebook');
-    if (input.xUrl !== undefined) xUrl = profileSocialUrl(input.xUrl, 'x');
-  } catch { return fail(400, 'Geçersiz bağlantı'); }
   try {
     await transaction(async (client) => {
       const before = (await client.query<{ avatar: string | null; cover: string | null }>('SELECT avatar,cover FROM community_users WHERE id=$1 FOR UPDATE', [actor.id])).rows[0];
@@ -53,11 +43,8 @@ router.patch('/my-profile', route(async (req, res) => {
         }
         values[purpose] = url;
       }
-      await client.query(`UPDATE community_users SET nickname=$2,handle=$3,bio=$4,quote=$5,instagram=$6,avatar=$7,cover=$8,
-        facebook_url=CASE WHEN $9::boolean THEN $10::text ELSE facebook_url END,
-        x_url=CASE WHEN $11::boolean THEN $12::text ELSE x_url END WHERE id=$1`,
-        [actor.id, nickname, handle, input.bio.trim(), input.quote.trim(), instagram, values.avatar, values.cover,
-          input.facebookUrl !== undefined, facebookUrl, input.xUrl !== undefined, xUrl]);
+      await client.query(`UPDATE community_users SET nickname=$2,handle=$3,bio=$4,quote=$5,avatar=$6,cover=$7 WHERE id=$1`,
+        [actor.id, nickname, handle, input.bio.trim(), input.quote.trim(), values.avatar, values.cover]);
     });
   } catch (error) {
     if ((error as { code?: string }).code === '23505') return fail(409, 'Bu kullanıcı adı zaten kullanılıyor.');
@@ -113,7 +100,7 @@ router.get('/profiles/:id/content', route(async (req, res) => {
   if (tab !== 'bulletins' && tab !== 'liked') return fail(400, 'İçerik türünü seç.');
   const cursor = pageCursor(req.query.cursor);
   const condition = tab === 'bulletins' ? 'p.author_id=$1' : 'EXISTS(SELECT 1 FROM bulletin_likes l WHERE l.post_id=p.id AND l.user_id=$1)';
-  const rows = (await pool.query<{ id: string; created_at: Date }>(`SELECT p.id,p.created_at FROM bulletins p WHERE ${condition}
+  const rows = (await pool.query<{ id: string; created_at: Date }>(`SELECT p.id,p.created_at FROM bulletins p WHERE NOT p.moderation_hidden AND ${condition}
     AND ($2::timestamptz IS NULL OR (p.created_at,p.id)<($2::timestamptz,$3::uuid)) ORDER BY p.created_at DESC,p.id DESC LIMIT 16`, [id, cursor.date, cursor.id])).rows;
   const page = rows.slice(0, 15), last = page.at(-1);
   return res.json({ books: [], bulletins: await postData(page.map((p) => p.id), uid), nextCursor: rows.length > 15 && last ? `${last.created_at.toISOString()}|${last.id}` : null });

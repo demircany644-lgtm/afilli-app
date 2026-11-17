@@ -14,13 +14,13 @@ import { b, Btn, apiError, OFFLINE, goSignIn } from '@/components/bulletins/comm
 const ARCHIVE = ARTICLES.filter((a) => a.kind === 'bulten');
 
 function Archive() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   return (
     <View style={st.archive}>
       <Pressable testID="bulletin-archive" accessibilityRole="button" aria-expanded={open} accessibilityState={{ expanded: open }} accessibilityLabel="Bülten arşivi"
         onPress={() => { tap(); setOpen((o) => !o); }} style={st.archiveHead}>
         <Feather name="archive" size={17} color={b.gold} />
-        <Text style={st.archiveTitle}>Bülten arşivi</Text>
+        <Text style={st.archiveTitle}>Örnek bülten arşivi</Text>
         <Feather name={open ? 'chevron-up' : 'chevron-down'} size={18} color={b.text} />
       </Pressable>
       {open ? ARCHIVE.map((a) => (

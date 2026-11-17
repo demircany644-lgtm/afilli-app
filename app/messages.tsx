@@ -8,6 +8,7 @@ import { F, tap } from '@/components/ui';
 import { Avatar, timeAgo } from '@/components/bulletins/common';
 import { MarbleBackground, P, RoundIcon, S, Skeleton, StateCard, TopBar, k } from '@/components/profile/kit';
 import { go, scoped, useFocusedForeground, withIdentity } from '@/components/profile/hooks';
+import { SampleConversations } from '@/components/SampleConversations';
 
 function Row({ c }: { c: Conversation }) {
   const status = c.peerTyping ? 'Yazıyor...' : c.lastMessage ?? 'Henüz mesaj yok';
@@ -58,16 +59,19 @@ function Messages() {
   let body: React.ReactNode;
   if (!ready || (userId && q.isLoading)) body = <View style={{ padding: 18, gap: 10 }}>{[0, 1, 2, 3].map((i) => <Skeleton key={i} w="100%" h={70} r={18} />)}</View>;
   else if (!userId) body = (<>
+    <SampleConversations />
     <StateCard testID="messages-guest" icon="message-circle" title="Yazarlarla yazışmak için giriş yap" text="Mesajların hesabına bağlıdır ve yalnızca sohbetin iki tarafı görebilir."
       action={{ label: 'Giriş yap', icon: 'log-in', testID: 'messages-signin', onPress: () => go('/sign-in') }} />
     <Archive />
   </>);
   else if (q.isError && !q.data) body = (<>
+    <SampleConversations />
     <StateCard testID="messages-error" icon="wifi-off" title="Sohbetler yüklenemedi" text="İnternet bağlantısı yok, tekrar dene." action={{ label: 'Tekrar dene', testID: 'messages-retry', onPress: () => q.refetch() }} />
     <Archive />
   </>);
   else body = (
     <FlatList data={items} keyExtractor={(c) => c.id} renderItem={({ item }) => <Row c={item} />}
+      ListHeaderComponent={<SampleConversations />}
       contentContainerStyle={{ paddingBottom: 30, paddingTop: 4 }}
       refreshing={q.isRefetching} onRefresh={() => q.refetch()}
       ListEmptyComponent={<StateCard testID="messages-empty" icon="feather" title="Henüz bir sohbetin yok" text="Okuduğun bir yazarın profilinden Mesaj'a dokunarak ilk mektubunu yaz."
@@ -78,13 +82,23 @@ function Messages() {
   return (
     <View style={{ flex: 1, backgroundColor: P.background }}>
       <MarbleBackground />
-      <TopBar back title="Mesajlar" right={userId ? <RoundIcon icon="edit" label="Yeni sohbet" testID="messages-new" onPress={() => go('/people')} /> : null} />
+      <TopBar back title="Mesajlar" right={<>
+        <Pressable testID="messages-writer-chat" accessibilityRole="button" accessibilityLabel="Yazar sohbeti"
+          accessibilityHint="Minnit ortak sohbet odasını tam ekran açar."
+          onPress={() => { tap(); go('/writer-chat'); }}
+          style={({ pressed }) => [st.writerChat, { opacity: pressed ? 0.7 : 1 }]}>
+          <Text style={st.writerChatLabel}>Yazar sohbeti</Text>
+        </Pressable>
+        {userId ? <RoundIcon icon="edit" label="Yeni sohbet" testID="messages-new" onPress={() => go('/people')} /> : null}
+      </>} />
       {body}
     </View>
   );
 }
 
 const st = StyleSheet.create({
+  writerChat: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center', borderWidth: 1, borderColor: P.border, borderRadius: 22, backgroundColor: P.card },
+  writerChatLabel: { fontFamily: F.semi, fontSize: 12, color: P.text },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 74, marginHorizontal: 18, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, borderWidth: 1, borderColor: P.border, backgroundColor: P.card },
   dot: { position: 'absolute', right: 0, bottom: 0, width: 13, height: 13, borderRadius: 7, borderWidth: 2, borderColor: P.card },
   name: { flex: 1, fontFamily: F.semi, fontSize: 15, color: P.text },

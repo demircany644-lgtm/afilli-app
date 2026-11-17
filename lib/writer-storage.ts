@@ -39,9 +39,13 @@ async function write(key: string, value: string | null) {
   const temp = new File(dir, name + '.tmp'), committed = new File(dir, name + '.json');
   const bytes = JSON.stringify({ v: 1, key, value, digest: await hash(value) });
   try {
-    temp.write(bytes);
+    // SDK 58 writes asynchronously. Reading before completion races the file's
+    // creation on Android and rejects with ENOENT; never commit partial bytes.
+    await temp.write(bytes);
     if (await temp.text() !== bytes) throw new Error('Yerel yazı dosyası eksik yazıldı. Önceki kayıt korunuyor.');
-    temp.move(committed);
+    // SDK 58's move is async too; otherwise finally can delete the source
+    // while native relocation still awaits it.
+    await temp.move(committed);
   } finally {
     // File.move updates the File object's own URI. Never delete that object
     // after it became the committed generation.

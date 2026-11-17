@@ -10,7 +10,7 @@ import { getBook } from '@/data/catalog';
 export default function BookScreen() {
   const c = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { isSaved, toggleSave, library } = useApp();
+  const { isSaved, toggleSave, library, ready, storageError } = useApp();
   const b = getBook(id);
   if (!b) return <View style={{ flex: 1, backgroundColor: c.background }}><ScreenHeader title="Kitap" /><Empty icon="book" title="Kitap bulunamadı" text="Bu kitap kaldırılmış olabilir." /></View>;
   const saved = isSaved(b.id);
@@ -19,7 +19,7 @@ export default function BookScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <ScreenHeader title="" right={
-        <Pressable testID="book-save" accessibilityLabel={saved ? 'Kayıttan çıkar' : 'Kaydet'} hitSlop={8} onPress={() => { tap(); toggleSave(b.id); }} style={{ padding: 8 }}>
+        <Pressable testID="book-save" disabled={!ready} accessibilityLabel={saved ? 'Kitaplıktan çıkar' : 'Kitaplığıma Ekle'} hitSlop={8} onPress={() => { tap(); toggleSave(b.id); }} style={{ padding: 8 }}>
           <Feather name="bookmark" size={22} color={saved ? c.gold : c.brown} />
           {saved && <View style={[s.dot, { backgroundColor: c.gold }]} />}
         </Pressable>} />
@@ -36,10 +36,11 @@ export default function BookScreen() {
           </View>
         </View>
         <View style={{ padding: 20, gap: 14 }}>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <GoldButton label={cont !== undefined ? 'Devam et' : 'Okumaya başla'} icon="book-open" testID="book-read" onPress={() => read(cont ?? b.chapters.length - 1)} style={{ flex: 1 }} />
-            <GoldButton label={saved ? 'Kayıtlı' : 'Kaydet'} icon="bookmark" ghost testID="book-save-btn" onPress={() => toggleSave(b.id)} />
+          <View style={{ gap: 10 }}>
+            <GoldButton label={cont !== undefined ? 'Devam et' : 'Okumaya Başla'} icon="book-open" testID="book-read" disabled={!ready || b.chapters.length === 0} onPress={() => read(cont ?? b.chapters.length - 1)} />
+            <GoldButton label={saved ? 'Kitaplığımdan Çıkar' : 'Kitaplığıma Ekle'} icon="bookmark" ghost testID="book-save-btn" disabled={!ready} onPress={() => toggleSave(b.id)} />
           </View>
+          {storageError ? <Text accessibilityRole="alert" style={{ color: c.destructive, fontFamily: 'Inter_400Regular' }}>{storageError}</Text> : null}
           <Text style={[s.blurb, { color: c.brown }]}>{b.blurb}</Text>
           <Text style={[s.h, { color: c.brown }]}>Bölümler</Text>
           {[...b.chapters].map((ch, i) => (
@@ -59,7 +60,7 @@ const s = StyleSheet.create({
   hero: { alignItems: 'center', paddingVertical: 26, gap: 6 },
   t: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 26, marginTop: 14, textAlign: 'center', paddingHorizontal: 20 },
   a: { fontFamily: 'Inter_400Regular', fontSize: 13 },
-  stats: { flexDirection: 'row', gap: 14, marginTop: 6 },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14, marginTop: 6 },
   st: { fontFamily: 'Inter_500Medium', fontSize: 13 },
   blurb: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 17, lineHeight: 27 },
   h: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 19, marginTop: 6 },

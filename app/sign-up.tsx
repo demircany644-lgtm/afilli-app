@@ -1,78 +1,47 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth, useSignUp } from '@clerk/expo';
-import { useApp } from '@/context/AppContext';
-import { Btn } from '@/components/bulletins/common';
-import { AuthShell, Field, FormError, Divider, GoogleButton, clerkMsg, goAfterAuth, guardAuthAction, st } from '@/components/bulletins/Auth';
+import { Feather } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+import { Btn, b } from '@/components/bulletins/common';
+import { AuthShell, Field, PasswordField, FormError, authMsg, goAfterAuth, st } from '@/components/bulletins/Auth';
 
 export default function SignUp() {
-  const { signUp, errors, fetchStatus } = useSignUp();
-  const { isSignedIn } = useAuth();
-  const { name, bio, setProfile } = useApp();
-  const [nick, setNick] = useState(name !== 'Okur' ? name : '');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
+  const auth = useAuth();
+  const [email, setEmail] = useState(''), [nick, setNick] = useState(''), [password, setPassword] = useState('');
+  const [accepted, setAccepted] = useState(false), [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
-  const busy = fetchStatus === 'fetching';
-
+  const lock = useRef(false);
   const submit = async () => {
+    if (lock.current) return;
     setErr(null);
-    const n = nick.trim().slice(0, 40);
-    if (!n) return setErr('Bir takma ad seç.');
-    setProfile(n, bio);
-    const { error } = await signUp.password({ emailAddress: email.trim(), password, firstName: n });
-    if (error) return setErr(clerkMsg(error, 'Kayıt oluşturulamadı.'));
-    const r = await signUp.verifications.sendEmailCode();
-    if (r.error) setErr(clerkMsg(r.error, 'Doğrulama kodu gönderilemedi.'));
+    if (nick.trim().length < 3 || nick.trim().length > 15) { setErr('Takma ad 3–15 karakter olmalı.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setErr('Geçerli bir e-posta adresi yaz.'); return; }
+    if (password.length < 8) { setErr('Şifre en az 8 karakter olmalı.'); return; }
+    if (!accepted) { setErr('Devam etmek için topluluk kurallarını kabul et.'); return; }
+    lock.current = true; setBusy(true);
+    try { await auth.register(email, nick, password, true); goAfterAuth(); }
+    catch (error) { setErr(authMsg(error)); }
+    finally { lock.current = false; setBusy(false); }
   };
-  const verify = async () => {
-    setErr(null);
-    const r = await signUp.verifications.verifyEmailCode({ code: code.trim() });
-    if (r.error) return setErr(clerkMsg(r.error, 'Kod hatalı.'));
-    if (signUp.status === 'complete') {
-      await signUp.finalize({
-        navigate: ({ session, decorateUrl }) => {
-          if (session?.currentTask) { setErr('Hesabında tamamlanması gereken bir adım var.'); return; }
-          goAfterAuth(decorateUrl);
-        },
-      });
-    } else setErr('Kayıt tamamlanamadı. Eksik bilgi: ' + (signUp.missingFields.join(', ') || 'bilinmiyor'));
-  };
-  const resend = async () => {
-    const r = await signUp.verifications.sendEmailCode();
-    if (r.error) setErr(clerkMsg(r.error)); else setInfo('Yeni kod gönderildi.');
-  };
-
-  if (isSignedIn) {
-    return <AuthShell title="Hoş geldin" sub="Hesabın hazır."><Btn label="Bültenlere git" onPress={() => router.replace('/bultenler')} /></AuthShell>;
-  }
-  if (signUp.status === 'missing_requirements' && signUp.unverifiedFields.includes('email_address')) {
-    return (
-      <AuthShell title="E-postanı doğrula" sub={'Gönderdiğimiz kodu yaz' + (email ? ': ' + email.trim() : '.')}>
-        <Field label="Doğrulama kodu" value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="one-time-code" error={errors.fields.code?.message} testID="signup-code" />
-        <FormError text={err} />{info ? <Text style={st.sub}>{info}</Text> : null}
-        <Btn label="Doğrula ve başla" busy={busy} disabled={!code.trim()} onPress={guardAuthAction(verify, setErr)} testID="signup-verify" />
-        <Btn label="Yeni kod gönder" ghost disabled={busy} onPress={guardAuthAction(resend, setErr)} />
-      </AuthShell>
-    );
-  }
-  return (
-    <AuthShell title="Kayıt ol" sub="Takma adınla Afilli topluluğuna katıl; bültenlerin bu adla görünür.">
-      <GoogleButton />
-      <Divider />
-      <Field label="Takma ad" value={nick} onChangeText={setNick} maxLength={40} autoComplete="nickname" testID="signup-nick" />
-      <Field label="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" error={errors.fields.emailAddress?.message} testID="signup-email" />
-      <Field label="Şifre" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" error={errors.fields.password?.message} testID="signup-password" />
-      <FormError text={err} />
-      <Btn label="Kayıt ol" busy={busy} disabled={!email.trim() || !password || !nick.trim()} onPress={guardAuthAction(submit, setErr)} testID="signup-submit" />
-      <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-        <Text style={st.sub}>Zaten hesabın var mı?</Text>
-        <Pressable accessibilityRole="link" onPress={() => router.replace('/sign-in')}><Text style={st.link}>Giriş yap</Text></Pressable>
-      </View>
-      <View nativeID="clerk-captcha" />
-    </AuthShell>
-  );
+  if (auth.isSignedIn) return <AuthShell title="Hoş geldin" sub="Hesabın açık."><Btn label="Ana Sayfaya git" onPress={goAfterAuth} /></AuthShell>;
+  return <AuthShell title="Kayıt ol" sub="Takma adın, e-posta adresin ve şifrenle Afilli’ye katıl.">
+    <Field label="Takma ad" value={nick} onChangeText={setNick} maxLength={15} autoComplete="nickname" editable={!busy} testID="signup-nick" />
+    <Field label="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address"
+      autoComplete="email" maxLength={254} editable={!busy} testID="signup-email" />
+    <PasswordField label="Şifre" value={password} onChangeText={setPassword} autoComplete="new-password"
+      maxLength={128} editable={!busy} testID="signup-password" />
+    <Text style={st.sub}>Şifren en az 8 karakter olmalı; özel karakter şartı yok.</Text>
+    <Text style={st.sub}>Başkalarının haklarına saygı göster; izinsiz içerik, taciz ve kişisel bilgi paylaşma.</Text>
+    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: accepted, disabled: busy }} disabled={busy}
+      onPress={() => setAccepted(value => !value)} testID="signup-rules" style={{ flexDirection: 'row', gap: 10, alignItems: 'center', minHeight: 44 }}>
+      <Feather name={accepted ? 'check-square' : 'square'} color={b.text} size={22} />
+      <Text style={[st.sub, { flex: 1 }]}>Topluluk kurallarını kabul ediyorum.</Text>
+    </Pressable>
+    <FormError text={err} />
+    <Btn label="Kayıt ol" busy={busy} onPress={() => void submit()} testID="signup-submit" />
+    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}><Text style={st.sub}>Zaten hesabın var mı?</Text>
+      <Pressable accessibilityRole="link" disabled={busy} onPress={() => router.replace('/sign-in')}><Text style={st.link}>Giriş yap</Text></Pressable>
+    </View>
+  </AuthShell>;
 }

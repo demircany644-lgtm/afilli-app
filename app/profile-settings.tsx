@@ -8,7 +8,6 @@ import { useApp } from '@/context/AppContext';
 import { F, tap } from '@/components/ui';
 import { Sheet } from '@/components/bulletins/common';
 import { FoilButton, MarbleBackground, Notice, P, TopBar, k } from '@/components/profile/kit';
-import { SocialRow } from '@/components/profile/SocialRow';
 import { go, scoped, useOwnerGuard, withIdentity } from '@/components/profile/hooks';
 
 function Row({ icon, label, sub, onPress, testID, danger }: { icon: keyof typeof Feather.glyphMap; label: string; sub?: string; onPress: () => void; testID: string; danger?: boolean }) {
@@ -108,12 +107,11 @@ function ProfileSettings() {
         {isAdmin ? (<>
           <Text style={k.section}>Yönetim</Text>
           <View style={k.card}>
-            <Row icon="sliders" label="Sosyal bağlantı ayarları" sub="Instagram, Facebook, X ve çok okunan kuralı" testID="settings-admin" onPress={() => go('/social-admin')} />
+            <Row icon="shield" label="Yönetim paneli" sub="Genel durum, hesaplar, içerik denetimi ve geçmiş" testID="settings-admin-panel" onPress={() => go('/admin')} />
+            <Row icon="instagram" label="Instagram Linki" sub="Uygulamanın ortak Instagram hesabı" testID="settings-admin" onPress={() => go('/social-admin')} />
           </View>
         </>) : null}
 
-        <Text style={k.section}>Afilli topluluğu</Text>
-        <SocialRow isAdmin={isAdmin} />
       </ScrollView>
       <Sheet visible={confirm} onClose={() => { if (!busy) setConfirm(false); }} title="Eski verileri aktar" testID="settings-import-sheet">
         <View style={{ padding: 18, gap: 12 }}>

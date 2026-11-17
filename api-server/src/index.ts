@@ -2,6 +2,10 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { bootstrapAdministrator } from './lib/admin-bootstrap';
 import { getWriterCleanupHealth } from './lib/writer-cleanup-health';
+import { assertAuthReleaseReady } from './lib/auth-release';
+
+// Do not accept production traffic with an incomplete legacy-account transition.
+await assertAuthReleaseReady();
 
 const rawPort = process.env["PORT"];
 

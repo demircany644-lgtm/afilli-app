@@ -7,7 +7,7 @@ import { coverUrl, deltaMediaIds, legacyDocument, mediaIds, normalizeDocument, p
 
 type Db = Transaction | typeof pool;
 export async function writerRow(id: string, db: Db = pool, lock = false): Promise<WriterRow> {
-  const result = await db.query<WriterRow>(`SELECT b.*,(b.writer_data IS NULL AND EXISTS(SELECT 1 FROM bulletins WHERE book_id=b.id)) AS legacy_public
+  const result = await db.query<WriterRow>(`SELECT b.*,${publicBook()} AS public_visible,(b.writer_data IS NULL AND EXISTS(SELECT 1 FROM bulletins WHERE book_id=b.id)) AS legacy_public
     FROM authored_books b WHERE b.id=$1 ${lock ? 'FOR UPDATE OF b' : ''}`, [id]);
   return result.rows[0] ?? fail(404, 'Kitap bulunamadı.');
 }
@@ -169,7 +169,7 @@ export async function authoredCards(owner: string | null): Promise<AuthoredBook[
     b.published_at AS "publishedAt",'[]'::json AS chapters,(b.author_id=$1) IS TRUE AS "canEdit",
     (SELECT count(*)::int FROM book_reads WHERE book_id=b.id) AS "readCount",
     (SELECT count(*)::int FROM writer_likes WHERE book_id=b.id) AS "likeCount",
-    (SELECT count(*)::int FROM writer_comments WHERE book_id=b.id) AS "commentCount",
+    (SELECT count(*)::int FROM writer_comments WHERE book_id=b.id AND NOT moderation_hidden) AS "commentCount",
     EXISTS(SELECT 1 FROM writer_likes WHERE book_id=b.id AND user_id=$1) AS liked
     FROM authored_books b JOIN community_users u ON u.id=b.author_id
     WHERE CASE WHEN $1::text IS NULL THEN ${publicBook()} ELSE b.author_id=$1 END
@@ -231,7 +231,7 @@ export async function publishWriter(db: Transaction, id: string, owner: string, 
   return writerBook(await writerRow(id, db));
 }
 export async function authoredBook(id: string, viewer: string | null, db: Db = pool): Promise<AuthoredBook> {
-  const row = await writerRow(id, db), own = row.author_id === viewer, published = isPublished(row);
+  const row = await writerRow(id, db), own = row.author_id === viewer, published = row.public_visible === true;
   if (!own && !published) return fail(404, 'Kitap bulunamadı.');
   // A public reader link always means the released snapshot, including for its
   // author. Private previews explicitly use the authenticated writer endpoint.
@@ -240,7 +240,7 @@ export async function authoredBook(id: string, viewer: string | null, db: Db = p
   const counts = (await db.query<{ read_count: number; like_count: number; comment_count: number; liked: boolean }>(`SELECT
     (SELECT count(*)::int FROM book_reads WHERE book_id=$1) AS read_count,
     (SELECT count(*)::int FROM writer_likes WHERE book_id=$1) AS like_count,
-    (SELECT count(*)::int FROM writer_comments WHERE book_id=$1) AS comment_count,
+    (SELECT count(*)::int FROM writer_comments WHERE book_id=$1 AND NOT moderation_hidden) AS comment_count,
     EXISTS(SELECT 1 FROM writer_likes WHERE book_id=$1 AND user_id=$2) AS liked`, [id, viewer])).rows[0];
   return { id, title: doc.title, body: doc.chapters.map(ch => plain(ch.html)).join('\n\n'), author, cover: doc.cover, coverUrl: coverUrl(doc.cover),
     description: doc.description, genres: doc.genres, ageRating: doc.ageRating, language: doc.language, completion: doc.completion,

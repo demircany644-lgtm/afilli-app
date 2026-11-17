@@ -1,8 +1,10 @@
+import { HOME_COVERS } from '@/data/homeCovers';
+
 export type Book = {
   id: string; title: string; author: string; alias: string; genre: string;
   rating: number; likes: string; comments: number; reads: string;
   palette: [string, string]; ink: string; motif: 'crest' | 'snow' | 'compass' | 'manor' | 'moon' | 'feather';
-  blurb: string; cover?: number; chapters: { title: string; ago: string; body: string }[];
+  blurb: string; cover?: number; sample?: boolean; chapters: { title: string; ago: string; body: string }[];
 };
 
 const p = (t: string) => t;
@@ -51,13 +53,30 @@ export const BOOKS: Book[] = [
     blurb: 'Kayıp Pusulanın İzinde, Afilli topluluğundan bir okur seçkisi.', chapters: [ { title: '1. Bölüm', ago: 'bugün', body: p('Kayıp Pusulanın İzinde için ilk bölüm.') } ] },
 ];
 
+type Seed = [id: string, title: string, genre: string, author: string, alias: string, palette: [string, string], blurb: string, chapter: string];
+const SEEDS: Seed[] = [
+  ['gece-ve-sessizlik', 'Gece ve Sessizlik', 'Roman', 'Elif M. Yılmaz', 'elifmy', ['#1B2433', '#0C111A'], 'Yağmurlu bir şehirde gece vardiyasından dönen bir kadın, her akşam aynı pencerede yanan ışığın sırrını merak eder.', 'Yağmur, sokak lambalarının altında ince iplikler gibi parlıyordu. Leyla otobüsten indiğinde saat biri geçmişti.\n\nKarşı apartmanın dördüncü katında yine o ışık yanıyordu. Üç aydır, her gece, aynı saatte.\n\nŞemsiyesini kapattı, bir süre ıslanmayı seçti. Bazı sorular insanı ancak yağmurun altında bekletirdi.'],
+  ['zambaklarin-dili', 'Zambakların Dili', 'Şiir', 'Deniz Arslan', 'denizarslan', ['#EEF0E8', '#B9C2AE'], 'Beyaz çiçeklerin sessizliğine yazılmış kısa şiirler.', 'Bir zambak açar\nkimse görmeden;\nsabah, onu\nilk kez söyleyen olur.\n\nSen de öyle geldin:\nadın konmadan önce\nkokun vardı odada.'],
+  ['yildiz-tozu', 'Yıldız Tozu', 'Deneme', 'Mira Koç', 'mirakoc', ['#141A3A', '#070A1C'], 'Gökyüzüne bakmanın, küçük hissetmenin ve yine de umut etmenin üzerine denemeler.', 'Çocukken yıldızların bize göz kırptığını sanırdım. Sonra öğrendim: gördüğümüz ışık, çoktan yola çıkmış eski bir mektuptu.\n\nBelki de insan da böyledir. Bugün söylediğimiz bir cümle, yıllar sonra birinin karanlığına ulaşır.'],
+  ['kayip-haritanin-izinde', 'Kayıp Haritanın İzinde', 'Macera', 'Can Eren', 'caneren', ['#D9C39A', '#8E6B3E'], 'Dedesinin sandığında bulduğu yarım harita, genç bir arkeoloğu Ege kıyılarında bir yolculuğa çıkarır.', 'Haritanın kenarı yanmıştı; geriye yalnızca bir koy, üç tepe ve mürekkeple çizilmiş bir çarpı kalmıştı.\n\nKerem parmağını çarpının üzerinde gezdirdi. "Burası," dedi, "dedemin hiç anlatmadığı yer."'],
+  ['sehrin-ruyasi', 'Şehrin Rüyası', 'Öykü', 'Merve Kaya', 'mervekaya', ['#BFD3E6', '#6F8FB3'], 'Bulutların üstünde yükselen bir şehir, onu yalnızca uykusuz gecelerde görenleri bekliyor.', 'O şehri ilk kez dördüncü uykusuz gecemde gördüm. Bulutların arasından kuleler yükseliyordu; pencereleri sabah gibi aydınlıktı.\n\nKimseye anlatmadım. Anlatırsam kaybolacağını biliyordum.'],
+  ['sisli-sabahlar', 'Sisli Sabahlar', 'Anı', 'Ali Demir', 'alidemir', ['#C9CFC4', '#7D877A'], 'Karadeniz yaylasında geçen bir çocukluğun sisli sabahlarından kalan anılar.', 'Yaylada sabahlar sisle başlardı. Annem kapıyı açar, "Yine bulutun içindeyiz," derdi.\n\nBen o sisin içinde kaybolmaktan hiç korkmazdım. Çünkü ne kadar uzağa gitsem, ocaktaki çayın kokusu beni bulurdu.'],
+  ['yildizlarin-altinda', 'Yıldızların Altında', 'Romantik', 'Selin Demir', 'selindemir', ['#1E2647', '#0B1026'], 'Bir yaz gecesi gözlemevinde tanışan iki yabancı, aynı yıldızı farklı isimlerle çağırır.', 'Teleskobun başında sıra beklerken konuştular ilk kez.\n\n"Şuna Vega derler," dedi Arda.\n\nNil gülümsedi. "Babaannem ona Çoban Yıldızı derdi."\n\nİkisi de haklıydı. Gece boyunca bunu tartıştılar.'],
+  ['sessiz-kutuphane', 'Sessiz Kütüphane', 'Kurgusal', 'Emre Tunç', 'emretunc', ['#5A3E2B', '#2A1C12'], 'Kapanış saatinden sonra raflarındaki kitapların yer değiştirdiği eski bir kütüphane.', 'Kütüphaneci her akşam ışıkları kapatmadan önce rafları sayardı. Bin iki yüz on dört kitap.\n\nSabah ise sayı hep bir fazla çıkıyordu. Ve fazladan gelen kitabın ilk sayfası, her seferinde boştu.'],
+  ['son-yaprak', 'Son Yaprak', 'Roman', 'Deniz Polat', 'denizpolat', ['#B5632E', '#6B3418'], 'Bir sonbahar boyunca hastane penceresinden görünen ağaç, iki yaşlı dostun son sohbetlerine tanık olur.', 'Pencereden görünen çınarın yaprakları birer birer düşüyordu.\n\n"Sonuncusu düştüğünde," dedi Hüsnü Bey, "ben de giderim herhalde."\n\nRıza Bey kahkahayı bastı. "Sen o ağaçtan da inatçısın."'],
+];
+const HOME_BOOKS: Book[] = SEEDS.map(([id, title, genre, author, alias, palette, blurb, chapter]) => ({
+  id, title, author, alias, genre, rating: 0, likes: '0', comments: 0, reads: '0', palette, ink: '#F6EEDD', motif: 'feather', sample: true,
+  cover: HOME_COVERS[id], blurb: blurb + ' (Örnek içerik)', chapters: [{ title: '1. Bölüm (örnek)', ago: 'örnek', body: chapter }],
+}));
+BOOKS.push(...HOME_BOOKS);
+
 export const FEATURED = BOOKS.slice(0, 3);
 export const POPULAR = BOOKS.slice(3, 6);
 export const HOME_SECTIONS = [
-  { id: 'oneriler', title: 'Afilli Önerileri', ids: ['sessiz-ormanin-gunlugu', 'zamanin-kiyisinda'] },
-  { id: 'cok-okunan', title: 'Çok Okunanlar', ids: ['tasin-sirri', 'ruzgarin-sesi'] },
-  { id: 'populer', title: 'Popüler Kitaplar', ids: ['golgelerin-dili', 'uyanis'] },
-  { id: 'yeni', title: 'Yeni Çıkan Kitaplar', ids: ['gece-defteri', 'kayip-pusulanin-izinde'], center: true },
+  { id: 'oneriler', title: 'Afilli Önerileri', ids: ['gece-ve-sessizlik', 'zambaklarin-dili', 'yildiz-tozu'] },
+  { id: 'cok-okunan', title: 'Çok Okunanlar', ids: ['kayip-haritanin-izinde', 'sehrin-ruyasi', 'sisli-sabahlar'] },
+  { id: 'populer', title: 'Popüler Kitaplar', ids: ['yildizlarin-altinda', 'sessiz-kutuphane', 'son-yaprak'] },
 ];
 export const getBook = (id?: string) => BOOKS.find((b) => b.id === id);
 

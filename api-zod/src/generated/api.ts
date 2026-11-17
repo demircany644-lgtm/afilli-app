@@ -8,6 +8,278 @@
 import * as zod from 'zod';
 
 
+export const GetAdminOverviewResponse = zod.object({
+  "role": zod.enum(['user', 'admin', 'superadmin']),
+  "users": zod.number().int(),
+  "disabledUsers": zod.number().int(),
+  "books": zod.number().int(),
+  "bulletins": zod.number().int(),
+  "comments": zod.number().int(),
+  "hiddenContent": zod.number().int()
+})
+
+
+export const getAdminAccountsQueryQMax = 100;
+
+export const getAdminAccountsQueryOffsetDefault = 0;
+export const getAdminAccountsQueryOffsetMin = 0;
+
+
+
+export const GetAdminAccountsQueryParams = zod.object({
+  "q": zod.coerce.string().max(getAdminAccountsQueryQMax).optional(),
+  "offset": zod.coerce.number().int().min(getAdminAccountsQueryOffsetMin).default(getAdminAccountsQueryOffsetDefault)
+})
+
+export const GetAdminAccountsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['user', 'admin', 'superadmin']),
+  "disabled": zod.boolean(),
+  "emailVerified": zod.boolean(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number().int(),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const UpdateAdminAccountParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateAdminAccountBodyNicknameMin = 3;
+export const updateAdminAccountBodyNicknameMax = 15;
+
+export const updateAdminAccountBodyReasonMin = 3;
+export const updateAdminAccountBodyReasonMax = 300;
+
+
+
+export const UpdateAdminAccountBody = zod.object({
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional(),
+  "disabled": zod.boolean().optional(),
+  "nickname": zod.string().min(updateAdminAccountBodyNicknameMin).max(updateAdminAccountBodyNicknameMax).optional(),
+  "reason": zod.string().min(updateAdminAccountBodyReasonMin).max(updateAdminAccountBodyReasonMax)
+})
+
+export const UpdateAdminAccountResponse = zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['user', 'admin', 'superadmin']),
+  "disabled": zod.boolean(),
+  "emailVerified": zod.boolean(),
+  "createdAt": zod.string()
+})
+
+
+export const getAdminContentQueryQMax = 100;
+
+export const getAdminContentQueryOffsetDefault = 0;
+export const getAdminContentQueryOffsetMin = 0;
+
+
+
+export const GetAdminContentQueryParams = zod.object({
+  "kind": zod.enum(['book', 'writer_comment', 'bulletin', 'bulletin_comment']),
+  "q": zod.coerce.string().max(getAdminContentQueryQMax).optional(),
+  "offset": zod.coerce.number().int().min(getAdminContentQueryOffsetMin).default(getAdminContentQueryOffsetDefault)
+})
+
+export const GetAdminContentResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['book', 'writer_comment', 'bulletin', 'bulletin_comment']),
+  "author": zod.string(),
+  "title": zod.string(),
+  "body": zod.string(),
+  "hidden": zod.boolean(),
+  "publication": zod.string(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number().int(),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const UpdateAdminContentParams = zod.object({
+  "kind": zod.enum(['book', 'writer_comment', 'bulletin', 'bulletin_comment']),
+  "id": zod.coerce.string().uuid()
+})
+
+export const updateAdminContentBodyReasonMin = 3;
+export const updateAdminContentBodyReasonMax = 300;
+
+
+
+export const UpdateAdminContentBody = zod.object({
+  "hidden": zod.boolean(),
+  "reason": zod.string().min(updateAdminContentBodyReasonMin).max(updateAdminContentBodyReasonMax)
+})
+
+export const UpdateAdminContentResponse = zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['book', 'writer_comment', 'bulletin', 'bulletin_comment']),
+  "author": zod.string(),
+  "title": zod.string(),
+  "body": zod.string(),
+  "hidden": zod.boolean(),
+  "publication": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+export const getAdminHistoryQueryOffsetDefault = 0;
+export const getAdminHistoryQueryOffsetMin = 0;
+
+
+
+export const GetAdminHistoryQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(getAdminHistoryQueryOffsetMin).default(getAdminHistoryQueryOffsetDefault)
+})
+
+export const GetAdminHistoryResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "actor": zod.string(),
+  "action": zod.string(),
+  "targetType": zod.string(),
+  "targetId": zod.string(),
+  "reason": zod.string(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number().int(),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const updateAdminSettingsBodyInstagramUrlMax = 120;
+
+
+
+export const UpdateAdminSettingsBody = zod.object({
+  "instagramUrl": zod.string().max(updateAdminSettingsBodyInstagramUrlMax).nullable()
+})
+
+export const updateAdminSettingsResponseInstagramUrlMax = 120;
+
+export const updateAdminSettingsResponsePopularDaysMax = 365;
+
+export const updateAdminSettingsResponsePopularLimitMax = 100;
+
+
+
+export const UpdateAdminSettingsResponse = zod.object({
+  "instagramUrl": zod.string().max(updateAdminSettingsResponseInstagramUrlMax).nullable(),
+  "popularDays": zod.number().int().min(1).max(updateAdminSettingsResponsePopularDaysMax),
+  "popularLimit": zod.number().int().min(1).max(updateAdminSettingsResponsePopularLimitMax)
+})
+
+
+export const GetAccountSessionResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string().email(),
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional()
+}),zod.null()]),
+  "token": zod.string().optional()
+})
+
+
+export const registerAccountBodyEmailMax = 254;
+
+export const registerAccountBodyPasswordMin = 8;
+export const registerAccountBodyPasswordMax = 128;
+
+export const registerAccountBodyNicknameMin = 3;
+export const registerAccountBodyNicknameMax = 15;
+
+
+
+export const RegisterAccountBody = zod.object({
+  "email": zod.string().email().max(registerAccountBodyEmailMax),
+  "password": zod.string().min(registerAccountBodyPasswordMin).max(registerAccountBodyPasswordMax),
+  "nickname": zod.string().min(registerAccountBodyNicknameMin).max(registerAccountBodyNicknameMax),
+  "acceptedRules": zod.literal(true)
+})
+
+export const RegisterAccountResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string().email(),
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional()
+}),zod.null()]),
+  "token": zod.string().optional()
+})
+
+
+export const loginAccountBodyEmailMax = 254;
+
+export const loginAccountBodyPasswordMax = 128;
+
+
+
+export const LoginAccountBody = zod.object({
+  "email": zod.string().email().max(loginAccountBodyEmailMax),
+  "password": zod.string().min(1).max(loginAccountBodyPasswordMax)
+})
+
+export const LoginAccountResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string().email(),
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional()
+}),zod.null()]),
+  "token": zod.string().optional()
+})
+
+
+export const LogoutAccountResponse = zod.void()
+
+
+export const requestPasswordCodeBodyEmailMax = 254;
+
+
+
+export const RequestPasswordCodeBody = zod.object({
+  "email": zod.string().email().max(requestPasswordCodeBodyEmailMax)
+})
+
+export const RequestPasswordCodeResponse = zod.object({
+  "challengeId": zod.string().uuid(),
+  "message": zod.string()
+})
+
+
+export const resetAccountPasswordBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+export const resetAccountPasswordBodyPasswordMin = 8;
+export const resetAccountPasswordBodyPasswordMax = 128;
+
+
+
+export const ResetAccountPasswordBody = zod.object({
+  "challengeId": zod.string().uuid(),
+  "code": zod.string().regex(resetAccountPasswordBodyCodeRegExp),
+  "password": zod.string().min(resetAccountPasswordBodyPasswordMin).max(resetAccountPasswordBodyPasswordMax)
+})
+
+export const ResetAccountPasswordResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string().email(),
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional()
+}),zod.null()]),
+  "token": zod.string().optional()
+})
+
+
 /**
  * Returns server health status
  * @summary Health check
@@ -17,11 +289,7 @@ export const HealthCheckResponse = zod.object({
 })
 
 
-export const getSocialSettingsResponseInstagramHandleMax = 30;
-
-export const getSocialSettingsResponseFacebookUrlMax = 300;
-
-export const getSocialSettingsResponseXUrlMax = 300;
+export const getSocialSettingsResponseInstagramUrlMax = 120;
 
 export const getSocialSettingsResponsePopularDaysMax = 365;
 
@@ -30,39 +298,21 @@ export const getSocialSettingsResponsePopularLimitMax = 100;
 
 
 export const GetSocialSettingsResponse = zod.object({
-  "instagramHandle": zod.string().min(1).max(getSocialSettingsResponseInstagramHandleMax),
-  "facebookUrl": zod.string().max(getSocialSettingsResponseFacebookUrlMax).nullable(),
-  "xUrl": zod.string().max(getSocialSettingsResponseXUrlMax).nullable(),
+  "instagramUrl": zod.string().max(getSocialSettingsResponseInstagramUrlMax).nullable(),
   "popularDays": zod.number().int().min(1).max(getSocialSettingsResponsePopularDaysMax),
   "popularLimit": zod.number().int().min(1).max(getSocialSettingsResponsePopularLimitMax)
 })
 
 
-export const updateSocialSettingsBodyInstagramHandleMax = 30;
-
-export const updateSocialSettingsBodyFacebookUrlMax = 300;
-
-export const updateSocialSettingsBodyXUrlMax = 300;
-
-export const updateSocialSettingsBodyPopularDaysMax = 365;
-
-export const updateSocialSettingsBodyPopularLimitMax = 100;
+export const updateSocialSettingsBodyInstagramUrlMax = 120;
 
 
 
 export const UpdateSocialSettingsBody = zod.object({
-  "instagramHandle": zod.string().min(1).max(updateSocialSettingsBodyInstagramHandleMax),
-  "facebookUrl": zod.string().max(updateSocialSettingsBodyFacebookUrlMax).nullable(),
-  "xUrl": zod.string().max(updateSocialSettingsBodyXUrlMax).nullable(),
-  "popularDays": zod.number().int().min(1).max(updateSocialSettingsBodyPopularDaysMax),
-  "popularLimit": zod.number().int().min(1).max(updateSocialSettingsBodyPopularLimitMax)
+  "instagramUrl": zod.string().max(updateSocialSettingsBodyInstagramUrlMax).nullable()
 })
 
-export const updateSocialSettingsResponseInstagramHandleMax = 30;
-
-export const updateSocialSettingsResponseFacebookUrlMax = 300;
-
-export const updateSocialSettingsResponseXUrlMax = 300;
+export const updateSocialSettingsResponseInstagramUrlMax = 120;
 
 export const updateSocialSettingsResponsePopularDaysMax = 365;
 
@@ -71,9 +321,7 @@ export const updateSocialSettingsResponsePopularLimitMax = 100;
 
 
 export const UpdateSocialSettingsResponse = zod.object({
-  "instagramHandle": zod.string().min(1).max(updateSocialSettingsResponseInstagramHandleMax),
-  "facebookUrl": zod.string().max(updateSocialSettingsResponseFacebookUrlMax).nullable(),
-  "xUrl": zod.string().max(updateSocialSettingsResponseXUrlMax).nullable(),
+  "instagramUrl": zod.string().max(updateSocialSettingsResponseInstagramUrlMax).nullable(),
   "popularDays": zod.number().int().min(1).max(updateSocialSettingsResponsePopularDaysMax),
   "popularLimit": zod.number().int().min(1).max(updateSocialSettingsResponsePopularLimitMax)
 })
@@ -87,9 +335,6 @@ export const GetMyProfileResponse = zod.object({
   "cover": zod.string().nullable(),
   "bio": zod.string(),
   "quote": zod.string(),
-  "instagram": zod.string().nullable(),
-  "facebookUrl": zod.string().nullish(),
-  "xUrl": zod.string().nullish(),
   "bookCount": zod.number().int(),
   "followersCount": zod.number().int(),
   "followingCount": zod.number().int(),
@@ -113,12 +358,6 @@ export const updateMyProfileBodyBioMax = 500;
 
 export const updateMyProfileBodyQuoteMax = 200;
 
-export const updateMyProfileBodyInstagramMax = 30;
-
-export const updateMyProfileBodyFacebookUrlMax = 300;
-
-export const updateMyProfileBodyXUrlMax = 300;
-
 
 
 export const UpdateMyProfileBody = zod.object({
@@ -126,9 +365,6 @@ export const UpdateMyProfileBody = zod.object({
   "handle": zod.string().min(updateMyProfileBodyHandleMin).max(updateMyProfileBodyHandleMax),
   "bio": zod.string().max(updateMyProfileBodyBioMax),
   "quote": zod.string().max(updateMyProfileBodyQuoteMax),
-  "instagram": zod.string().max(updateMyProfileBodyInstagramMax).nullable(),
-  "facebookUrl": zod.string().max(updateMyProfileBodyFacebookUrlMax).nullish(),
-  "xUrl": zod.string().max(updateMyProfileBodyXUrlMax).nullish(),
   "avatarUploadId": zod.string().nullish(),
   "coverUploadId": zod.string().nullish()
 })
@@ -141,9 +377,6 @@ export const UpdateMyProfileResponse = zod.object({
   "cover": zod.string().nullable(),
   "bio": zod.string(),
   "quote": zod.string(),
-  "instagram": zod.string().nullable(),
-  "facebookUrl": zod.string().nullish(),
-  "xUrl": zod.string().nullish(),
   "bookCount": zod.number().int(),
   "followersCount": zod.number().int(),
   "followingCount": zod.number().int(),
@@ -185,9 +418,6 @@ export const GetReaderProfileResponse = zod.object({
   "cover": zod.string().nullable(),
   "bio": zod.string(),
   "quote": zod.string(),
-  "instagram": zod.string().nullable(),
-  "facebookUrl": zod.string().nullish(),
-  "xUrl": zod.string().nullish(),
   "bookCount": zod.number().int(),
   "followersCount": zod.number().int(),
   "followingCount": zod.number().int(),
@@ -218,9 +448,6 @@ export const SetProfileFollowResponse = zod.object({
   "cover": zod.string().nullable(),
   "bio": zod.string(),
   "quote": zod.string(),
-  "instagram": zod.string().nullable(),
-  "facebookUrl": zod.string().nullish(),
-  "xUrl": zod.string().nullish(),
   "bookCount": zod.number().int(),
   "followersCount": zod.number().int(),
   "followingCount": zod.number().int(),

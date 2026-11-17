@@ -11,6 +11,115 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /admin/overview:
+    get:
+      operationId: getAdminOverview
+      responses:
+        "200": { description: Authorized administration overview, content: { application/json: { schema: { $ref: "#/components/schemas/AdminOverview" } } } }
+  /admin/accounts:
+    get:
+      operationId: getAdminAccounts
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200": { description: Accounts for upper administrator only, content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccountPage" } } } }
+  /admin/accounts/{id}:
+    patch:
+      operationId: updateAdminAccount
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccountUpdate" } } }
+      responses:
+        "200": { description: Updated account with audit event, content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccount" } } } }
+  /admin/content:
+    get:
+      operationId: getAdminContent
+      parameters:
+        - { name: kind, in: query, required: true, schema: { $ref: "#/components/schemas/AdminContentKind" } }
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200": { description: Moderation records, content: { application/json: { schema: { $ref: "#/components/schemas/AdminContentPage" } } } }
+  /admin/content/{kind}/{id}:
+    patch:
+      operationId: updateAdminContent
+      parameters:
+        - { name: kind, in: path, required: true, schema: { $ref: "#/components/schemas/AdminContentKind" } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminModerationUpdate" } } }
+      responses:
+        "200": { description: Reversible visibility update, content: { application/json: { schema: { $ref: "#/components/schemas/AdminContent" } } } }
+  /admin/history:
+    get:
+      operationId: getAdminHistory
+      parameters:
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200": { description: Administration audit events, content: { application/json: { schema: { $ref: "#/components/schemas/AdminHistoryPage" } } } }
+  /admin/settings:
+    put:
+      operationId: updateAdminSettings
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/OfficialInstagramInput" } } }
+      responses:
+        "200": { description: Updated live application settings and audit record, content: { application/json: { schema: { $ref: "#/components/schemas/SocialSettings" } } } }
+  /auth/session:
+    get:
+      operationId: getAccountSession
+      responses:
+        "200": { description: Current account or guest, content: { application/json: { schema: { $ref: "#/components/schemas/AccountSession" } } } }
+  /auth/register:
+    post:
+      operationId: registerAccount
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AccountRegistration" } } }
+      responses:
+        "201": { description: Registered account, content: { application/json: { schema: { $ref: "#/components/schemas/AccountSession" } } } }
+  /auth/login:
+    post:
+      operationId: loginAccount
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AccountLogin" } } }
+      responses:
+        "200": { description: Signed in, content: { application/json: { schema: { $ref: "#/components/schemas/AccountSession" } } } }
+  /auth/logout:
+    post:
+      operationId: logoutAccount
+      responses:
+        "204": { description: Session revoked }
+  /auth/password-code:
+    post:
+      operationId: requestPasswordCode
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PasswordCodeInput" } } }
+      responses:
+        "202":
+          description: Password recovery accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [challengeId, message]
+                properties:
+                  challengeId: { type: string, format: uuid }
+                  message: { type: string }
+  /auth/reset-password:
+    post:
+      operationId: resetAccountPassword
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PasswordResetInput" } } }
+      responses:
+        "200": { description: Password reset and account verified, content: { application/json: { schema: { $ref: "#/components/schemas/AccountSession" } } } }
   /healthz:
     get:
       operationId: healthCheck
@@ -33,7 +142,7 @@ paths:
       operationId: updateSocialSettings
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: "#/components/schemas/SocialSettings" } } }
+        content: { application/json: { schema: { $ref: "#/components/schemas/OfficialInstagramInput" } } }
       responses:
         "200": { description: Administrator configuration, content: { application/json: { schema: { $ref: "#/components/schemas/SocialSettings" } } } }
   /my-profile:
@@ -455,16 +564,19 @@ components:
   schemas:
     SocialSettings:
       type: object
-      required: [instagramHandle, facebookUrl, xUrl, popularDays, popularLimit]
+      required: [instagramUrl, popularDays, popularLimit]
       properties:
-        instagramHandle: { type: string, minLength: 1, maxLength: 30 }
-        facebookUrl: { type: string, nullable: true, maxLength: 300 }
-        xUrl: { type: string, nullable: true, maxLength: 300 }
+        instagramUrl: { type: string, nullable: true, maxLength: 120 }
         popularDays: { type: integer, minimum: 1, maximum: 365 }
         popularLimit: { type: integer, minimum: 1, maximum: 100 }
+    OfficialInstagramInput:
+      type: object
+      required: [instagramUrl]
+      properties:
+        instagramUrl: { type: string, nullable: true, maxLength: 120 }
     ReaderProfile:
       type: object
-      required: [id, nickname, handle, avatar, cover, bio, quote, instagram, bookCount, followersCount, followingCount, following, isMe, isAdmin, online, lastSeen, typing, popular, premium]
+      required: [id, nickname, handle, avatar, cover, bio, quote, bookCount, followersCount, followingCount, following, isMe, isAdmin, online, lastSeen, typing, popular, premium]
       properties:
         id: { type: string }
         nickname: { type: string }
@@ -473,9 +585,6 @@ components:
         cover: { type: string, nullable: true }
         bio: { type: string }
         quote: { type: string }
-        instagram: { type: string, nullable: true }
-        facebookUrl: { type: string, nullable: true }
-        xUrl: { type: string, nullable: true }
         bookCount: { type: integer }
         followersCount: { type: integer }
         followingCount: { type: integer }
@@ -489,15 +598,12 @@ components:
         premium: { type: boolean }
     ProfileEditInput:
       type: object
-      required: [nickname, handle, bio, quote, instagram]
+      required: [nickname, handle, bio, quote]
       properties:
         nickname: { type: string, minLength: 1, maxLength: 40 }
         handle: { type: string, minLength: 3, maxLength: 30 }
         bio: { type: string, maxLength: 500 }
         quote: { type: string, maxLength: 200 }
-        instagram: { type: string, nullable: true, maxLength: 30 }
-        facebookUrl: { type: string, nullable: true, maxLength: 300 }
-        xUrl: { type: string, nullable: true, maxLength: 300 }
         avatarUploadId: { type: string, nullable: true }
         coverUploadId: { type: string, nullable: true }
     PeoplePage:
@@ -900,4 +1006,132 @@ components:
           type: string
       required:
         - status
+    AccountUser:
+      type: object
+      required: [id, nickname, email]
+      properties:
+        id: { type: string }
+        nickname: { type: string }
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/AdminRole" }
+    AdminRole:
+      type: string
+      enum: [user, admin, superadmin]
+    AdminContentKind:
+      type: string
+      enum: [book, writer_comment, bulletin, bulletin_comment]
+    AdminOverview:
+      type: object
+      required: [role, users, disabledUsers, books, bulletins, comments, hiddenContent]
+      properties:
+        role: { $ref: "#/components/schemas/AdminRole" }
+        users: { type: integer }
+        disabledUsers: { type: integer }
+        books: { type: integer }
+        bulletins: { type: integer }
+        comments: { type: integer }
+        hiddenContent: { type: integer }
+    AdminAccount:
+      type: object
+      required: [id, nickname, email, role, disabled, emailVerified, createdAt]
+      properties:
+        id: { type: string }
+        nickname: { type: string }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/AdminRole" }
+        disabled: { type: boolean }
+        emailVerified: { type: boolean }
+        createdAt: { type: string }
+    AdminAccountUpdate:
+      type: object
+      required: [reason]
+      properties:
+        role: { $ref: "#/components/schemas/AdminRole" }
+        disabled: { type: boolean }
+        nickname: { type: string, minLength: 3, maxLength: 15 }
+        reason: { type: string, minLength: 3, maxLength: 300 }
+    AdminAccountPage:
+      type: object
+      required: [items, total, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminAccount" } }
+        total: { type: integer }
+        nextOffset: { type: [integer, "null"] }
+    AdminContent:
+      type: object
+      required: [id, kind, author, title, body, hidden, publication, createdAt]
+      properties:
+        id: { type: string }
+        kind: { $ref: "#/components/schemas/AdminContentKind" }
+        author: { type: string }
+        title: { type: string }
+        body: { type: string }
+        hidden: { type: boolean }
+        publication: { type: string }
+        createdAt: { type: string }
+    AdminModerationUpdate:
+      type: object
+      required: [hidden, reason]
+      properties:
+        hidden: { type: boolean }
+        reason: { type: string, minLength: 3, maxLength: 300 }
+    AdminContentPage:
+      type: object
+      required: [items, total, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminContent" } }
+        total: { type: integer }
+        nextOffset: { type: [integer, "null"] }
+    AdminHistoryEvent:
+      type: object
+      required: [id, actor, action, targetType, targetId, reason, createdAt]
+      properties:
+        id: { type: string }
+        actor: { type: string }
+        action: { type: string }
+        targetType: { type: string }
+        targetId: { type: string }
+        reason: { type: string }
+        createdAt: { type: string }
+    AdminHistoryPage:
+      type: object
+      required: [items, total, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminHistoryEvent" } }
+        total: { type: integer }
+        nextOffset: { type: [integer, "null"] }
+    PasswordCodeInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+    PasswordResetInput:
+      type: object
+      required: [challengeId, code, password]
+      properties:
+        challengeId: { type: string, format: uuid }
+        code: { type: string, pattern: '^[0-9]{6}$' }
+        password: { type: string, minLength: 8, maxLength: 128 }
+    AccountSession:
+      type: object
+      required: [user]
+      properties:
+        user:
+          allOf: [{ $ref: "#/components/schemas/AccountUser" }]
+          nullable: true
+        token: { type: string }
+    AccountLogin:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 128 }
+    AccountRegistration:
+      type: object
+      required: [email, password, nickname, acceptedRules]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 8, maxLength: 128 }
+        nickname: { type: string, minLength: 3, maxLength: 15 }
+        acceptedRules: { type: boolean, enum: [true] }
 

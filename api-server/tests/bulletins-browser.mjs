@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { clerkClient } from '@clerk/express';
+import { accounts as clerkClient } from './helpers/accounts.mjs';
 import { bulletinObject } from '../src/lib/bulletin-storage.ts';
 
 // Run against a dedicated local headless Chromium with remote debugging on 9250.
-// Real Clerk tickets and session tokens stay in memory and are never logged.
-const requireDb = createRequire(new URL('../../../lib/db/package.json', import.meta.url));
+// Synthetic local sessions stay in memory and are never logged.
+const requireDb = createRequire(new URL('../../db/package.json', import.meta.url));
 const { Pool } = requireDb('pg'), pool = new Pool();
 const target = (await (await fetch('http://127.0.0.1:9250/json')).json()).find((target) => target.type === 'page');
 const socket = new WebSocket(target.webSocketDebuggerUrl);
@@ -71,8 +71,9 @@ try {
   user = await clerkClient.users.createUser({
     emailAddress: [`afilli-browser-${randomUUID()}@example.com`], firstName: 'Tarayıcı Yazarı', skipPasswordRequirement: true,
   });
-  const ticket = await clerkClient.signInTokens.createSignInToken({ userId: user.id, expiresInSeconds: 120 });
-  sessionId = await evaluate(`(async()=>{const result=await window.Clerk.client.signIn.create({strategy:'ticket',ticket:${JSON.stringify(ticket.token)}});if(result.status!=='complete')throw new Error('Test login incomplete');await window.Clerk.setActive({session:result.createdSessionId});return result.createdSessionId})()`);
+  sessionId = (await clerkClient.sessions.createSession({ userId: user.id })).id;
+  await call('Network.setCookie', { name: 'afilli_session', value: sessionId, domain: process.env.REPLIT_DEV_DOMAIN, path: '/api', httpOnly: true, secure: true, sameSite: 'None' });
+  await call('Page.reload');
   await wait(exists('composer-publish')); await footer();
   if (process.env.BULLETIN_BROWSER_STAGE !== 'book') {
   await click('composer-publish');
@@ -167,9 +168,10 @@ try {
     await pool.query('DELETE FROM bulletins WHERE author_id=$1', [user.id]);
     await pool.query('DELETE FROM authored_books WHERE author_id=$1', [user.id]);
     await pool.query('DELETE FROM bulletin_uploads WHERE owner_id=$1', [user.id]);
+    await clerkClient.users.deleteUser(user.id);
     await pool.query('DELETE FROM community_users WHERE id=$1', [user.id]);
     for (const { id } of rows) await bulletinObject(id).delete({ ignoreNotFound: true }).catch(() => {});
-    await evaluate(`window.Clerk?.signOut()`).catch(() => {});
+    await call('Network.clearBrowserCookies').catch(() => {});
     await clerkClient.users.deleteUser(user.id);
   }
   await pool.end(); socket.close();

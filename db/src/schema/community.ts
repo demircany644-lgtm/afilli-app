@@ -21,6 +21,7 @@ export const authoredBooks = pgTable('authored_books', {
   publishedAt: timestamp('published_at', { withTimezone: true }),
   writerUpdatedAt: timestamp('writer_updated_at', { withTimezone: true }),
   lastSaveId: uuid('last_save_id'), lastSaveHash: text('last_save_hash'),
+  moderationHidden: boolean('moderation_hidden').notNull().default(false),
 }, (t) => [uniqueIndex('authored_books_owner_local').on(t.authorId, t.localId)]);
 export const bulletins = pgTable('bulletins', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -30,6 +31,7 @@ export const bulletins = pgTable('bulletins', {
   bookId: uuid('book_id').references(() => authoredBooks.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  moderationHidden: boolean('moderation_hidden').notNull().default(false),
 }, (t) => [
   uniqueIndex('bulletins_owner_client').on(t.authorId, t.clientId),
   index('bulletins_feed_order').on(t.createdAt, t.id),
@@ -55,6 +57,7 @@ export const bulletinComments = pgTable('bulletin_comments', {
   authorId: text('author_id').notNull().references(() => communityUsers.id),
   parentId: uuid('parent_id'), depth: integer('depth').notNull().default(1),
   body: text('body').notNull(), deleted: boolean('deleted').notNull().default(false),
+  moderationHidden: boolean('moderation_hidden').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index('bulletin_comments_thread').on(t.postId, t.createdAt), check('bulletin_reply_depth', sql`${t.depth} BETWEEN 1 AND 3`)]);
 export const bulletinReactions = pgTable('bulletin_reactions', {

@@ -31,7 +31,7 @@ router.get('/bulletins', route(async (req, res) => {
     date = new Date(parts[0]).toISOString(); id = uuid(parts[1]);
   }
   const result = await pool.query<{ id: string; created_at: Date }>(
-    `SELECT id,created_at FROM bulletins WHERE ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))
+    `SELECT id,created_at FROM bulletins WHERE NOT moderation_hidden AND ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))
      ORDER BY created_at DESC,id DESC LIMIT 16`, [date, id],
   );
   const page = result.rows.slice(0, 15), last = page.at(-1);
@@ -217,7 +217,8 @@ router.post('/bulletin-uploads', route(async (req, res) => {
 }));
 router.get('/bulletin-media/:id', route(async (req, res) => {
   const id = uuid(req.params.id);
-  const result = await pool.query<{ content_type: string }>('SELECT content_type FROM bulletin_uploads WHERE id=$1 AND post_id IS NOT NULL', [id]);
+  const result = await pool.query<{ content_type: string }>(`SELECT v.content_type FROM bulletin_uploads v
+    JOIN bulletins p ON p.id=v.post_id WHERE v.id=$1 AND NOT p.moderation_hidden`, [id]);
   if (!result.rows[0]) return fail(404, 'Fotoğraf bulunamadı.');
   res.setHeader('Content-Type', result.rows[0].content_type);
   res.setHeader('X-Content-Type-Options', 'nosniff');

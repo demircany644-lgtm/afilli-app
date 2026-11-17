@@ -1,9 +1,17 @@
 {
   "files": [],
   "references": [
-    { "path": "./api-client-react" },
-    { "path": "./api-zod" },
-    { "path": "./db" },
-    { "path": "./integrations-openai-ai-server" }
+    {
+      "path": "./api-client-react"
+    },
+    {
+      "path": "./api-zod"
+    },
+    {
+      "path": "./db"
+    },
+    {
+      "path": "./integrations-openai-ai-server"
+    }
   ]
 }

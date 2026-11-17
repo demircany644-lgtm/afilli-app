@@ -55,7 +55,7 @@ export function PhotoSourceSheet({ visible, onClose, remaining, onAdd }: {
         <View style={{ gap: 8, marginTop: 12 }}>
           <Text style={st.err}>{denied}</Text>
           {Platform.OS !== 'web' && denied.includes('Ayarlar') ? (
-            <Btn label="Ayarları aç" ghost icon="settings" onPress={() => { Linking.openSettings().catch(() => setDenied('Ayarlar açılamadı. Cihaz ayarlarından kamera ve galeri izinlerini açabilirsin.')); }} />
+            <Btn label="Ayarları aç" ghost icon="external-link" onPress={() => { Linking.openSettings().catch(() => setDenied('Ayarlar açılamadı. Cihaz ayarlarından kamera ve galeri izinlerini açabilirsin.')); }} />
           ) : null}
         </View>
       ) : null}

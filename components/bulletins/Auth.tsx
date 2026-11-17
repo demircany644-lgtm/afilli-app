@@ -1,40 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { router, type Href } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import { useSSO, useSignIn } from '@clerk/expo';
+import { router } from 'expo-router';
 import { F } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
-import { MagazineScrollView } from '@/components/MagazineUI';
 import { TopBar } from '@/components/bulletins/TopBar';
 import { b, Btn } from '@/components/bulletins/common';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 
-WebBrowser.maybeCompleteAuthSession();
-
-/** Readable Clerk error text without ever logging secrets. */
-export function clerkMsg(e: unknown, fallback = 'Bir sorun oluştu. Tekrar dene.') {
+/** Prefer the server's Turkish error without logging credentials or codes. */
+export function authMsg(e: unknown, fallback = 'Bağlantı kurulamadı. Yeniden dene.') {
   if (!e || typeof e !== 'object') return fallback;
-  const x = e as { errors?: { longMessage?: string; message?: string }[]; longMessage?: string; message?: string };
-  return x.errors?.[0]?.longMessage || x.errors?.[0]?.message || x.longMessage || x.message || fallback;
+  const x = e as { data?: { error?: string }; message?: string };
+  return x.data?.error || (x.message && !x.message.includes('fetch') ? x.message : fallback) || fallback;
 }
 export function guardAuthAction(action: () => Promise<void>, report: (message: string) => void) {
-  return () => { void action().catch((error: unknown) => report(clerkMsg(error, 'Bağlantı yok, tekrar dene.'))); };
+  return () => { void action().catch((error: unknown) => report(authMsg(error))); };
 }
 
-export function goAfterAuth(decorateUrl?: (u: string) => string) {
-  const url = decorateUrl ? decorateUrl('/bultenler') : '/bultenler';
-  if (url.startsWith('http') && Platform.OS === 'web' && typeof window !== 'undefined') window.location.href = url;
-  else router.replace(url as Href);
-}
+export function goAfterAuth() { router.replace('/'); }
 
 export function AuthShell({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   const { error } = useCommunity();
   return (
     <View style={{ flex: 1, backgroundColor: b.background }}>
       <TopBar title={title} backTo="/bultenler" icons={false} />
-      <MagazineScrollView contentContainerStyle={st.wrap}>
+      <KeyboardAwareScrollViewCompat contentContainerStyle={st.wrap} keyboardShouldPersistTaps="handled" bottomOffset={24}>
         <View style={st.card}>
           <Text style={st.kicker}>AFİLLİ TOPLULUK</Text>
           <Text style={st.title} accessibilityRole="header">{title}</Text>
@@ -45,7 +36,7 @@ export function AuthShell({ title, sub, children }: { title: string; sub: string
         <Pressable accessibilityRole="button" testID="auth-cancel" onPress={() => router.navigate('/bultenler')} style={st.cancel}>
           <Feather name="arrow-left" size={15} color={b.muted} /><Text style={st.cancelText}>Vazgeç, Bültenler'e dön</Text>
         </Pressable>
-      </MagazineScrollView>
+      </KeyboardAwareScrollViewCompat>
     </View>
   );
 }
@@ -64,44 +55,16 @@ export function FormError({ text }: { text: string | null }) {
   return text ? <Text style={st.err} accessibilityLiveRegion="polite" testID="auth-error">{text}</Text> : null;
 }
 
-export function Divider() {
-  return <View style={st.div}><View style={st.line} /><Text style={st.sub}>ya da</Text><View style={st.line} /></View>;
-}
-
-export function GoogleButton() {
-  const { startSSOFlow } = useSSO();
-  const { signIn } = useSignIn();
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    void WebBrowser.warmUpAsync();
-    return () => { void WebBrowser.coolDownAsync(); };
-  }, []);
-  const go = async () => {
-    setBusy(true); setErr(null);
-    try {
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const popup = window.open('', 'afilli-google', 'width=500,height=650') ?? undefined;
-        const origin = window.location.origin;
-        const { error } = await signIn.sso({ strategy: 'oauth_google', redirectUrl: origin + '/bultenler', redirectCallbackUrl: origin + '/sign-in', popup });
-        if (error) { setErr(clerkMsg(error)); return; }
-        if (signIn.status === 'complete') await signIn.finalize({ navigate: ({ decorateUrl }) => goAfterAuth(decorateUrl) });
-        return;
-      }
-      const { createdSessionId, setActive } = await startSSOFlow({ strategy: 'oauth_google', redirectUrl: AuthSession.makeRedirectUri({ scheme: 'afilli', path: 'bultenler' }) });
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId, navigate: async ({ decorateUrl }) => goAfterAuth(decorateUrl) });
-      } else setErr('Google ile giriş tamamlanmadı. E-posta ile devam edebilirsin.');
-    } catch (e) { setErr(clerkMsg(e, 'Google ile giriş açılamadı.')); }
-    finally { setBusy(false); }
-  };
-  return (
-    <View style={{ gap: 6 }}>
-      <Btn label="Google ile devam et" icon="globe" ghost busy={busy} onPress={go} testID="auth-google" />
-      <FormError text={err} />
-    </View>
-  );
+export function PasswordField(props: TextInputProps & { label: string; error?: string | null }) {
+  const [visible, setVisible] = useState(false);
+  return <View style={{ gap: 6 }}>
+    <Field {...props} secureTextEntry={!visible} autoCapitalize="none" />
+    <Pressable accessibilityRole="button" accessibilityLabel={visible ? 'Şifreyi gizle' : 'Şifreyi göster'}
+      onPress={() => setVisible(value => !value)} style={{ minHeight: 36, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+      <Feather name={visible ? 'eye-off' : 'eye'} color={b.text} size={18} />
+      <Text style={st.link}>{visible ? 'Şifreyi gizle' : 'Şifreyi göster'}</Text>
+    </Pressable>
+  </View>;
 }
 
 export const st = StyleSheet.create({

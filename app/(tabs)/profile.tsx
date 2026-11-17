@@ -66,7 +66,7 @@ function Profile() {
       <ScrollView ref={scroll} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <TopBar back backFallback="/" title="Profil" right={<>
           <RoundIcon icon="search" label="Okurları bul" testID="profile-people" onPress={() => go('/people')} />
-          <RoundIcon icon="settings" label="Ayarlar" testID="profile-settings" onPress={() => go('/profile-settings')} />
+          <RoundIcon icon="more-horizontal" label="Ayarlar" testID="profile-settings" onPress={() => go('/profile-settings')} />
         </>} />
         {body}
       </ScrollView>

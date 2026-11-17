@@ -7,20 +7,10 @@
  */
 export interface SocialSettings {
   /**
-     * @minLength 1
-     * @maxLength 30
-     */
-  instagramHandle: string;
-  /**
-     * @maxLength 300
+     * @maxLength 120
      * @nullable
      */
-  facebookUrl: string | null;
-  /**
-     * @maxLength 300
-     * @nullable
-     */
-  xUrl: string | null;
+  instagramUrl: string | null;
   /**
      * @minimum 1
      * @maximum 365
@@ -33,6 +23,14 @@ export interface SocialSettings {
   popularLimit: number;
 }
 
+export interface OfficialInstagramInput {
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  instagramUrl: string | null;
+}
+
 export interface ReaderProfile {
   id: string;
   nickname: string;
@@ -43,12 +41,6 @@ export interface ReaderProfile {
   cover: string | null;
   bio: string;
   quote: string;
-  /** @nullable */
-  instagram: string | null;
-  /** @nullable */
-  facebookUrl?: string | null;
-  /** @nullable */
-  xUrl?: string | null;
   bookCount: number;
   followersCount: number;
   followingCount: number;
@@ -78,21 +70,6 @@ export interface ProfileEditInput {
   bio: string;
   /** @maxLength 200 */
   quote: string;
-  /**
-     * @maxLength 30
-     * @nullable
-     */
-  instagram: string | null;
-  /**
-     * @maxLength 300
-     * @nullable
-     */
-  facebookUrl?: string | null;
-  /**
-     * @maxLength 300
-     * @nullable
-     */
-  xUrl?: string | null;
   /** @nullable */
   avatarUploadId?: string | null;
   /** @nullable */
@@ -694,6 +671,200 @@ export interface BulletinNotification {
 export interface HealthStatus {
   status: string;
 }
+
+export type AdminRole = typeof AdminRole[keyof typeof AdminRole];
+
+
+export const AdminRole = {
+  user: 'user',
+  admin: 'admin',
+  superadmin: 'superadmin',
+} as const;
+
+export interface AccountUser {
+  id: string;
+  nickname: string;
+  email: string;
+  role?: AdminRole;
+}
+
+export type AdminContentKind = typeof AdminContentKind[keyof typeof AdminContentKind];
+
+
+export const AdminContentKind = {
+  book: 'book',
+  writer_comment: 'writer_comment',
+  bulletin: 'bulletin',
+  bulletin_comment: 'bulletin_comment',
+} as const;
+
+export interface AdminOverview {
+  role: AdminRole;
+  users: number;
+  disabledUsers: number;
+  books: number;
+  bulletins: number;
+  comments: number;
+  hiddenContent: number;
+}
+
+export interface AdminAccount {
+  id: string;
+  nickname: string;
+  email: string;
+  role: AdminRole;
+  disabled: boolean;
+  emailVerified: boolean;
+  createdAt: string;
+}
+
+export interface AdminAccountUpdate {
+  role?: AdminRole;
+  disabled?: boolean;
+  /**
+     * @minLength 3
+     * @maxLength 15
+     */
+  nickname?: string;
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  reason: string;
+}
+
+export interface AdminAccountPage {
+  items: AdminAccount[];
+  total: number;
+  /** @nullable */
+  nextOffset: number | null;
+}
+
+export interface AdminContent {
+  id: string;
+  kind: AdminContentKind;
+  author: string;
+  title: string;
+  body: string;
+  hidden: boolean;
+  publication: string;
+  createdAt: string;
+}
+
+export interface AdminModerationUpdate {
+  hidden: boolean;
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  reason: string;
+}
+
+export interface AdminContentPage {
+  items: AdminContent[];
+  total: number;
+  /** @nullable */
+  nextOffset: number | null;
+}
+
+export interface AdminHistoryEvent {
+  id: string;
+  actor: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  reason: string;
+  createdAt: string;
+}
+
+export interface AdminHistoryPage {
+  items: AdminHistoryEvent[];
+  total: number;
+  /** @nullable */
+  nextOffset: number | null;
+}
+
+export interface PasswordCodeInput {
+  /** @maxLength 254 */
+  email: string;
+}
+
+export interface PasswordResetInput {
+  challengeId: string;
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export interface AccountSession {
+  user: AccountUser | null;
+  token?: string;
+}
+
+export interface AccountLogin {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export interface AccountRegistration {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  password: string;
+  /**
+     * @minLength 3
+     * @maxLength 15
+     */
+  nickname: string;
+  acceptedRules: true;
+}
+
+export type GetAdminAccountsParams = {
+/**
+ * @maxLength 100
+ */
+q?: string;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type GetAdminContentParams = {
+kind: AdminContentKind;
+/**
+ * @maxLength 100
+ */
+q?: string;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type GetAdminHistoryParams = {
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type RequestPasswordCode202 = {
+  challengeId: string;
+  message: string;
+};
 
 export type GetPeopleParams = {
 search?: string;

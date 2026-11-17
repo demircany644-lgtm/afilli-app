@@ -3,11 +3,11 @@ import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { clerkClient } from '@clerk/express';
+import { accounts as clerkClient } from './helpers/accounts.mjs';
 import { profileObject } from '../src/lib/bulletin-storage.ts';
 
 // Dedicated disposable Chromium profile, never the creator's browser/session.
-const requireDb = createRequire(new URL('../../../lib/db/package.json', import.meta.url));
+const requireDb = createRequire(new URL('../../db/package.json', import.meta.url));
 const { Pool } = requireDb('pg'), pool = new Pool(), actors = [];
 const target = (await (await fetch('http://127.0.0.1:9250/json')).json()).find((item) => item.type === 'page');
 const socket = new WebSocket(target.webSocketDebuggerUrl);
@@ -51,9 +51,9 @@ async function api(who, path, method = 'GET', body) {
   assert.ok(response.ok, `${method} ${path}: ${result?.error ?? response.status}`); return result;
 }
 async function login(who) {
-  await wait('!!window.Clerk?.loaded');
-  const ticket = await clerkClient.signInTokens.createSignInToken({ userId: who.id, expiresInSeconds: 120 });
-  await evaluate(`(async()=>{const r=await window.Clerk.client.signIn.create({strategy:'ticket',ticket:${JSON.stringify(ticket.token)}});if(r.status!=='complete')throw new Error('Test login incomplete');await window.Clerk.setActive({session:r.createdSessionId});})()`);
+  const { jwt } = await clerkClient.sessions.getToken(who.session);
+  await call('Network.setCookie', { name: 'afilli_session', value: jwt, domain: process.env.REPLIT_DEV_DOMAIN, path: '/api', httpOnly: true, secure: true, sameSite: 'None' });
+  await call('Page.reload');
 }
 async function footer() {
   const rect = await evaluate(`(()=>{const e=document.querySelector('[data-testid=bottom-navigation]');if(!e)return null;const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right}})()`);
@@ -143,7 +143,7 @@ try {
   await go('/social-admin'); await wait(exists('admin-instagram')); await wait(exists('admin-save'));
   assert.equal(await evaluate(`document.querySelector('[data-testid=admin-instagram]').value`), settings.instagramHandle);
   await go('/profile-settings'); await wait(exists('settings-sign-out')); await click('settings-sign-out');
-  await wait('!!window.Clerk?.loaded&&!window.Clerk.user'); await go('/profile'); await wait(exists('profile-guest'));
+  await go('/profile'); await wait(exists('profile-guest'));
   await login(b); await wait(exists('profile-name'));
   assert.equal(await evaluate(`document.querySelector('[data-testid=profile-name]').innerText`), 'Okur Denetimi');
   const accountB = await evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify('afilli:v2:' + b.id)}))`);
@@ -181,14 +181,15 @@ try {
   console.log('PASS real public profile follow/list, private send/receive, navigation-safe draft restore and 320px fixed-footer layout');
 } finally {
   await call('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }).catch(() => {});
-  await evaluate('window.Clerk?.signOut()').catch(() => {});
+  await call('Network.clearBrowserCookies').catch(() => {});
   const ids = actors.map((actor) => actor.id);
   const uploads = (await pool.query('SELECT id FROM profile_uploads WHERE owner_id=ANY($1)', [ids])).rows;
   for (const upload of uploads) await profileObject(upload.id).delete({ ignoreNotFound: true }).catch(() => {});
   for (const [table, condition] of [
     ['social_notifications', 'recipient_id=ANY($1) OR actor_id=ANY($1)'], ['direct_messages', 'sender_id=ANY($1)'],
     ['conversations', 'user_low=ANY($1) OR user_high=ANY($1)'], ['profile_follows', 'follower_id=ANY($1) OR followed_id=ANY($1)'],
-    ['profile_uploads', 'owner_id=ANY($1)'], ['community_users', 'id=ANY($1)'],
+    ['profile_uploads', 'owner_id=ANY($1)'], ['afilli_auth_codes', 'user_id=ANY($1)'],
+    ['afilli_auth_sessions', 'user_id=ANY($1)'], ['afilli_auth_accounts', 'user_id=ANY($1)'], ['community_users', 'id=ANY($1)'],
   ]) await pool.query(`DELETE FROM ${table} WHERE ${condition}`, [ids]).catch(() => {});
   for (const actor of actors) await clerkClient.users.deleteUser(actor.id).catch(() => {});
   await pool.end(); socket.close();

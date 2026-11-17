@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
-import { clerkClient } from '@clerk/express';
+import { accounts as clerkClient } from './helpers/accounts.mjs';
 import { profileObject } from '../src/lib/bulletin-storage.ts';
 
-const requireDb = createRequire(new URL('../../../lib/db/package.json', import.meta.url));
+const requireDb = createRequire(new URL('../../db/package.json', import.meta.url));
 const { Pool } = requireDb('pg'), pool = new Pool(), actors = [], images = [];
 let originalSettings;
 async function actor(label) {
@@ -136,7 +136,8 @@ try {
     ['conversations', 'user_low=ANY($1) OR user_high=ANY($1)'], ['profile_follows', 'follower_id=ANY($1) OR followed_id=ANY($1)'],
     ['profile_uploads', 'owner_id=ANY($1)'], ['bulletin_notifications', 'recipient_id=ANY($1) OR actor_id=ANY($1)'],
     ['bulletin_likes', 'user_id=ANY($1)'], ['bulletins', 'author_id=ANY($1)'], ['book_reads', 'reader_id=ANY($1)'],
-    ['authored_books', 'author_id=ANY($1)'], ['community_users', 'id=ANY($1)'],
+    ['authored_books', 'author_id=ANY($1)'], ['afilli_auth_codes', 'user_id=ANY($1)'],
+    ['afilli_auth_sessions', 'user_id=ANY($1)'], ['afilli_auth_accounts', 'user_id=ANY($1)'], ['community_users', 'id=ANY($1)'],
   ]) await pool.query(`DELETE FROM ${table} WHERE ${condition}`, [ids]).catch(() => {});
   for (const actor of actors) await clerkClient.users.deleteUser(actor.id).catch(() => {});
   await pool.end();
