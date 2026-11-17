@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -30,6 +30,8 @@ function Reader() {
   const book = q.data;
   const [idx, setIdx] = useState(0);
   const [night, setNight] = useState(false);
+  const [fontSize, setFontSize] = useState(17);
+  const likeLock = useRef(false);
   const [likeBusy, setLikeBusy] = useState(false);
   const [likeErr, setLikeErr] = useState<string | null>(null);
 
@@ -49,11 +51,13 @@ function Reader() {
 
   const like = async () => {
     if (!book || !userId) { goSignIn(); return; }
+    if (likeLock.current) return;
+    likeLock.current = true;
     setLikeBusy(true); setLikeErr(null);
     try {
       const next = await setAuthoredBookLike(bookId, { liked: !book.liked }, actorRequest(userId));
       if (guard()) qc.setQueryData<AuthoredBook>(key, next);
-    } catch (e) { if (guard()) setLikeErr(apiError(e, 'Beğeni kaydedilemedi.')); } finally { setLikeBusy(false); }
+    } catch (e) { if (guard()) setLikeErr(apiError(e, 'Beğeni kaydedilemedi.')); } finally { likeLock.current = false; if (guard()) setLikeBusy(false); }
   };
   const bg = night ? W.night : W.cream;
   const loading = !ready || q.isLoading || (wantPreview && w.isLoading);
@@ -71,7 +75,7 @@ function Reader() {
             </View>
           ) : (
             <FadeIn>
-              {draft ? <Banner icon="eye-off" tone="info" title="Taslak önizleme" text="Bunu yalnızca sen görüyorsun. Okurlar yalnızca yayınladığın bölümleri görür." >
+              {draft ? <Banner icon="eye-off" tone="info" title="Taslak önizleme" text="Bunu yalnızca sen görüyorsun. Beğeni ve yorum almak için kitabını ve en az bir bölümünü düzenleme ekranından yayımla. Okurlar yalnızca yayımladığın bölümleri görür." >
                 <Btn label="Düzenle" icon="edit-3" ghost onPress={() => router.push({ pathname: '/write', params: { book: bookId } })} /></Banner> : null}
               <View style={st.hero}>
                 <WriterCover uri={cover} title={meta.title} author={draft ? undefined : book?.author.nickname} w={150} adult={meta.age === '18'} completed={meta.completion === 'completed'} />
@@ -85,7 +89,7 @@ function Reader() {
                     <Pressable testID="book-like" accessibilityRole="button" accessibilityState={{ selected: !!book.liked, busy: likeBusy }} accessibilityLabel={book.liked ? 'Beğeniyi geri al' : 'Beğen'}
                       disabled={likeBusy} onPress={() => { tap(); void like(); }} style={({ pressed }) => [st.likeBtn, book.liked && st.likeOn, pressed && { opacity: 0.7 }]}>
                       <Feather name="heart" size={16} color={book.liked ? W.paper : W.ink} />
-                      <Text style={[st.likeText, book.liked && { color: W.paper }]}>{compactCount(book.likeCount ?? 0)}</Text>
+                      <Text style={[st.likeText, book.liked && { color: W.paper }]}>{book.liked ? 'Beğendin' : 'Beğen'} · {compactCount(book.likeCount ?? 0)}</Text>
                     </Pressable>
                     <View style={st.stat}><Feather name="eye" size={15} color={W.muted} /><Text style={st.meta}>{compactCount(book.readCount ?? 0)}</Text></View>
                     <View style={st.stat}><Feather name="message-circle" size={15} color={W.muted} /><Text style={st.meta}>{compactCount(book.commentCount ?? 0)}</Text></View>
@@ -106,6 +110,11 @@ function Reader() {
                 </ScrollView>
               ) : null}
 
+              <View style={st.actions} accessibilityLabel="Okuma ayarları">
+                <Btn label="A−" testID="authored-font-smaller" ghost disabled={fontSize <= 14} onPress={() => setFontSize(s => Math.max(14, s - 2))} />
+                <Text style={st.meta}>{fontSize} punto</Text>
+                <Btn label="A+" testID="authored-font-larger" ghost disabled={fontSize >= 28} onPress={() => setFontSize(s => Math.min(28, s + 2))} />
+              </View>
               <View style={[st.page, night && { backgroundColor: '#2A1F15', borderColor: '#3A2C1F' }]}>
                 <View style={st.pageHead}>
                   <Text style={[st.chTitle, night && { color: '#EADBC4' }]}>{ch?.title ?? ''}</Text>
@@ -113,7 +122,7 @@ function Reader() {
                     <Feather name={night ? 'sun' : 'moon'} size={18} color={night ? '#EADBC4' : W.ink} />
                   </Pressable>
                 </View>
-                {ch && (!chapterStats(ch.html).empty || /<img\b/i.test(ch.html)) ? <HtmlView html={ch.html} night={night} owner={userId} privatePreview={!!draft} />
+                {ch && (!chapterStats(ch.html).empty || /<img\b/i.test(ch.html)) ? <HtmlView html={ch.html} night={night} fontSize={fontSize} owner={userId} privatePreview={!!draft} />
                   : <Text style={st.meta}>Bu bölümde henüz metin yok.</Text>}
                 {chapters.length > 1 ? (
                   <View style={st.nav}>
@@ -122,8 +131,8 @@ function Reader() {
                   </View>
                 ) : null}
               </View>
-              {book && !draft ? <BookComments bookId={bookId} chapterId={ch && ch.id !== 'legacy' ? ch.id : null} chapterTitle={ch?.title ?? null}
-                onCount={() => qc.setQueryData<AuthoredBook>(key, (o) => o ? { ...o, commentCount: (o.commentCount ?? 0) + 1 } : o)} /> : null}
+              {book && !draft ? <BookComments key={bookId} bookId={bookId} chapterId={ch && ch.id !== 'legacy' ? ch.id : null} chapterTitle={ch?.title ?? null}
+                onCount={() => { void qc.invalidateQueries({ queryKey: key }); }} /> : null}
             </FadeIn>
           )}
       </MagazineScrollView>
@@ -141,7 +150,7 @@ const st = StyleSheet.create({
   author: { fontFamily: F.semi, fontSize: 14, color: W.ink },
   meta: { fontFamily: F.body, fontSize: 12, color: W.muted, textAlign: 'center' },
   desc: { fontFamily: F.body, fontSize: 14, lineHeight: 21, color: W.ink, textAlign: 'center', marginTop: 4, maxWidth: 520 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 14, marginTop: 6 },
   likeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 38, borderRadius: 19, borderWidth: 1, borderColor: W.border, backgroundColor: W.paper },
   likeOn: { backgroundColor: W.danger, borderColor: W.danger },
   likeText: { fontFamily: F.semi, fontSize: 13, color: W.ink },

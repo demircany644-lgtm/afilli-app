@@ -93,7 +93,7 @@ async function persistImage(uri: string, mimeType: LocalImage['mimeType'], width
   const dir = new Directory(Paths.document, 'writer-images');
   dir.create({ idempotent: true, intermediates: true });
   const target = new File(dir, key + '.jpg');
-  new File(uri).copy(target);
+  await new File(uri).copy(target);
   if (target.size > MAX) throw new Error('Fotoğraf 10 MB sınırını aşıyor.');
   return { key, uri: target.uri, mimeType, size: target.size, width, height };
 }

@@ -18,18 +18,25 @@ export function BookComments({ bookId, chapterId, chapterTitle, onCount }: { boo
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const clientId = useRef(randomUUID());
+  const pending = useRef<{ clientId: string; body: string; chapterId: string | null } | null>(null);
+  const sending = useRef(false);
   const send = async () => {
-    const t = body.trim();
-    if (!t || !userId || busy) return;
+    if ((!body.trim() && !pending.current) || !userId || sending.current) return;
+    const input = pending.current ?? { clientId: randomUUID(), body: body.trim(), chapterId };
+    pending.current = input;
+    const t = input.body;
+    sending.current = true;
     setBusy(true); setErr(null);
     try {
-      const c = await addAuthoredBookComment(bookId, { clientId: clientId.current, body: t, chapterId }, actorRequest(userId));
+      const c = await addAuthoredBookComment(bookId, input, actorRequest(userId));
       if (!guard()) return;
       qc.setQueryData<WriterComment[]>(key, (old) => old ? (old.some((x) => x.id === c.id) ? old : [...old, c]) : [c]);
-      clientId.current = randomUUID(); setBody(''); onCount();
+      pending.current = null; setBody(current => current.trim() === t ? '' : current);
+      // Reconcile authoritative counts, including a retry whose response was lost.
+      void qc.invalidateQueries({ queryKey: key });
+      onCount();
     } catch (e) { if (guard()) setErr(apiError(e, 'Yorum gönderilemedi. Metnin duruyor.')); }
-    finally { setBusy(false); }
+    finally { sending.current = false; if (guard()) setBusy(false); }
   };
   const list = q.data ?? [];
   return (
@@ -51,7 +58,7 @@ export function BookComments({ bookId, chapterId, chapterTitle, onCount }: { boo
           <TextInput testID="comment-input" value={body} onChangeText={setBody} maxLength={3000} multiline placeholder={chapterTitle ? chapterTitle + ' hakkında ne düşündün?' : 'Ne düşündün?'}
             placeholderTextColor={W.muted} style={cm.input} accessibilityLabel="Yorum yaz" />
           {err ? <Text style={cm.err}>{err}</Text> : null}
-          <Btn label="Gönder" icon="send" testID="comment-send" busy={busy} disabled={!body.trim()} onPress={() => void send()} />
+          <Btn label={err && pending.current ? 'Önceki yorumu tekrar dene' : 'Gönder'} icon="send" testID="comment-send" busy={busy} disabled={!body.trim() && !pending.current} onPress={() => void send()} />
         </View>
       ) : <Btn label="Yorum yazmak için giriş yap" ghost onPress={goSignIn} style={{ marginTop: 8 }} />}
     </View>

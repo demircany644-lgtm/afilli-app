@@ -2,13 +2,7 @@
   "expo": {
     "name": "Afilli",
     "slug": "bilmem",
-    "owner": "afillis-team",
-    "extra": {
-      "eas": {
-        "projectId": "79fa2605-dc0c-49fe-aa68-f8e25615de8e"
-      }
-    },
-    "version": "1.1.1",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "afilli",
@@ -16,12 +10,14 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "LSApplicationQueriesSchemes": ["Instagram"]
+        "LSApplicationQueriesSchemes": [
+          "instagram"
+        ]
       }
     },
     "android": {
       "package": "com.afilli.app",
-      "versionCode": 3
+      "versionCode": 5
     },
     "web": {
       "favicon": "./assets/images/icon.png",
@@ -30,7 +26,31 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-image-picker"
-    ]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kitap kapağı, bölüm, profil ve bülten fotoğraflarını seçebilmen için galeri erişimi kullanılır.",
+          "cameraPermission": "Kitap kapağı, bölüm, profil veya bülten için fotoğraf çekebilmen için kamera erişimi kullanılır.",
+          "microphonePermission": "Sesli yazmada konuşmanı kaydetmek için mikrofon izni gerekir. Sesin yalnızca gönderim onayından sonra metne dönüştürülür."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Sesli yazmada konuşmanı kaydetmek için mikrofon izni gerekir. Sesin yalnızca gönderim onayından sonra metne dönüştürülür."
+        }
+      ],
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "owner": "afillis-team",
+    "extra": {
+      "eas": {
+        "projectId": "79fa2605-dc0c-49fe-aa68-f8e25615de8e"
+      }
+    }
   }
 }

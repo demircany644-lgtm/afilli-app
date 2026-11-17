@@ -89,7 +89,7 @@ function PublicProfile({ id }: { id: string }) {
     <View style={{ flex: 1, backgroundColor: P.background }}>
       <MarbleBackground />
       <ScrollView ref={scroll} contentContainerStyle={{ paddingBottom: 40 }}>
-        <TopBar back title={p ? p.nickname : 'Yazar'} right={userId ? <RoundIcon icon="settings" label="Ayarlar" testID="public-profile-settings" onPress={() => go('/profile-settings')} /> : null} />
+        <TopBar back title={p ? p.nickname : 'Yazar'} right={userId ? <RoundIcon icon="more-horizontal" label="Ayarlar" testID="public-profile-settings" onPress={() => go('/profile-settings')} /> : null} />
         {body}
       </ScrollView>
     </View>

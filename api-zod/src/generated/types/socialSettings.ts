@@ -8,20 +8,10 @@
 
 export interface SocialSettings {
   /**
-     * @minLength 1
-     * @maxLength 30
-     */
-  instagramHandle: string;
-  /**
-     * @maxLength 300
+     * @maxLength 120
      * @nullable
      */
-  facebookUrl: string | null;
-  /**
-     * @maxLength 300
-     * @nullable
-     */
-  xUrl: string | null;
+  instagramUrl: string | null;
   /**
      * @minimum 1
      * @maximum 365

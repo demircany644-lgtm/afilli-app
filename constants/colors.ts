@@ -8,12 +8,13 @@ const colors = {
     muted: '#EDE3D1', mutedForeground: '#8A7362',
     accent: '#D9B56A', accentForeground: '#3B2416',
     destructive: '#C2382B', destructiveForeground: '#FFF8EE',
+    writerChatLabel: '#1877F2',
     border: '#E6D6B8', input: '#E6D6B8',
     gold: '#B8893A', goldSoft: '#E9CF8E', brown: '#4A2E1C', paper: '#FFFCF5',
   },
   home: {
-    bg: '#F2EAE1', card: '#F4ECE5', ink: '#3B2416', muted: '#6B5444',
-    border: '#DDCFC0', heart: '#B98A62', badge: '#B3412E', badgeText: '#FFF8EE',
+    bg: '#FDF8EE', card: '#FFFFFF', ink: '#2B211B', muted: '#6B5444',
+    border: '#D9C3A0', link: '#8A6A3E', disc: '#000000', discRing: '#FFFFFF', navIcon: '#5A3B26', heart: '#B98A62', badge: '#B3412E', badgeText: '#FFF8EE',
   },
   magazine: {
     background: '#F5EFE6', card: '#FFF8EC', text: '#3E2A1A', gold: '#C9A24B',
@@ -22,8 +23,8 @@ const colors = {
   },
   // Profile/social tokens. Brand colors are the platforms' own, used only on their marks.
   social: {
-    fbBlue: '#1877F2', xBlack: '#0F1419',
     igYellow: '#FEDA75', igOrange: '#F58529', igPink: '#DD2A7B', igPurple: '#8134AF', igBlue: '#515BD4',
+    fbBlue: '#1877F2', xBlack: '#0F1419',
     onBrand: '#FFFFFF', online: '#3F9A5B', offline: '#9C9187', typing: '#E07A1F',
     foilLight: '#F3DE9F', foilMid: '#C9A24B', foilDeep: '#9A7430', vein: '#C9A24B', ink: '#3E2A1A',
     bubbleMine: '#4A2E1C', bubbleMineText: '#FFF8EC', scrim: 'rgba(62,42,26,0.42)',

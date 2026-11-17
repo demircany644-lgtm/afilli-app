@@ -5,24 +5,29 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { useColors } from '@/hooks/useColors';
 import { useApp } from '@/context/AppContext';
 import { Empty, GoldButton, ScreenHeader, webBottom } from '@/components/ui';
+import { BookRow } from '@/components/BookList';
+import { getBook } from '@/data/catalog';
 
 export default function Store() {
   const c = useColors();
-  const { store, addStoreItem, removeStoreItem } = useApp();
+  const { store, addStoreItem, removeStoreItem, ready, storageError } = useApp();
+  const example = getBook('son-yaprak');
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
-  const add = () => { addStoreItem(title.trim(), note.trim()); setTitle(''); setNote(''); setOpen(false); };
+  const add = () => { if (!ready || !title.trim()) return; addStoreItem(title.trim(), note.trim()); setTitle(''); setNote(''); setOpen(false); };
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <ScreenHeader title="Mağazam" right={<Pressable testID="store-toggle-form" accessibilityLabel="Eser ekle" hitSlop={8} onPress={() => setOpen((o) => !o)} style={{ padding: 8 }}><Feather name={open ? 'x' : 'plus'} size={22} color={c.brown} /></Pressable>} />
       <KeyboardAwareScrollViewCompat contentContainerStyle={{ padding: 18, paddingBottom: 40 + webBottom, gap: 12 }} keyboardShouldPersistTaps="handled">
         <Text style={[s.intro, { color: c.mutedForeground }]}>Kendi eserlerinin vitrini. Burada satış yapılmaz; yalnızca eserlerini sergilemek için düzenlersin.</Text>
+        {example ? <View testID="store-example"><Text style={[s.t, { color: c.brown, marginBottom: 10 }]}>Örnek vitrin</Text><BookRow book={example} testID="store-example-book" /><Text style={[s.n, { color: c.mutedForeground }]}>Bu örnek eser sana ait değildir ve satın alma işlemi içermez.</Text></View> : null}
+        {storageError ? <Text accessibilityRole="alert" style={{ color: c.destructive }}>{storageError}</Text> : null}
         {open && (
           <View style={[s.form, { backgroundColor: c.paper, borderColor: c.gold }]}>
             <TextInput testID="store-title" value={title} onChangeText={setTitle} placeholder="Eser adı" placeholderTextColor={c.mutedForeground} style={[s.in, { borderColor: c.border, color: c.brown }]} />
             <TextInput testID="store-note" value={note} onChangeText={setNote} placeholder="Kısa açıklama" placeholderTextColor={c.mutedForeground} multiline style={[s.in, { borderColor: c.border, color: c.brown, minHeight: 70 }]} />
-            <GoldButton label="Vitrine ekle" icon="plus" testID="store-add" disabled={!title.trim()} onPress={add} />
+            <GoldButton label="Vitrine ekle" icon="plus" testID="store-add" disabled={!ready || !title.trim()} onPress={add} />
           </View>
         )}
         {store.length === 0 && !open ? (
@@ -36,7 +41,7 @@ export default function Store() {
               <Text style={[s.t, { color: c.brown }]}>{it.title}</Text>
               {!!it.note && <Text style={[s.n, { color: c.mutedForeground }]}>{it.note}</Text>}
             </View>
-            <Pressable testID={'store-remove-' + it.id} accessibilityLabel="Kaldır" hitSlop={10} onPress={() => removeStoreItem(it.id)}><Feather name="trash-2" size={18} color={c.destructive} /></Pressable>
+            <Pressable testID={'store-remove-' + it.id} disabled={!ready} accessibilityLabel="Kaldır" hitSlop={10} onPress={() => removeStoreItem(it.id)}><Feather name="trash-2" size={18} color={c.destructive} /></Pressable>
           </View>
         ))}
       </KeyboardAwareScrollViewCompat>

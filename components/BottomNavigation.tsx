@@ -9,6 +9,8 @@ import { tap } from '@/components/ui';
 import { useGetBulletinNotifications, getGetBulletinNotificationsQueryKey, useGetSocialNotifications, getGetSocialNotificationsQueryKey } from '@workspace/api-client-react';
 import { useCommunity } from '@/context/CommunityContext';
 import { scoped } from '@/components/profile/hooks';
+import { WriteDisc } from '@/components/home/Marks';
+import colors from '@/constants/colors';
 
 type NavItem = {
   path: Href;
@@ -21,7 +23,7 @@ type NavItem = {
 const ITEMS: NavItem[] = [
   { path: '/', label: 'Anasayfa', testID: 'tab-index', icon: 'home-outline', activeIcon: 'home' },
   { path: '/library', label: 'Kitaplarım', testID: 'tab-library', icon: 'bookshelf', activeIcon: 'bookshelf' },
-  { path: '/write', label: 'Kitap Yaz', testID: 'tab-write', icon: 'pencil', activeIcon: 'pencil' },
+  { path: '/write', label: 'Kitap Yaz', testID: 'tab-write', icon: 'feather', activeIcon: 'feather' },
   { path: '/saved', label: 'Bildirimler', testID: 'tab-saved', icon: 'bell-outline', activeIcon: 'bell' },
   { path: '/profile', label: 'Profil', testID: 'tab-profile', icon: 'account-outline', activeIcon: 'account' },
 ];
@@ -64,10 +66,12 @@ export function BottomNavigation() {
               ]}
             >
               {isWrite ? (
-                <View style={[styles.writeCircle, { backgroundColor: c.brown, borderColor: c.background, shadowColor: c.brown }]}>
-                  <MaterialCommunityIcons name="pencil" size={31} color={c.paper} />
-                  <Text numberOfLines={1} style={[styles.label, { color: c.paper, fontFamily: active ? 'Inter_700Bold' : 'Inter_600SemiBold' }]}>Kitap Yaz</Text>
-                </View>
+                <>
+                  <View style={[styles.writeCircle, { backgroundColor: c.background, shadowColor: colors.home.disc }]}>
+                    <WriteDisc size={70} disc={colors.home.disc} ring={colors.home.discRing} />
+                  </View>
+                  <Text numberOfLines={1} style={[styles.label, styles.writeLabel, { color: colors.home.ink, fontFamily: 'Inter_700Bold' }]}>Kitap Yaz</Text>
+                </>
               ) : (
                 <>
                   <View style={styles.icon}>
@@ -97,10 +101,11 @@ const styles = StyleSheet.create({
   item: { flex: 1, minWidth: 0, justifyContent: 'center', alignItems: 'center', gap: 4 },
   icon: { position: 'relative', width: 30, height: 29, alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 10, lineHeight: 15, textAlign: 'center' },
-  writeItem: { zIndex: 1 },
+  writeItem: { zIndex: 1, justifyContent: 'flex-end', paddingBottom: 10 },
+  writeLabel: { marginTop: 0 },
   writeCircle: {
-    position: 'absolute', top: -34, width: 88, height: 88, borderRadius: 44,
-    borderWidth: 5, alignItems: 'center', justifyContent: 'center', gap: 3,
+    position: 'absolute', top: -32, width: 80, height: 80, borderRadius: 40,
+    alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 6,
   },
   dot: { position: 'absolute', right: 0, top: 0, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },

@@ -21,7 +21,6 @@ export type ErrorFallbackProps = {
 export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const missingAuthConfig = /Clerk keys are missing|Missing publishableKey|Missing Clerk Publishable Key/i.test(error.message);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -70,13 +69,11 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.foreground }]}>
-          {missingAuthConfig ? 'Afilli bu sürümde açılamadı' : 'Something went wrong'}
+          Afilli bu ekranı açamadı
         </Text>
 
         <Text style={[styles.message, { color: colors.mutedForeground }]}>
-          {missingAuthConfig
-            ? 'Bu sürümün giriş yapılandırması eksik. Bu hata ekranı verilerini silmez. Düzeltilmiş uygulama güncellemesini yükle.'
-            : 'Please reload the app to continue.'}
+          Beklenmeyen bir sorun oluştu. Bu hata ekranı kayıtlarını silmez. Yeniden deneyebilirsin.
         </Text>
 
         <Pressable
@@ -93,7 +90,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
           <Text
             style={[styles.buttonText, { color: colors.primaryForeground }]}
           >
-            {missingAuthConfig ? 'Tekrar dene' : 'Try Again'}
+            Tekrar dene
           </Text>
         </Pressable>
       </View>

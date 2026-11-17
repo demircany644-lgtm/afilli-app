@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
-import { useAuth, useClerk } from '@clerk/expo';
+import { useAuth } from '@/context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { getMyProfile, updatePresence, setAuthTokenGetter, type CommunityPerson } from '@workspace/api-client-react';
 
@@ -11,8 +11,7 @@ type Session = {
 const CommunityContext = createContext<Session | null>(null);
 
 export function CommunityProvider({ children }: { children: React.ReactNode }) {
-  const { isLoaded, userId, getToken } = useAuth();
-  const clerk = useClerk();
+  const { isLoaded, userId, getToken, signOut: endSession } = useAuth();
   const queryClient = useQueryClient();
   const [transportIdentity, setTransportIdentity] = useState<string | null | undefined>(undefined);
   const transportReady = !!isLoaded && transportIdentity === userId;
@@ -23,7 +22,7 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const owner = userId;
-    setAuthTokenGetter(async () => {
+    if (Platform.OS !== 'web') setAuthTokenGetter(async () => {
       const token = await getToken();
       if (currentIdentity.current !== owner) throw new Error('Hesabın değişti. Yeniden dene.');
       return token;
@@ -34,7 +33,7 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
     }
     previous.current = userId;
     setTransportIdentity(userId);
-    return () => setAuthTokenGetter(null);
+    return () => { if (Platform.OS !== 'web') setAuthTokenGetter(null); };
   }, [getToken, isLoaded, userId, queryClient]);
 
   useEffect(() => {
@@ -77,7 +76,7 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
         try {
           if (userId) await updatePresence({ active: false }, { headers: { 'X-Afilli-Actor': userId }, signal: controller.signal }).catch(() => {});
         } finally { clearTimeout(timeout); }
-        await clerk.signOut(Platform.OS === 'web' ? { redirectUrl: redirectTo } : undefined); setPerson(null); queryClient.clear();
+        await endSession(); setPerson(null); queryClient.clear();
       },
     }}>
       <React.Fragment key={userId ?? 'guest'}>{children}</React.Fragment>

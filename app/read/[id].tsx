@@ -10,12 +10,13 @@ import { getBook } from '@/data/catalog';
 export default function Reader() {
   const c = useColors();
   const { id, c: ci } = useLocalSearchParams<{ id: string; c?: string }>();
-  const { openBook, isSaved, toggleSave } = useApp();
+  const { openBook, isSaved, toggleSave, ready } = useApp();
   const b = getBook(id);
-  const [idx, setIdx] = useState(Number(ci ?? 0) || 0);
+  const parsed = Number(ci ?? 0);
+  const [idx, setIdx] = useState(Number.isInteger(parsed) && parsed >= 0 ? parsed : 0);
   const [size, setSize] = useState(18);
-  useEffect(() => { if (b) openBook(b.id, idx); }, [b?.id, idx]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!b) return <View style={{ flex: 1, backgroundColor: c.background }}><ScreenHeader title="Okuma" /><Empty icon="book" title="Bölüm bulunamadı" text="Bu bölüm kaldırılmış olabilir." /></View>;
+  useEffect(() => { if (b?.chapters.length && ready) openBook(b.id, Math.min(idx, b.chapters.length - 1)); }, [b?.id, idx, ready, openBook]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!b?.chapters.length) return <View style={{ flex: 1, backgroundColor: c.background }}><ScreenHeader title="Okuma" /><Empty icon="book" title="Bölüm bulunamadı" text="Bu bölüm kaldırılmış olabilir." /></View>;
   const ch = b.chapters[Math.min(idx, b.chapters.length - 1)];
   return (
     <View style={{ flex: 1, backgroundColor: c.paper }}>
@@ -23,7 +24,7 @@ export default function Reader() {
         <View style={{ flexDirection: 'row' }}>
           <Pressable testID="font-smaller" accessibilityLabel="Yazıyı küçült" onPress={() => setSize((x) => Math.max(14, x - 2))} style={s.tb}><Text style={[s.aa, { color: c.brown, fontSize: 13 }]}>A</Text></Pressable>
           <Pressable testID="font-larger" accessibilityLabel="Yazıyı büyüt" onPress={() => setSize((x) => Math.min(26, x + 2))} style={s.tb}><Text style={[s.aa, { color: c.brown }]}>A</Text></Pressable>
-          <Pressable testID="reader-save" accessibilityLabel="Kaydet" onPress={() => toggleSave(b.id)} style={s.tb}><Feather name="bookmark" size={19} color={isSaved(b.id) ? c.gold : c.brown} /></Pressable>
+          <Pressable testID="reader-save" accessibilityLabel="Kaydet" disabled={!ready} onPress={() => toggleSave(b.id)} style={s.tb}><Feather name="bookmark" size={19} color={isSaved(b.id) ? c.gold : c.brown} /></Pressable>
         </View>} />
       <ScrollView contentContainerStyle={{ padding: 26, paddingBottom: 60 + webBottom }}>
         <Text style={[s.ch, { color: c.gold }]}>{ch.title}</Text>

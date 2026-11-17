@@ -116,7 +116,7 @@ try {
   const chosen = new Promise((resolve) => events.set('Page.fileChooserOpened', resolve));
   await click('photo-button');
   const chooser = await Promise.race([chosen, sleep(10000).then(() => { throw new Error('Photo chooser did not open'); })]);
-  await call('DOM.setFileInputFiles', { backendNodeId: chooser.backendNodeId, files: [path.resolve('artifacts/afilli/assets/images/magazine/autumn-cover.webp')] });
+  await call('DOM.setFileInputFiles', { backendNodeId: chooser.backendNodeId, files: [path.resolve('assets/images/magazine/autumn-cover.webp')] });
   await wait(`!!document.querySelector('[aria-label="Seçilen fotoğraf önizlemesi"]')`);
   await sleep(400);
   assert.ok(await evaluate(`JSON.parse(localStorage.getItem('afilli:magazine:v1')).draft.image.startsWith('data:')`));

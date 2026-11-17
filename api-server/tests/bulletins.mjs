@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { clerkClient } from '@clerk/express';
+import { accounts as clerkClient } from './helpers/accounts.mjs';
 import { bulletinObject } from '../src/lib/bulletin-storage.ts';
 
-const requireDb = createRequire(new URL('../../../lib/db/package.json', import.meta.url));
+const requireDb = createRequire(new URL('../../db/package.json', import.meta.url));
 const { Pool } = requireDb('pg');
 const pool = new Pool();
 const actors = [], posts = [], uploads = [];
@@ -132,8 +132,8 @@ try {
   }
   const users = actors.map((actor) => actor.userId);
   if (users.length) {
-    for (const table of ['bulletin_uploads', 'authored_books', 'community_users']) {
-      const column = table === 'community_users' ? 'id' : table === 'authored_books' ? 'author_id' : 'owner_id';
+    for (const table of ['bulletin_uploads', 'authored_books', 'afilli_auth_codes', 'afilli_auth_sessions', 'afilli_auth_accounts', 'community_users']) {
+      const column = table.startsWith('afilli_auth') ? 'user_id' : table === 'community_users' ? 'id' : table === 'authored_books' ? 'author_id' : 'owner_id';
       await pool.query(`DELETE FROM ${table} WHERE ${column}=ANY($1::text[])`, [users]);
     }
   }

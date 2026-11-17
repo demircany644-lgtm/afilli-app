@@ -66,15 +66,22 @@ function styleOf(attrs: Record<string, string>): TextStyle & { align?: 'left' | 
 const hasImg = (n: Node): boolean => typeof n !== 'string' && (n.tag === 'img' || n.kids.some(hasImg));
 const isBlock = (n: Node) => typeof n !== 'string' && (BLOCK.has(n.tag) || hasImg(n));
 
-export function HtmlView({ html, night, owner, privatePreview = false }: { html: string; night?: boolean; owner: string | null; privatePreview?: boolean }) {
+export function HtmlView({ html, night, owner, privatePreview = false, fontSize = 17 }: { html: string; night?: boolean; owner: string | null; privatePreview?: boolean; fontSize?: number }) {
   const [link, setLink] = useState<string | null>(null);
   const ink = night ? '#EADBC4' : W.ink;
-  const base: TextStyle = { fontFamily: F.body, fontSize: 17, lineHeight: 28, color: ink };
+  const base: TextStyle = { fontFamily: F.body, fontSize, lineHeight: Math.round(fontSize * 1.65), color: ink };
+  const scaleStyle = (s: TextStyle): TextStyle => ({
+    ...s,
+    ...(s.fontSize ? { fontSize: s.fontSize * fontSize / 17 } : {}),
+    ...(s.lineHeight ? { lineHeight: s.lineHeight * fontSize / 17 } : {}),
+    ...(night && s.color ? { color: ink } : {}),
+  });
 
   const inline = (n: Node, k: string): React.ReactNode => {
     if (typeof n === 'string') return n.replace(/\s+/g, ' ');
     const kids = n.kids.map((c, i) => inline(c, k + '.' + i));
-    const { align: _a, ...s } = styleOf(n.attrs);
+    const { align: _a, ...raw } = styleOf(n.attrs);
+    const s = scaleStyle(raw);
     switch (n.tag) {
       case 'br': return '\n';
       case 'strong': case 'b': return <Text key={k} style={[{ fontFamily: F.semi }, s]}>{kids}</Text>;
@@ -92,7 +99,7 @@ export function HtmlView({ html, night, owner, privatePreview = false }: { html:
   const flowText = (nodes: Node[], k: string, style: TextStyle[], align?: string) => {
     const parts = nodes.map((c, i) => inline(c, k + '.' + i));
     const txt = nodes.length === 0 ? '' : null;
-    return <Text key={k} selectable style={[base, ...style, align ? { textAlign: align as TextStyle['textAlign'] } : null]}>{txt ?? parts}</Text>;
+    return <Text key={k} selectable style={[base, ...style.map(scaleStyle), align ? { textAlign: align as TextStyle['textAlign'] } : null]}>{txt ?? parts}</Text>;
   };
   const blocks = (nodes: Node[], k: string): React.ReactNode[] => {
     const out: React.ReactNode[] = []; let run: Node[] = [];

@@ -34,6 +34,7 @@ export const writerComments = pgTable('writer_comments', {
   authorId: text('author_id').notNull().references(() => communityUsers.id),
   clientId: uuid('client_id').notNull(), chapterId: uuid('chapter_id'),
   body: text('body').notNull(),
+  moderationHidden: boolean('moderation_hidden').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [uniqueIndex('writer_comment_idempotency').on(t.bookId, t.authorId, t.clientId)]);
 export const writerVoiceUsage = pgTable('writer_voice_usage', {

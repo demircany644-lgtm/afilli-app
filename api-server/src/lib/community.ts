@@ -1,5 +1,5 @@
 import type { Request, RequestHandler } from 'express';
-import { getAuth, clerkClient } from '@clerk/express';
+import { authenticatedUserId } from './auth-session';
 import { pool, type PoolClient } from '@workspace/db';
 import type { Bulletin, BulletinComment, CommunityPerson, AuthoredBook, BulletinReaction } from '@workspace/api-zod';
 import { publicBook } from './book-access';
@@ -20,19 +20,14 @@ export async function transaction<T>(fn: (client: Transaction) => Promise<T>): P
   catch (error) { await client.query('ROLLBACK'); throw error; }
   finally { client.release(); }
 }
-export const viewer = (req: Request) => getAuth(req).userId ?? null;
+export const viewer = authenticatedUserId;
 export async function requirePerson(req: Request): Promise<CommunityPerson> {
   const id = viewer(req);
   if (!id) return fail(401, 'Devam etmek için giriş yap.');
   if (req.header('X-Afilli-Actor') && req.header('X-Afilli-Actor') !== id) return fail(401, 'Hesabın değişti. İşlemi kendi hesabında yeniden dene.');
   const found = await pool.query<CommunityPerson>('SELECT id,nickname,avatar FROM community_users WHERE id=$1', [id]);
   if (found.rows[0]) return found.rows[0];
-  const user = await clerkClient.users.getUser(id);
-  const result = await pool.query<CommunityPerson>(
-    'INSERT INTO community_users(id,nickname,avatar) VALUES($1,$2,$3) ON CONFLICT(id) DO UPDATE SET id=excluded.id RETURNING *',
-    [id, user.username || user.firstName || 'Okur', user.imageUrl || null],
-  );
-  return result.rows[0];
+  return fail(401, 'Hesabın bulunamadı. Yeniden giriş yap; mevcut kayıtların silinmedi.');
 }
 export const route = (fn: RequestHandler): RequestHandler => async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -49,7 +44,7 @@ export function parse<T>(schema: { safeParse: (input: unknown) => { success: tru
   return result.data;
 }
 export async function postOwner(id: string, client: Transaction | typeof pool = pool) {
-  const result = await client.query<{ author_id: string }>('SELECT author_id FROM bulletins WHERE id=$1', [id]);
+  const result = await client.query<{ author_id: string }>('SELECT author_id FROM bulletins WHERE id=$1 AND NOT moderation_hidden', [id]);
   return result.rows[0]?.author_id ?? fail(404, 'Bülten bulunamadı.');
 }
 export async function notify(client: Transaction, recipient: string, actor: string, kind: string, postId: string, commentId: string | null = null) {
@@ -87,11 +82,11 @@ export async function postData(ids: string[], userId: string | null): Promise<Bu
       p.created_at AS "createdAt",p.updated_at AS "updatedAt",
       (SELECT count(*)::int FROM bulletin_likes l WHERE l.post_id=p.id) AS "likeCount",
       EXISTS(SELECT 1 FROM bulletin_likes l WHERE l.post_id=p.id AND l.user_id=$2) AS liked,
-      (SELECT count(*)::int FROM bulletin_comments c WHERE c.post_id=p.id AND NOT c.deleted) AS "commentCount",
+      (SELECT count(*)::int FROM bulletin_comments c WHERE c.post_id=p.id AND NOT c.deleted AND NOT c.moderation_hidden) AS "commentCount",
       (p.author_id=$2) IS TRUE AS "canEdit"
      FROM bulletins p JOIN community_users u ON u.id=p.author_id
      LEFT JOIN authored_books b ON b.id=p.book_id AND (b.author_id=$2 OR ${publicBook()}) LEFT JOIN community_users bu ON bu.id=b.author_id
-     WHERE p.id=ANY($1::uuid[]) ORDER BY p.created_at DESC,p.id DESC`, [ids, userId],
+     WHERE p.id=ANY($1::uuid[]) AND NOT p.moderation_hidden ORDER BY p.created_at DESC,p.id DESC`, [ids, userId],
   );
   return Promise.all(result.rows.map(async (row) => ({
     ...row, createdAt: new Date(row.createdAt).toISOString(), updatedAt: new Date(row.updatedAt).toISOString(),
@@ -100,11 +95,12 @@ export async function postData(ids: string[], userId: string | null): Promise<Bu
 }
 export async function commentsData(postId: string, userId: string | null): Promise<BulletinComment[]> {
   const result = await pool.query<BulletinComment & { createdAt: Date }>(
-    `SELECT c.id,c.post_id AS "postId",${PERSON_SQL} AS author,c.parent_id AS "parentId",c.depth,c.body,c.deleted,
-       c.created_at AS "createdAt",(c.author_id=$2 AND NOT c.deleted) IS TRUE AS "canEdit",
-       ((c.author_id=$2 OR p.author_id=$2) AND NOT c.deleted) IS TRUE AS "canDelete"
+    `SELECT c.id,c.post_id AS "postId",${PERSON_SQL} AS author,c.parent_id AS "parentId",c.depth,
+       CASE WHEN c.moderation_hidden THEN '' ELSE c.body END AS body,(c.deleted OR c.moderation_hidden) AS deleted,
+       c.created_at AS "createdAt",(c.author_id=$2 AND NOT c.deleted AND NOT c.moderation_hidden) IS TRUE AS "canEdit",
+       ((c.author_id=$2 OR p.author_id=$2) AND NOT c.deleted AND NOT c.moderation_hidden) IS TRUE AS "canDelete"
      FROM bulletin_comments c JOIN community_users u ON u.id=c.author_id JOIN bulletins p ON p.id=c.post_id
-     WHERE c.post_id=$1 ORDER BY c.created_at,c.id`, [postId, userId],
+     WHERE c.post_id=$1 AND NOT p.moderation_hidden ORDER BY c.created_at,c.id`, [postId, userId],
   );
   return Promise.all(result.rows.map(async (row) => ({
     ...row, createdAt: new Date(row.createdAt).toISOString(), reactions: await reactions('comment', row.id, userId),

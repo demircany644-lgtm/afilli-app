@@ -4,7 +4,9 @@ import { communityUsers, authoredBooks } from './community';
 
 export const socialSettings = pgTable('social_settings', {
   id: boolean('id').primaryKey().default(true),
-  instagramHandle: text('instagram_handle').notNull(),
+  // Historical column name retained to preserve existing rows. Only the
+  // centrally configured, canonical Instagram URL is written here now.
+  instagramHandle: text('instagram_handle'),
   facebookUrl: text('facebook_url'), xUrl: text('x_url'),
   popularDays: integer('popular_days').notNull().default(30),
   popularLimit: integer('popular_limit').notNull().default(10),

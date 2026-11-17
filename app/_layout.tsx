@@ -8,7 +8,7 @@ import { ErrorFallback, type ErrorFallbackProps } from '@/components/ErrorFallba
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, useFonts } from '@expo-google-fonts/inter';
 import { GreatVibes_400Regular } from '@expo-google-fonts/great-vibes';
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold, PlayfairDisplay_400Regular_Italic } from '@expo-google-fonts/playfair-display';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { AppProvider } from '@/context/AppContext';
@@ -16,8 +16,7 @@ import colors from '@/constants/colors';
 import { View } from 'react-native';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { MagazineProvider } from '@/context/MagazineContext';
-import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
-import { tokenCache } from '@clerk/expo/token-cache';
+import { AuthProvider } from '@/context/AuthContext';
 import { setBaseUrl } from '@workspace/api-client-react';
 import { CommunityProvider } from '@/context/CommunityContext';
 
@@ -32,6 +31,7 @@ function StartupErrorFallback(props: ErrorFallbackProps) {
 }
 
 function RootLayoutNav() {
+  const pathname = usePathname();
   return (
     <View style={{ flex: 1, backgroundColor: colors.light.background }}>
       <View style={{ flex: 1, minHeight: 0 }}>
@@ -40,7 +40,8 @@ function RootLayoutNav() {
           <Stack.Screen name="search" options={{ animation: 'fade' }} />
         </Stack>
       </View>
-      <BottomNavigation />
+      {/* The user's full-screen chat is the sole exception; other screens keep all five tabs. */}
+      {pathname !== '/writer-chat' ? <BottomNavigation /> : null}
     </View>
   );
 }
@@ -54,10 +55,9 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
   return (
     <ErrorBoundary FallbackComponent={StartupErrorFallback}>
-    <ClerkProvider publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!} tokenCache={tokenCache} proxyUrl={process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined}>
-      <ClerkLoaded>
     <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <AuthProvider>
           <AppProvider>
             <CommunityProvider>
             <MagazineProvider>
@@ -70,10 +70,9 @@ export default function RootLayout() {
             </MagazineProvider>
             </CommunityProvider>
           </AppProvider>
+          </AuthProvider>
         </QueryClientProvider>
     </SafeAreaProvider>
-      </ClerkLoaded>
-    </ClerkProvider>
     </ErrorBoundary>
   );
 }
