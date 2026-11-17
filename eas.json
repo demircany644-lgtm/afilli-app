@@ -7,17 +7,24 @@
       "node": "24.22.1",
       "pnpm": "10.26.1",
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "image": "ubuntu-26.04-jdk-17-ndk-r27b-sdk-58"
+      }
     },
     "preview": {
       "node": "24.22.1",
       "pnpm": "10.26.1",
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "image": "ubuntu-26.04-jdk-17-ndk-r27b-sdk-58"
+      }
     },
     "production": {
       "node": "24.22.1",
       "pnpm": "10.26.1",
       "android": {
+        "image": "ubuntu-26.04-jdk-17-ndk-r27b-sdk-58",
         "buildType": "app-bundle"
       }
     }
