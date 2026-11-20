@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { editorHtml } from '@/lib/writer-editor-html';
 import type { RichEditorProps } from '@/components/writer/editor-types';
 import { useEditorChannel } from '@/components/writer/useEditorChannel';
+import { CopyProtectionHint } from './CopyGuard';
 
 /** Web: same offline engine inside a sandboxed srcDoc iframe (scripts only, no same-origin access). */
 export function RichEditor(props: RichEditorProps) {
@@ -19,8 +20,11 @@ export function RichEditor(props: RichEditorProps) {
     return () => window.removeEventListener('message', on);
   }, [receive]);
   return (
+    <View>
     <View style={{ height: props.height, borderRadius: 14, overflow: 'hidden' }} testID="writer-editor">
       <iframe ref={frame} srcDoc={doc} sandbox="allow-scripts" title="Bölüm editörü" style={{ border: 0, width: '100%', height: '100%', background: 'transparent' }} />
+    </View>
+    <CopyProtectionHint />
     </View>
   );
 }

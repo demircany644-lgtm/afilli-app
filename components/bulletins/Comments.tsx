@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetBulletinComments, getGetBulletinCommentsQueryKey, getGetBulletinQueryKey, getGetBulletinsQueryKey, getGetBulletinReactionPeopleQueryKey,
@@ -7,7 +8,7 @@ import {
 } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
-import { b, Avatar, Btn, ConfirmDelete, apiError, timeAgo, goSignIn, OFFLINE } from '@/components/bulletins/common';
+import { Avatar, Btn, ConfirmDelete, apiError, timeAgo, goSignIn, OFFLINE } from '@/components/bulletins/common';
 import { ReactionPicker, ReactionBuckets, ReactionPeopleSheet } from '@/components/bulletins/Reactions';
 
 function useRefresh(postId: string) {
@@ -22,6 +23,8 @@ function useRefresh(postId: string) {
 export function CommentInput({ postId, parentId, placeholder, initial, onDone, autoFocus, testID }: {
   postId: string; parentId?: string | null; placeholder: string; initial?: { id: string; body: string }; onDone?: () => void; autoFocus?: boolean; testID: string;
 }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const { userId } = useCommunity();
   const refresh = useRefresh(postId);
   const create = useCreateBulletinComment();
@@ -56,6 +59,7 @@ export function CommentInput({ postId, parentId, placeholder, initial, onDone, a
 }
 
 function CommentNode({ c, byParent, byId, postId, focusId }: { c: BulletinComment; byParent: Map<string, BulletinComment[]>; byId: Map<string, BulletinComment>; postId: string; focusId?: string }) {
+  const st = useStStyles();
   const { userId } = useCommunity();
   const refresh = useRefresh(postId);
   const qc = useQueryClient();
@@ -117,6 +121,7 @@ function CommentNode({ c, byParent, byId, postId, focusId }: { c: BulletinCommen
 }
 
 export function CommentsThread({ postId, focusId }: { postId: string; focusId?: string }) {
+  const st = useStStyles();
   const q = useGetBulletinComments(postId, { query: { enabled: !!postId, queryKey: getGetBulletinCommentsQueryKey(postId), refetchInterval: 20000 } });
   const { byParent, byId, roots } = useMemo(() => {
     const list = [...(q.data ?? [])].sort((a, z) => a.createdAt.localeCompare(z.createdAt));
@@ -141,7 +146,9 @@ export function CommentsThread({ postId, focusId }: { postId: string; focusId?: 
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   wrap: { backgroundColor: b.card, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: b.border },
   heading: { fontFamily: F.serifBold, fontSize: 18, color: b.text, marginBottom: 8 },
   nested: { marginLeft: 12, paddingLeft: 8, borderLeftWidth: 1.5, borderColor: b.gold },
@@ -162,4 +169,5 @@ const st = StyleSheet.create({
   err: { color: b.danger, fontFamily: F.med, fontSize: 12, marginTop: 4 },
   empty: { fontFamily: F.body, fontSize: 14, color: b.muted, paddingVertical: 10 },
   skel: { height: 48, borderRadius: 10, backgroundColor: b.input },
+  });
 });

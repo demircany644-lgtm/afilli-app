@@ -15,3 +15,11 @@ export const adminAudit = pgTable('admin_audit', {
 }, t => [index('admin_audit_order').on(t.createdAt, t.id)]);
 export const insertAdminAuditSchema = createInsertSchema(adminAudit);
 export type AdminAudit = typeof adminAudit.$inferSelect;
+
+// No user FK: the account is already gone when storage removal is retried.
+// The delay lets previously issued upload URLs expire before removing bytes.
+export const accountMediaDeletions = pgTable('account_media_deletions', {
+  kind: text('kind').notNull(),
+  mediaId: uuid('media_id').primaryKey(),
+  eligibleAt: timestamp('eligible_at', { withTimezone: true }).notNull(),
+}, t => [index('account_media_deletions_due').on(t.eligibleAt)]);

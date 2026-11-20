@@ -1,18 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useRequestProfileUpload } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { apiError, mediaUrl } from '@/components/bulletins/common';
 import { pickProfileImage, uploadProfileImage, type ProfilePurpose } from '@/lib/profile-media';
 import { useCommunity } from '@/context/CommunityContext';
-import { P, S, k } from './kit';
+
+import { useKitStyles } from './kit';
 import { actorRequest, useOwnerGuard } from './hooks';
 
 /** keep = untouched; set = new uploaded id; remove = send null. */
 export type MediaChange = { kind: 'keep' } | { kind: 'set'; uploadId: string; uri: string } | { kind: 'remove' };
 
 export function MediaField({ purpose, current, value, onChange, onBusy }: { purpose: ProfilePurpose; current: string | null; value: MediaChange; onChange: (v: MediaChange) => void; onBusy: (b: boolean) => void }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
   const { userId } = useCommunity();
   const alive = useOwnerGuard(userId);
   const req = useRequestProfileUpload({ request: actorRequest(userId) });
@@ -65,6 +70,8 @@ export function MediaField({ purpose, current, value, onChange, onBusy }: { purp
 }
 
 function Chip({ icon, label, onPress, testID, danger, disabled }: { icon: keyof typeof Feather.glyphMap; label: string; onPress: () => void; testID: string; danger?: boolean; disabled?: boolean }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
       style={({ pressed }) => [st.chip, { opacity: disabled ? 0.5 : pressed ? 0.75 : 1, borderColor: danger ? P.danger : P.gold }]}>
@@ -74,7 +81,9 @@ function Chip({ icon, label, onPress, testID, danger, disabled }: { icon: keyof 
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: P, social: S } = t;
+  return StyleSheet.create({
   avatarBox: { width: 104, height: 104, borderRadius: 52, borderWidth: 3, borderColor: S.foilMid, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: P.card },
   coverBox: { height: 110, borderRadius: 18, borderWidth: 1, borderColor: P.border, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: P.card },
   busy: { ...StyleSheet.absoluteFill, backgroundColor: S.scrim, alignItems: 'center', justifyContent: 'center', gap: 4 },
@@ -82,4 +91,5 @@ const st = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, backgroundColor: P.card },
   chipText: { fontFamily: F.med, fontSize: 13, color: P.text },
+  });
 });

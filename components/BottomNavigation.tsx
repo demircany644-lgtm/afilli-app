@@ -4,13 +4,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
-import { useApp } from '@/context/AppContext';
 import { tap } from '@/components/ui';
-import { useGetBulletinNotifications, getGetBulletinNotificationsQueryKey, useGetSocialNotifications, getGetSocialNotificationsQueryKey } from '@workspace/api-client-react';
+import { useGetBookNotifications, getGetBookNotificationsQueryKey } from '@workspace/api-client-react';
 import { useCommunity } from '@/context/CommunityContext';
-import { scoped } from '@/components/profile/hooks';
+import { scoped, actorRequest } from '@/components/profile/hooks';
 import { WriteDisc } from '@/components/home/Marks';
 import colors from '@/constants/colors';
+import { useAppearance } from '@/context/AppearanceContext';
+import { useTheme } from '@/hooks/useTheme';
 
 type NavItem = {
   path: Href;
@@ -34,29 +35,30 @@ export function BottomNavigation() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
-  const { notifications } = useApp();
   const { ready, userId } = useCommunity();
-  const remote = useGetBulletinNotifications({ query: { enabled: ready && !!userId, queryKey: scoped(getGetBulletinNotificationsQueryKey(), userId), refetchInterval: 15000 } });
-  const social = useGetSocialNotifications({ query: { enabled: ready && !!userId, queryKey: scoped(getGetSocialNotificationsQueryKey(), userId), refetchInterval: 15000 } });
-  const hasUnread = notifications.some((notification) => !notification.read)
-    || (!!userId && (remote.data ?? []).some((n) => !n.read))
-    || (!!userId && (social.data ?? []).some((n) => !n.read));
+  // Canonical server unread total for book notifications only (chapter, book_comment, comment_reply).
+  const book = useGetBookNotifications(undefined, { query: { enabled: ready && !!userId, queryKey: scoped(getGetBookNotificationsQueryKey(), userId), refetchInterval: 15000 }, request: actorRequest(userId) });
+  const unreadCount = userId ? book.data?.unreadCount ?? 0 : 0;
+  const hasUnread = unreadCount > 0;
+  const { isLava } = useAppearance();
+  const t = useTheme();
+  const H = t.home;
   const bottom = Platform.OS === 'web' ? 34 : insets.bottom;
 
   return (
-    <View testID="bottom-navigation" style={[styles.container, { backgroundColor: c.background, paddingBottom: bottom + 8 }]}>
-      <View style={[styles.bar, { backgroundColor: c.background, borderColor: c.border, shadowColor: c.brown }]}>
+    <View testID="bottom-navigation" style={[styles.container, { backgroundColor: isLava ? colors.lava.bg : c.background, paddingBottom: bottom + 8 }]}>
+      <View style={[styles.bar, { backgroundColor: isLava ? colors.lava.pill : H.navBar, borderColor: isLava ? c.border : t.social.foilMid, shadowColor: isLava ? colors.lava.flame : '#2B1A0E' }, isLava && { shadowOpacity: 0.45, shadowRadius: 14 }]}>
         {ITEMS.map((item, index) => {
           const active = pathname === item.path;
           const isWrite = index === 2;
           // Only the Profile tab turns gold when active; the rest keep the original brown.
-          const color = active ? (index === 4 ? c.gold : c.brown) : c.mutedForeground;
+          const color = isLava ? (active ? (index === 4 ? c.gold : c.brown) : c.mutedForeground) : active ? (index === 4 ? t.light.gold : H.ink) : t.light.mutedForeground;
           return (
             <Pressable
               key={item.testID}
               testID={item.testID}
               accessibilityRole="tab"
-              accessibilityLabel={item.label + (index === 3 && hasUnread ? ', yeni bildirimin var' : '')}
+              accessibilityLabel={item.label + (index === 3 && hasUnread ? ', ' + unreadCount + ' okunmamış bildirim' : '')}
               accessibilityState={{ selected: active }}
               onPress={() => { tap(); router.navigate(item.path); }}
               style={({ pressed }) => [
@@ -67,17 +69,17 @@ export function BottomNavigation() {
             >
               {isWrite ? (
                 <>
-                  <View style={[styles.writeCircle, { backgroundColor: c.background, shadowColor: colors.home.disc }]}>
+                  <View style={[styles.writeCircle, { backgroundColor: isLava ? colors.lava.pill : H.navBar, borderColor: isLava ? 'transparent' : t.social.foilMid, shadowColor: '#000' }]}>
                     <WriteDisc size={70} disc={colors.home.disc} ring={colors.home.discRing} />
                   </View>
-                  <Text numberOfLines={1} style={[styles.label, styles.writeLabel, { color: colors.home.ink, fontFamily: 'Inter_700Bold' }]}>Kitap Yaz</Text>
+                  <Text numberOfLines={1} style={[styles.label, styles.writeLabel, { color: isLava ? colors.home.ink : H.ink, fontFamily: 'Inter_700Bold' }]}>Kitap Yaz</Text>
                 </>
               ) : (
                 <>
                   <View style={styles.icon}>
                     <MaterialCommunityIcons name={active ? item.activeIcon : item.icon} size={25} color={color} />
                     {index === 3 && hasUnread && (
-                      <View testID="notification-unread-dot" style={[styles.dot, { backgroundColor: c.destructive, borderColor: c.background }]} />
+                      <View testID="notification-unread-dot" style={[styles.dot, { backgroundColor: H.badge, borderColor: isLava ? c.background : H.navBar }]} />
                     )}
                   </View>
                   <Text numberOfLines={1} style={[styles.label, { color, fontFamily: active ? 'Inter_700Bold' : 'Inter_500Medium' }]}>{item.label}</Text>
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
   writeItem: { zIndex: 1, justifyContent: 'flex-end', paddingBottom: 10 },
   writeLabel: { marginTop: 0 },
   writeCircle: {
-    position: 'absolute', top: -32, width: 80, height: 80, borderRadius: 40,
+    position: 'absolute', top: -32, width: 80, height: 80, borderRadius: 40, borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 6,
   },

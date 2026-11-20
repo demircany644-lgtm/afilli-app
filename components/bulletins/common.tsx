@@ -1,5 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import colors from '@/constants/colors';
@@ -7,7 +8,6 @@ import { F, tap } from '@/components/ui';
 import { bulletinMediaUrl } from '@/lib/bulletin-photos';
 import type { CommunityPerson } from '@workspace/api-client-react';
 
-export const b = colors.magazine;
 export const OFFLINE = 'Bağlantı yok, tekrar dene';
 export const EMOJIS = ['❤️', '😍', '😂', '😮', '😢', '👏', '📖', '👍'] as const;
 
@@ -44,6 +44,7 @@ export function timeAgo(iso: string) {
 export function goSignIn() { tap(); router.push('/sign-in'); }
 
 export function Avatar({ person, size = 40 }: { person: Pick<CommunityPerson, 'nickname' | 'avatar'> | null; size?: number }) {
+  const s = useSStyles();
   const name = person?.nickname ?? 'Okur';
   const initials = name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toLocaleUpperCase('tr-TR');
   const st = { width: size, height: size, borderRadius: size / 2 };
@@ -57,6 +58,7 @@ export function Avatar({ person, size = 40 }: { person: Pick<CommunityPerson, 'n
 
 /** Typographic cover derived from the title — the draft has no cover image. */
 export function BookCover({ title, author, w = 72 }: { title: string; author: string; w?: number }) {
+  const s = useSStyles();
   const h = w * 1.45;
   return (
     <View style={[s.cover, { width: w, height: h, padding: w * 0.09 }]} accessibilityLabel={title + ' kapağı'}>
@@ -70,6 +72,8 @@ export function BookCover({ title, author, w = 72 }: { title: string; author: st
 }
 
 export function Sheet({ visible, onClose, title, children, testID }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode; testID?: string }) {
+  const { magazine: b } = useTheme();
+  const s = useSStyles();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={s.backdrop} onPress={onClose} accessibilityLabel="Kapat">
@@ -86,6 +90,8 @@ export function Sheet({ visible, onClose, title, children, testID }: { visible: 
 }
 
 export function SheetRow({ icon, label, onPress, danger, testID, disabled }: { icon: keyof typeof Feather.glyphMap; label: string; onPress: () => void; danger?: boolean; testID?: string; disabled?: boolean }) {
+  const { magazine: b } = useTheme();
+  const s = useSStyles();
   return (
     <Pressable testID={testID} disabled={disabled} aria-disabled={!!disabled} accessibilityRole="button" accessibilityLabel={label}
       onPress={() => { tap(); onPress(); }} style={({ pressed }) => [s.row, { opacity: disabled ? 0.4 : pressed ? 0.6 : 1 }]}>
@@ -96,6 +102,8 @@ export function SheetRow({ icon, label, onPress, danger, testID, disabled }: { i
 }
 
 export function Btn({ label, onPress, busy, disabled, ghost, testID, icon, style }: { label: string; onPress: () => void; busy?: boolean; disabled?: boolean; ghost?: boolean; testID?: string; icon?: keyof typeof Feather.glyphMap; style?: ViewStyle }) {
+  const { magazine: b } = useTheme();
+  const s = useSStyles();
   const off = disabled || busy;
   return (
     <Pressable testID={testID} disabled={off} aria-disabled={!!off} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!off, busy: !!busy }}
@@ -108,6 +116,8 @@ export function Btn({ label, onPress, busy, disabled, ghost, testID, icon, style
 }
 
 export function ConfirmDelete({ visible, onCancel, onConfirm, busy, text }: { visible: boolean; onCancel: () => void; onConfirm: () => void; busy: boolean; text: string }) {
+  const { magazine: b } = useTheme();
+  const s = useSStyles();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={[s.backdrop, { justifyContent: 'center', padding: 28 }]}>
@@ -125,6 +135,7 @@ export function ConfirmDelete({ visible, onCancel, onConfirm, busy, text }: { vi
 }
 
 export function PersonRow({ person, trailing }: { person: CommunityPerson; trailing?: string }) {
+  const s = useSStyles();
   return (
     <View style={s.personRow} accessible accessibilityLabel={person.nickname + (trailing ? ', ' + trailing : '')}>
       <Avatar person={person} size={36} />
@@ -134,7 +145,9 @@ export function PersonRow({ person, trailing }: { person: CommunityPerson; trail
   );
 }
 
-export const s = StyleSheet.create({
+export const useSStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   avatarRing: { borderWidth: 1.5, borderColor: b.gold },
   avatarFallback: { backgroundColor: b.text, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: b.gold, fontFamily: F.serifBold },
@@ -156,4 +169,5 @@ export const s = StyleSheet.create({
   confirm: { backgroundColor: b.card, borderRadius: 18, padding: 22, gap: 8, borderWidth: 1, borderColor: b.gold },
   confirmTitle: { fontFamily: F.serifBold, fontSize: 22, color: b.text },
   confirmText: { fontFamily: F.body, fontSize: 14, lineHeight: 20, color: b.muted },
+  });
 });

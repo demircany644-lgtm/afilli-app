@@ -43,8 +43,13 @@ function state(){var q=function(c){try{return document.queryCommandState(c);}cat
   post({t:'sel',s:{bold:q('bold'),italic:q('italic'),underline:q('underline'),strike:q('strikeThrough'),ul:q('insertUnorderedList'),ol:q('insertOrderedList'),center:q('justifyCenter'),right:q('justifyRight'),block:block()}});}
 document.addEventListener('selectionchange',function(){var s=window.getSelection();if(s.rangeCount&&ed.contains(s.anchorNode)){lastRange=s.getRangeAt(0).cloneRange();clearTimeout(selT);selT=setTimeout(state,120);}});
 ed.addEventListener('input',function(e){var s=window.getSelection();if(s.anchorNode){var n=s.anchorNode.nodeType===1?s.anchorNode:s.anchorNode.parentNode;var sp=n&&n.closest&&n.closest('span.sp');if(sp){var p=sp.parentNode;while(sp.firstChild)p.insertBefore(sp.firstChild,sp);p.removeChild(sp);}}changed();});
-ed.addEventListener('beforeinput',function(e){if(e.inputType==='historyUndo'){e.preventDefault();undo();}else if(e.inputType==='historyRedo'){e.preventDefault();redo();}});
-ed.addEventListener('keydown',function(e){var k=(e.key||'').toLowerCase();if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();}else if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();}});
+// Keep selection, paste, undo, formatting and recovery intact. Clipboard export
+// and native cut deletion are separate operations and both must be cancelled.
+document.addEventListener('copy',function(e){e.preventDefault();},true);
+document.addEventListener('cut',function(e){e.preventDefault();},true);
+document.addEventListener('contextmenu',function(e){if(!window.ReactNativeWebView)e.preventDefault();},true);
+ed.addEventListener('beforeinput',function(e){if(e.inputType==='deleteByCut'){e.preventDefault();return;}if(e.inputType==='historyUndo'){e.preventDefault();undo();}else if(e.inputType==='historyRedo'){e.preventDefault();redo();}});
+ed.addEventListener('keydown',function(e){var k=(e.key||'').toLowerCase();if((e.ctrlKey||e.metaKey)&&(k==='c'||k==='x')){e.preventDefault();return;}if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();}else if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();}});
 ed.addEventListener('paste',function(e){e.preventDefault();var t=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,t);});
 ed.addEventListener('drop',function(e){e.preventDefault();});
 ed.addEventListener('blur',function(){emitNow();});

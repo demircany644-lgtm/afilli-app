@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import type { Book } from '@/data/catalog';
+import { LavaBackdrop } from '@/components/theme/LavaBackdrop';
 
 export const F = { script: 'GreatVibes_400Regular', serif: 'PlayfairDisplay_600SemiBold', serifBold: 'PlayfairDisplay_700Bold', body: 'Inter_400Regular', med: 'Inter_500Medium', semi: 'Inter_600SemiBold' };
 
@@ -47,7 +48,7 @@ export function IconBtn({ icon, onPress, label, testID, badge }: { icon: keyof t
   return (
     <Pressable onPress={() => { tap(); onPress(); }} testID={testID} accessibilityRole="button" accessibilityLabel={label} hitSlop={6}
       style={({ pressed }) => [s.iconBtn, { backgroundColor: pressed ? c.secondary : 'transparent' }]}>
-      <Feather name={icon} size={22} color={c.brown} />
+      <Feather name={icon} size={22} color={c.chrome.text} />
       {!!badge && badge > 0 && (
         <View style={[s.badge, { backgroundColor: c.destructive, borderColor: c.background }]}>
           <Text style={s.badgeText}>{badge > 9 ? '9+' : badge}</Text>
@@ -97,8 +98,8 @@ export function GoldButton({ label, onPress, testID, icon, ghost, style, disable
   return (
     <Pressable disabled={disabled} onPress={() => { tap(); onPress(); }} testID={testID} accessibilityRole="button" accessibilityLabel={label}
       style={({ pressed }) => [s.btn, { backgroundColor: ghost ? c.paper : c.gold, borderColor: c.gold, opacity: disabled ? 0.45 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
-      {icon && <Feather name={icon} size={16} color={c.brown} />}
-      <Text style={[s.btnText, { color: c.brown }]}>{label}</Text>
+      {icon && <Feather name={icon} size={16} color={ghost ? c.brown : c.primaryForeground} />}
+      <Text style={[s.btnText, { color: ghost ? c.brown : c.primaryForeground }]}>{label}</Text>
     </Pressable>
   );
 }

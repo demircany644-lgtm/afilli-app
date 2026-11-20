@@ -9,6 +9,7 @@ const WebView = RNWebView as unknown as React.ComponentType<any>;
 import { editorHtml } from '@/lib/writer-editor-html';
 import type { RichEditorProps } from '@/components/writer/editor-types';
 import { useEditorChannel } from '@/components/writer/useEditorChannel';
+import { CopyProtectionHint } from './CopyGuard';
 
 /** Native: offline contentEditable engine in a WebView; navigation is blocked, nothing loads remotely. */
 export function RichEditor(props: RichEditorProps) {
@@ -16,12 +17,16 @@ export function RichEditor(props: RichEditorProps) {
   const { receive, reset } = useEditorChannel(props, (json) => web.current?.injectJavaScript('window.__recv(' + JSON.stringify(json) + ');true;'));
   const source = useMemo(() => ({ html: editorHtml('Bölümünü buraya yaz...'), baseUrl: '' }), []);
   return (
+    <View>
     <View style={{ height: props.height, borderRadius: 14, overflow: 'hidden' }} testID="writer-editor">
       <WebView ref={web} source={source} originWhitelist={['*']} onMessage={(e: { nativeEvent: { data: string } }) => receive(e.nativeEvent.data)}
         onLoadStart={reset} javaScriptEnabled domStorageEnabled={false} hideKeyboardAccessoryView keyboardDisplayRequiresUserAction={false}
+        suppressMenuItems={['copy', 'cut', 'share', 'translate', 'lookup']}
         onShouldStartLoadWithRequest={(r: { url: string }) => !/^(https?|mailto|tel|intent):/i.test(r.url)}
         setSupportMultipleWindows={false} allowFileAccess={false} scrollEnabled nestedScrollEnabled
         style={{ backgroundColor: 'transparent' }} />
+    </View>
+    <CopyProtectionHint />
     </View>
   );
 }

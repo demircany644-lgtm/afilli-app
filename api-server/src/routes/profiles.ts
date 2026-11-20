@@ -6,7 +6,9 @@ import { route, parse, fail, viewer, requirePerson, transaction, uuid, postData 
 import { PERSON, personId, profileData, getSettings, socialNotify, pageCursor } from '../lib/social';
 import { profileObject, profileUploadUrl, validateProfileObject } from '../lib/bulletin-storage';
 import { publicBook } from '../lib/book-access';
-import { saveAdminSettings } from '../lib/admin';
+import { adminWrite, saveAdminSettings } from '../lib/admin';
+import { UpdateMyVisibilityBody } from '@workspace/api-zod';
+import { discoveryNeedle, searchExpression } from '../lib/discovery';
 
 const router: IRouter = Router();
 router.get('/social-settings', route(async (_req, res) => { res.json(await getSettings()); }));
@@ -16,6 +18,14 @@ router.put('/social-settings', route(async (req, res) => {
 }));
 router.get('/my-profile', route(async (req, res) => {
   const actor = await requirePerson(req); res.json(await profileData(actor.id, actor.id));
+}));
+router.patch('/my-profile/visibility', route(async (req, res) => {
+  const input = parse(UpdateMyVisibilityBody, req.body);
+  const id = await adminWrite(req, false, async (db, actor) => {
+    await db.query('UPDATE community_users SET online_visible=$2 WHERE id=$1', [actor.id, input.visible]);
+    return actor.id;
+  });
+  res.json(await profileData(id, id));
 }));
 router.patch('/my-profile', route(async (req, res) => {
   const actor = await requirePerson(req), input = parse(UpdateMyProfileBody, req.body);
@@ -53,10 +63,11 @@ router.patch('/my-profile', route(async (req, res) => {
   res.json(await profileData(actor.id, actor.id));
 }));
 router.get('/profiles', route(async (req, res) => {
-  const search = String(req.query.search ?? '').trim().slice(0, 100).replace(/[%_\\]/g, '\\$&');
+  const search = discoveryNeedle(req.query.search).replace(/[%_\\]/g, '\\$&');
   const cursor = req.query.cursor ? personId(req.query.cursor) : null;
   const rows = (await pool.query(`SELECT u.id,u.nickname,u.avatar FROM community_users u
-    WHERE (u.nickname ILIKE $1 OR coalesce(u.handle,'') ILIKE $1) AND ($2::text IS NULL OR u.id<$2) ORDER BY u.id DESC LIMIT 31`, ['%' + search + '%', cursor])).rows;
+    WHERE (${searchExpression('u.nickname')} LIKE $1 OR ${searchExpression("coalesce(u.handle,'')")} LIKE $1)
+    AND ($2::text IS NULL OR u.id<$2) ORDER BY u.id DESC LIMIT 31`, ['%' + search + '%', cursor])).rows;
   const items = rows.slice(0, 30);
   res.json({ items, nextCursor: rows.length > 30 ? items.at(-1).id : null });
 }));

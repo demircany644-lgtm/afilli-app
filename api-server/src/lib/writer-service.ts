@@ -3,6 +3,7 @@ import type { AuthoredBook, WriterDocument, WriterSaveInput, WriterDeltaInput, W
 import { createHash } from 'node:crypto';
 import { fail, type Transaction } from './community';
 import { publicBook } from './book-access';
+import { commentTree, publicCommentCount } from './book-comment-query';
 import { coverUrl, deltaMediaIds, legacyDocument, mediaIds, normalizeDocument, plain, validatePublication, writerBook, type WriterRow } from './writer-document';
 
 type Db = Transaction | typeof pool;
@@ -169,7 +170,7 @@ export async function authoredCards(owner: string | null): Promise<AuthoredBook[
     b.published_at AS "publishedAt",'[]'::json AS chapters,(b.author_id=$1) IS TRUE AS "canEdit",
     (SELECT count(*)::int FROM book_reads WHERE book_id=b.id) AS "readCount",
     (SELECT count(*)::int FROM writer_likes WHERE book_id=b.id) AS "likeCount",
-    (SELECT count(*)::int FROM writer_comments WHERE book_id=b.id AND NOT moderation_hidden) AS "commentCount",
+    ${publicCommentCount()} AS "commentCount",
     EXISTS(SELECT 1 FROM writer_likes WHERE book_id=b.id AND user_id=$1) AS liked
     FROM authored_books b JOIN community_users u ON u.id=b.author_id
     WHERE CASE WHEN $1::text IS NULL THEN ${publicBook()} ELSE b.author_id=$1 END
@@ -178,11 +179,18 @@ export async function authoredCards(owner: string | null): Promise<AuthoredBook[
   return rows.rows.map(row => ({ ...row, coverUrl: coverUrl(row.cover) }));
 }
 async function notifyReaders(db: Transaction, row: WriterRow, before: WriterDocument | null, after: WriterDocument) {
-  const fresh = !before ? ['book'] : after.chapters.filter(ch => !before.chapters.some(old => old.id === ch.id)).map(ch => `chapter:${ch.id}`);
-  for (const event of fresh) await db.query(`INSERT INTO social_notifications(recipient_id,actor_id,kind,event_key,book_id)
-    SELECT follower_id,$1,$2,$3,$4 FROM profile_follows WHERE followed_id=$1 AND follower_id<>$1
-    ON CONFLICT(recipient_id,event_key) DO NOTHING`,
-  [row.author_id, event === 'book' ? 'publication' : 'chapter', `writer:${row.id}:${event}`, row.id]);
+  // A durable chapter ledger prevents an unpublish/re-publish or retry from
+  // looking like a new chapter, even after notification read/subscription changes.
+  for (const chapter of before?.chapters ?? []) await db.query(
+    'INSERT INTO notified_book_chapters(book_id,chapter_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [row.id, chapter.id]);
+  for (const chapter of after.chapters) {
+    const fresh = await db.query(`INSERT INTO notified_book_chapters(book_id,chapter_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING chapter_id`,
+      [row.id, chapter.id]);
+    if (!fresh.rowCount || row.moderation_hidden) continue;
+    await db.query(`INSERT INTO social_notifications(recipient_id,actor_id,kind,event_key,book_id,chapter_id)
+      SELECT user_id,$2,'chapter',$3,$1,$4 FROM book_subscriptions WHERE book_id=$1 AND user_id<>$2
+      ON CONFLICT(recipient_id,event_key) DO NOTHING`, [row.id, row.author_id, `chapter:${row.id}:${chapter.id}`, chapter.id]);
+  }
 }
 export async function publishWriter(db: Transaction, id: string, owner: string, input: WriterPublicationInput) {
   await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`writer-book:${id}`]);
@@ -237,11 +245,11 @@ export async function authoredBook(id: string, viewer: string | null, db: Db = p
   // author. Private previews explicitly use the authenticated writer endpoint.
   const doc = published ? row.published_data ?? legacyDocument(row) : row.writer_data ?? legacyDocument(row);
   const author = (await db.query('SELECT id,nickname,avatar FROM community_users WHERE id=$1', [row.author_id])).rows[0];
-  const counts = (await db.query<{ read_count: number; like_count: number; comment_count: number; liked: boolean }>(`SELECT
+  const counts = (await db.query<{ read_count: number; like_count: number; comment_count: number; liked: boolean }>(`WITH RECURSIVE ${commentTree('$1', '$3')} SELECT
     (SELECT count(*)::int FROM book_reads WHERE book_id=$1) AS read_count,
     (SELECT count(*)::int FROM writer_likes WHERE book_id=$1) AS like_count,
-    (SELECT count(*)::int FROM writer_comments WHERE book_id=$1 AND NOT moderation_hidden) AS comment_count,
-    EXISTS(SELECT 1 FROM writer_likes WHERE book_id=$1 AND user_id=$2) AS liked`, [id, viewer])).rows[0];
+    (SELECT count(*)::int FROM writer_comments c JOIN visible_comment_nodes n ON n.id=c.id) AS comment_count,
+    EXISTS(SELECT 1 FROM writer_likes WHERE book_id=$1 AND user_id=$2) AS liked`, [id, viewer, doc.chapters.map(c => c.id)])).rows[0];
   return { id, title: doc.title, body: doc.chapters.map(ch => plain(ch.html)).join('\n\n'), author, cover: doc.cover, coverUrl: coverUrl(doc.cover),
     description: doc.description, genres: doc.genres, ageRating: doc.ageRating, language: doc.language, completion: doc.completion,
     published, chapters: doc.chapters, publishedAt: row.published_at?.toISOString() ?? null, readCount: counts.read_count,

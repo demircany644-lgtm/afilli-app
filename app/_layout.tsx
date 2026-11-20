@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { SavedBookSync } from '@/components/SavedBookSync';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -19,6 +20,9 @@ import { MagazineProvider } from '@/context/MagazineContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { setBaseUrl } from '@workspace/api-client-react';
 import { CommunityProvider } from '@/context/CommunityContext';
+import { DirectMessagesProvider } from '@/context/DirectMessagesContext';
+import { AppearanceProvider, useAppearance } from '@/context/AppearanceContext';
+import { useTheme } from '@/hooks/useTheme';
 
 const apiDomain = process.env.EXPO_PUBLIC_DOMAIN;
 if (apiDomain) setBaseUrl(`https://${apiDomain}`);
@@ -32,15 +36,20 @@ function StartupErrorFallback(props: ErrorFallbackProps) {
 
 function RootLayoutNav() {
   const pathname = usePathname();
+  const { isLava } = useAppearance();
+  const t = useTheme();
+  const bg = isLava ? colors.lava.bg : t.light.background;
   return (
-    <View style={{ flex: 1, backgroundColor: colors.light.background }}>
+    <View style={{ flex: 1, backgroundColor: bg }}>
+      <StatusBar style={t.isDark || (isLava && pathname === '/') ? 'light' : 'dark'} />
       <View style={{ flex: 1, minHeight: 0 }}>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.light.background }, animation: 'slide_from_right' }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: bg }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="search" options={{ animation: 'fade' }} />
         </Stack>
       </View>
       {/* The user's full-screen chat is the sole exception; other screens keep all five tabs. */}
+      <SavedBookSync />
       {pathname !== '/writer-chat' ? <BottomNavigation /> : null}
     </View>
   );
@@ -58,18 +67,21 @@ export default function RootLayout() {
     <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+          <AppearanceProvider>
           <AppProvider>
             <CommunityProvider>
+            <DirectMessagesProvider>
             <MagazineProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <KeyboardProvider>
-                  <StatusBar style="dark" />
                   <RootLayoutNav />
                 </KeyboardProvider>
               </GestureHandlerRootView>
             </MagazineProvider>
+            </DirectMessagesProvider>
             </CommunityProvider>
           </AppProvider>
+          </AppearanceProvider>
           </AuthProvider>
         </QueryClientProvider>
     </SafeAreaProvider>

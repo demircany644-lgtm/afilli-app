@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useGetProfileContent, getGetProfileContentQueryKey, type ProfileBook } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { BookCover, mediaUrl } from '@/components/bulletins/common';
 import { BulletinCard } from '@/components/bulletins/BulletinCard';
 import { useCommunity } from '@/context/CommunityContext';
-import { FoilButton, P, PillTabs, S, Skeleton, StateCard } from './kit';
+import { FoilButton, PillTabs, Skeleton, StateCard } from './kit';
 import { go, scoped } from './hooks';
 
 export type ContentTab = 'books' | 'bulletins' | 'liked';
@@ -15,6 +16,8 @@ const TABS: { key: ContentTab; label: string }[] = [
 ];
 
 function BookCard({ book }: { book: ProfileBook }) {
+  const { social: S } = useTheme();
+  const st = useStStyles();
   const meta = [book.genre, book.year ? String(book.year) : null].filter(Boolean).join(' • ');
   return (
     <Pressable testID={'profile-book-' + book.id} accessibilityRole="link" accessibilityLabel={book.title + ', kitabı aç'}
@@ -32,6 +35,8 @@ function BookCard({ book }: { book: ProfileBook }) {
 }
 
 function ContentPage({ id, tab, cursor, isFirst, isLast, onNext, isMe }: { id: string; tab: ContentTab; cursor?: string; isFirst: boolean; isLast: boolean; onNext: (c: string) => void; isMe: boolean }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const { ready, userId } = useCommunity();
   const params = cursor ? { tab, cursor } : { tab };
   const q = useGetProfileContent(id, params, { query: { enabled: ready && !!id, queryKey: scoped(getGetProfileContentQueryKey(id, params), userId) } });
@@ -72,7 +77,9 @@ export function ProfileTabs({ profileId, isMe, tab, onTab }: { profileId: string
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: P, social: S } = t;
+  return StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 18, paddingHorizontal: 18 },
   book: { width: '47%', gap: 4 },
   coverBox: { alignItems: 'center', borderRadius: 12, overflow: 'hidden', backgroundColor: P.card, borderWidth: 1, borderColor: P.border, paddingVertical: 10 },
@@ -83,4 +90,5 @@ const st = StyleSheet.create({
   bookTitle: { fontFamily: F.serifBold, fontSize: 15, color: P.text, marginTop: 6 },
   meta: { fontFamily: F.body, fontSize: 12, color: P.muted },
   reads: { fontFamily: F.med, fontSize: 12, color: S.foilDeep },
+  });
 });

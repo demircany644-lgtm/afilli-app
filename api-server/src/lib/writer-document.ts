@@ -83,6 +83,7 @@ export type WriterRow = {
   publication: 'draft' | 'published'; legacy_public: boolean; published_at: Date | null; writer_updated_at: Date | null;
   last_save_id: string | null; last_save_hash: string | null;
   public_visible?: boolean;
+  moderation_hidden: boolean;
 };
 function legacyId(id: string, index: number) {
   const hex = createHash('sha256').update(`${id}:legacy:${index}`).digest('hex');

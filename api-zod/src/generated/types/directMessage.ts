@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CommunityPerson } from './communityPerson';
+import type { MessageGif } from './messageGif';
+import type { MessagePhoto } from './messagePhoto';
+import type { MessageQuote } from './messageQuote';
 
 export interface DirectMessage {
   id: string;
@@ -15,4 +18,15 @@ export interface DirectMessage {
   createdAt: string;
   /** @nullable */
   readAt: string | null;
+  clientId: string;
+  sequence: string;
+  reply: MessageQuote | null;
+  gif: MessageGif | null;
+  photo?: MessagePhoto | null;
+  changeSequence?: string;
+  /** @nullable */
+  deletedAt?: string | null;
+  /** @nullable */
+  mediaExpiresAt?: string | null;
+  mediaExpired?: boolean;
 }

@@ -30,6 +30,9 @@ test('the root keeps its error boundary, secure local auth and permanent bottom 
   assert.match(layout, /<BottomNavigation \/>/);
   assert.doesNotMatch(layout, /ClerkProvider|CLERK_PUBLISHABLE_KEY|tokenCache/);
   const context = readFileSync(new URL('../context/AuthContext.tsx', import.meta.url), 'utf8');
-  assert.match(context, /SecureStore\.setItemAsync/);
-  assert.doesNotMatch(context, /AsyncStorage|localStorage\.setItem/);
+  assert.match(context, /SecureStore\.getItemAsync\(storageKey\)/);
+  assert.match(context, /SecureStore\.setItemAsync\(storageKey,\s*JSON\.stringify\(\{\s*token:/);
+  // AsyncStorage holds deletion-recovery identifiers, not saved session tokens.
+  assert.match(context, /createDeletionJobs\(\{\s*storage:\s*AsyncStorage/);
+  assert.doesNotMatch(context, /(?:AsyncStorage|localStorage)\s*\.\s*(?:setItem|getItem|multiSet|mergeItem)\s*\(/);
 });

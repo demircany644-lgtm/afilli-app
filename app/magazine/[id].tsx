@@ -1,14 +1,16 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useMagazine } from '@/context/MagazineContext';
 import { SAMPLE_MAGAZINE_ID } from '@/data/magazine';
 import { F } from '@/components/ui';
-import { MagazineActions, MagazineHeader, MagazineSkeleton, Notice, m, sharePost } from '@/components/MagazineUI';
+import { MagazineActions, MagazineHeader, MagazineSkeleton, Notice, sharePost } from '@/components/MagazineUI';
 
 const COVER = require('@/assets/images/magazine/autumn-cover.webp');
 
 export default function MagazineReader() {
+  const st = useStStyles();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = String(rawId ?? '');
   const mag = useMagazine();
@@ -62,7 +64,9 @@ export default function MagazineReader() {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: m } = t;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: m.background },
   content: { padding: 18, paddingBottom: 28, gap: 10 },
   image: { width: '100%', aspectRatio: 0.86, borderRadius: 12, backgroundColor: m.input, marginBottom: 6 },
@@ -70,4 +74,5 @@ const st = StyleSheet.create({
   meta: { fontSize: 13, fontFamily: F.body, color: m.muted },
   body: { fontSize: 17, lineHeight: 28, fontFamily: F.body, color: m.text, marginTop: 6 },
   bar: { borderTopWidth: 1, borderTopColor: m.input, marginTop: 10 },
+  });
 });

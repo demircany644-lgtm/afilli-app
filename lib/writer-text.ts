@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import type { WriterChapter, WriterDocument, WriterDocumentGenresItem } from '@workspace/api-client-react';
 
-export const GENRES: WriterDocumentGenresItem[] = ['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim'];
+export const GENRES: WriterDocumentGenresItem[] = ['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'];
 export const LANGUAGES = ['Türkçe', 'English', 'Deutsch', 'Français', 'Español', 'Kurmancî', 'العربية'];
 export const MAX_CHAPTER_CHARS = 50_000;
 export const MAX_CHAPTERS = 200;

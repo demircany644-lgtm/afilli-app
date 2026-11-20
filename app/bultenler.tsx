@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useGetBulletins, getGetBulletinsQueryKey, type Bulletin } from '@workspace/api-client-react';
@@ -9,11 +10,13 @@ import { useCommunity } from '@/context/CommunityContext';
 import { TopBar } from '@/components/bulletins/TopBar';
 import { Composer } from '@/components/bulletins/Composer';
 import { BulletinCard } from '@/components/bulletins/BulletinCard';
-import { b, Btn, apiError, OFFLINE, goSignIn } from '@/components/bulletins/common';
+import { Btn, apiError, OFFLINE, goSignIn } from '@/components/bulletins/common';
 
 const ARCHIVE = ARTICLES.filter((a) => a.kind === 'bulten');
 
 function Archive() {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const [open, setOpen] = useState(true);
   return (
     <View style={st.archive}>
@@ -34,6 +37,8 @@ function Archive() {
 }
 
 export default function Bultenler() {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const { userId, ready, error: sessionError } = useCommunity();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [older, setOlder] = useState<Bulletin[]>([]);
@@ -138,7 +143,9 @@ export default function Bultenler() {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   list: { padding: 14, paddingBottom: 24, maxWidth: 680, width: '100%', alignSelf: 'center' },
   section: { fontFamily: F.semi, fontSize: 11, letterSpacing: 1.6, color: b.gold, marginBottom: 10, textTransform: 'uppercase' },
   signin: { flexDirection: 'row', gap: 8, alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: b.input, marginBottom: 12, borderWidth: 1, borderColor: b.gold },
@@ -154,4 +161,5 @@ const st = StyleSheet.create({
   archiveTitle: { flex: 1, fontFamily: F.serifBold, fontSize: 15, color: b.text },
   archiveRow: { paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderColor: b.border, gap: 3 },
   archiveItem: { fontFamily: F.semi, fontSize: 14, color: b.text },
+  });
 });

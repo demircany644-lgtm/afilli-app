@@ -12,9 +12,12 @@
   yeni giriş/kayıt internet ve sunucu kontrolü gerektirir.
 - Geliştirme ortamındaki dört eski kimlik doğrulanmış e-postalarıyla eşleştirilmiştir.
   Kitapların, taslakların veya kullanıcıların kimlikleri yeniden yazılmamıştır.
-- **Üretim verisi taşınmamıştır. Yeni AAB oluşturulmamıştır.**
-- **Resend bağlantısı hazırdır ama doğrulanmış gönderen alanı henüz yoktur.**
-  Gerçek şifre e-postası ve canlı hesap geçişi henüz hazır değildir.
+- Yeni AAB oluşturulmamıştır. Güncel kaynak GitHub'da ayrı inceleme dalındadır;
+  bu durum canlı API'nin veya mağaza uygulamasının güncellendiği anlamına gelmez.
+- Gmail, düşük hacimli şifre e-postaları için seçilmiştir; Google ile kullanıcı
+  girişi değildir. Ortam ayarının mevcut olması, gerçek teslimatın doğrulandığı anlamına gelmez.
+- Son salt okunur üretim kontrolünde mevcut profilin hesap eşleşmesi ve geçiş
+  tamamlanma kaydı mevcuttu. Kontrolü tekrarlamadan yeniden hesap aktarımı yapma.
 
 ## Eski hesapları koruma
 
@@ -37,22 +40,23 @@ Tekrar çalıştırma yeni belirlenmiş parolayı veya sonradan değişmiş yere
 
 ## Canlıya alma öncesi zorunlu işlemler
 
-1. Doğrulanmış gönderim adresini hazırla. Gmail gibi başkasına ait alan adları
-   Resend’de uygulamanın üretim gönderen alanı olarak doğrulanamaz.
-   Test göndericisini tüm kullanıcılara çalışır gibi kullanma.
-2. Sunucunun üretim ortamında `AFILLI_AUTH_EMAIL_FROM` değerini doğrulanmış adrese
-   ayarla; alan adı gerçekten doğrulandıktan sonra
-   `AFILLI_AUTH_EMAIL_VERIFIED=true` kullan. Bağlantı yetkisini istemciye koyma.
+1. Seçilen sağlayıcıyı doğrula. Gmail için bağlı posta kutusunun adresi gönderenle
+   eşleşmeli ve bağlantı üretim sunucusundan kullanılabilmelidir. Resend seçilirse
+   ayrıca doğrulanmış gönderen alanı gerekir; Gmail adresi Resend alanı değildir.
+2. Üretimde `AFILLI_AUTH_EMAIL_PROVIDER`, `AFILLI_AUTH_EMAIL_FROM` ve
+   `AFILLI_AUTH_EMAIL_VERIFIED` ayarlarını kontrol et. Sadece doğru gönderen
+   doğrulandıktan sonra doğrulama işareti kullan; bağlantı yetkisini istemciye koyma.
 3. Mevcut üretim kullanıcı/içerik envanterini ve geri dönüş yöntemini doğrula.
    Geliştirme kimliklerini üretime kopyalama. Geçiş sırasında eski kayıt yazımlarını
    durduracak kontrollü bakım planı uygula.
-4. `api-server/tools/auth-schema.sql` içindeki yalnızca yeni tabloları ekleyen
-   şemayı inceleyip üretime uygula. `prepare-auth-schema.ts` yalnız geliştirme
-   içindir; üretim veritabanını otomatik seçmez.
-5. Üretim kimlik deposu ve aynı üretim veritabanı üzerinde ön kontrol yap.
-   Yazılı geçiş için ayrıca `AFILLI_AUTH_MIGRATION_APPROVED=true` gereklidir.
-   Araç gönderen ayarı yoksa üretim geçişini reddeder. İnsan onayı ve doğru
-   üretim bağlantısı olmadan uygulanmamalıdır.
+4. Yönetilen veritabanının şema değişiklikleri yalnızca Replit'in Yayınla
+   akışıyla üretime taşınır. Önce geliştirme şemasını doğrula, yayın ekranındaki
+   farkı incele; üretime SQL dosyası, başlangıç kodu veya derleme kancasıyla DDL
+   çalıştırma. `prepare-auth-schema.ts` yalnız geliştirme içindir.
+5. Üretimde yalnızca salt okunur ön kontrol yap. Mevcut profil/hesap eşleşmeleri
+   ve geçiş kaydı tamamsa kimlik aktarımını yeniden çalıştırma. Eksik eşleşme
+   varsa yayını durdur; kimlik sahipliği doğrulaması ve veri geçişi için ayrıca
+   onaylanmış bir plan hazırla. Geliştirme kimliklerini üretime kopyalama.
 6. Eski kimlikler eşleşmeden yeni kayıtları açma. Mevcut veritabanında geçiş
    tamamlanmamışsa kayıt endpoint’i kapalı kalır. Üretim sunucusu, gönderen veya
    kimlik eşleştirmesi eksikse trafik kabul etmeden açık bir hata ile durur;
@@ -62,7 +66,7 @@ Tekrar çalıştırma yeni belirlenmiş parolayı veya sonradan değişmiş yere
 8. Android istemci için gereken yapılandırma `EXPO_PUBLIC_DOMAIN` değeridir:
    API’nin yayımlanmış ana makine adı, protokol veya yol eklemeden verilmelidir.
    Artık Clerk istemci anahtarı gerekmez. Mağaza sürüm kodu mevcut en yüksek
-   koddan büyük olmalıdır; kaynakta önerilen değer 4’tür.
+   koddan büyük olmalıdır; geçerli değeri `app.json` dosyasından kontrol et.
 9. Yeni imzalı Android paketini gerçek cihazda kurulum, güncelleme, çıkış/giriş,
    çevrimdışı açılış ve eski taslakların korunması açısından doğrula.
    JS dışa aktarımı veya tarayıcı testi bu testin yerine geçmez.
@@ -74,5 +78,7 @@ sohbete konmaz. Kullanıcılara uygulamayı kaldırmalarını ya da cihaz verisi
 silmelerini söyleme: çevrimdışı taslaklar kaybolabilir.
 
 Eski Clerk ayarını tamamlamaya yönelik önceki Android dalı bu yeni giriş
-sistemiyle karıştırılmamalıdır. Bu çalışma henüz harici GitHub kaynağına
-eşlenmemiştir; eski depodan derleme yapılması yeni giriş sistemini içermez.
+sistemiyle karıştırılmamalıdır. GitHub'daki `main` yerine hangi inceleme dalının
+kontrol edildiğini doğrula; eski kaynaktan derleme yeni giriş sistemini içermez.
+
+Yayın sırası ve kalan koşullar için `YAYIN-ONCESI.md` belgesini izle.

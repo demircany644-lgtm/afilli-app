@@ -235,7 +235,16 @@ await ns.pushBook('A', rawId, () => true);
 const normalizedRecord = await a.readRecord('A', rawId);
 const fingerprints = await a.fingerprintDocument(normalizedRecord.doc, normalizedRecord.baseRevision);
 assert.equal(a.chapterDelta(normalizedRecord.doc, normalizedRecord.syncBase, fingerprints, randomUUID()).upserts.length, 0);
-console.log(`PASS chapter deltas: ${fullBytes} → ${deltaBytes} request bytes (${(100 * (1 - deltaBytes / fullBytes)).toFixed(1)}% less), durable replay, structural edits, account switch, storage failure, delete race and v1 migration`);
+const deletedOwner = 'deleted-owner';
+const deletedBook = await create(deletedOwner);
+const otherOwner = 'remaining-owner', retainedBook = await create(otherOwner);
+await a.purgeOwnerWriterRecords(deletedOwner);
+assert.equal(await a.readRecord(deletedOwner, deletedBook), null);
+const resurrectedId = randomUUID();
+await assert.rejects(b.updateRecord(deletedOwner, resurrectedId, () => a.newRecord(deletedOwner, resurrectedId, randomUUID(), document())), /silinmiş/);
+assert.ok(await a.readRecord(otherOwner, retainedBook));
+assert.ok(![...memory.entries()].some(([k, v]) => k.startsWith(key(deletedOwner, '')) && v?.includes('Kaybolmayacak')));
+console.log(`PASS chapter deltas: ${fullBytes} → ${deltaBytes} request bytes (${(100 * (1 - deltaBytes / fullBytes)).toFixed(1)}% less), durable replay, structural edits, account switch, storage failure, delete race, v1 migration and deleted owner cleanup`);
 
 // Exercise the native adapter against real files, including File.move's URI mutation.
 const tempRoot = await mkdtemp(fileURLToPath(new URL('../../../generated-artifacts/writer-storage-', import.meta.url)));

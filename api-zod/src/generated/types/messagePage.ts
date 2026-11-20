@@ -11,4 +11,5 @@ export interface MessagePage {
   items: DirectMessage[];
   /** @nullable */
   nextCursor: string | null;
+  changeCursor?: string;
 }

@@ -1,5 +1,7 @@
 export type CustomFetchOptions = RequestInit & {
-  responseType?: "json" | "text" | "blob" | "auto";
+  responseType?: "json" | "text" | "blob" | "auto" | "response";
+  /** Per-request transport override, e.g. expo/fetch for native response streaming. */
+  fetcher?: typeof globalThis.fetch;
 };
 
 export type ErrorType<T = unknown> = ApiError<T>;
@@ -327,7 +329,7 @@ export async function customFetch<T = unknown>(
   options: CustomFetchOptions = {},
 ): Promise<T> {
   input = applyBaseUrl(input);
-  const { responseType = "auto", headers: headersInit, ...init } = options;
+  const { responseType = "auto", headers: headersInit, fetcher = globalThis.fetch, ...init } = options;
 
   const method = resolveMethod(input, init.method);
 
@@ -360,12 +362,13 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { credentials: "include", ...init, method, headers });
+  const response = await fetcher(input, { credentials: "include", ...init, method, headers });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);
   }
 
+  if (responseType === "response") return response as T;
   return (await parseSuccessBody(response, responseType, requestInfo)) as T;
 }

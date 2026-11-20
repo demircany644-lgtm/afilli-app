@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReaderProfile } from '@workspace/api-client-react';
 import { F } from '@/components/ui';
 import { mediaUrl } from '@/components/bulletins/common';
-import { GoldAvatar, P, S, StatCard, StatusLine } from './kit';
+import { GoldAvatar, StatCard, StatusLine } from './kit';
 import { OfficialInstagramIcon } from './SocialRow';
 import { ConnectionsSheet } from './ConnectionsSheet';
 import { compactCount } from './hooks';
 
 /** Every profile displays the same centrally configured official icon, if set. */
 export function ProfileHeader({ profile, actions, onBooks }: { profile: ReaderProfile; actions: React.ReactNode; onBooks: () => void; viewerIsAdmin?: boolean }) {
+  const { magazine: P, social: S } = useTheme();
+  const st = useStStyles();
   const [list, setList] = useState<null | 'followers' | 'following'>(null);
   const crown = profile.premium ? 'premium' : profile.popular ? 'popular' : null;
   const presence = { online: profile.online, typing: profile.typing, lastSeen: profile.lastSeen };
@@ -48,7 +51,9 @@ export function ProfileHeader({ profile, actions, onBooks }: { profile: ReaderPr
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: P, social: S } = t;
+  return StyleSheet.create({
   coverWrap: { height: 120, marginHorizontal: 18, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: P.border },
   center: { alignItems: 'center', marginTop: -62, paddingHorizontal: 24, gap: 4 },
   badge: { marginTop: 6, paddingHorizontal: 12, paddingVertical: 3, borderRadius: 12, borderWidth: 1, borderColor: P.gold, backgroundColor: P.card },
@@ -60,4 +65,5 @@ const st = StyleSheet.create({
   role: { fontFamily: F.semi, fontSize: 11, color: P.muted, marginTop: 4 },
   stats: { flexDirection: 'row', gap: 10, marginHorizontal: 18, marginTop: 16 },
   actions: { flexDirection: 'row', gap: 10, marginHorizontal: 18, marginTop: 14 },
+  });
 });

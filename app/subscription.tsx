@@ -1,11 +1,14 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { F, tap } from '@/components/ui';
-import { MagazineHeader, m } from '@/components/MagazineUI';
+import { MagazineHeader } from '@/components/MagazineUI';
 
 export default function Subscription() {
+  const { magazine: m } = useTheme();
+  const st = useStStyles();
   return (
     <View style={st.screen}>
       <MagazineHeader title="Abonelik" backTo="/dergi" backLabel="Dergiye dön" />
@@ -36,7 +39,9 @@ export default function Subscription() {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: m } = t;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: m.background },
   content: { padding: 16 },
   card: { backgroundColor: m.card, borderRadius: 18, borderWidth: 1, borderColor: m.border, padding: 22, gap: 14 },
@@ -48,4 +53,5 @@ const st = StyleSheet.create({
   disabledText: { fontSize: 16, fontFamily: F.semi, color: m.text },
   backBtn: { height: 48, borderRadius: 8, borderWidth: 1, borderColor: m.border, alignItems: 'center', justifyContent: 'center' },
   backText: { fontSize: 16, fontFamily: F.semi, color: m.text },
+  });
 });

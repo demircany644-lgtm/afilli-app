@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
@@ -11,12 +12,14 @@ import { scoped, actorRequest } from '@/components/profile/hooks';
 import { useApp, type Draft } from '@/context/AppContext';
 import { claimGuestRecord, listRecords, newRecord, updateRecord, isDirty, type WriterRecord } from '@/lib/writer-store';
 import { emptyDocument, legacyTextToChapters, clockTR, TITLE_MAX } from '@/lib/writer-text';
-import { W, WriterCover, useCoverUri, Banner, Confirm, Skeleton, FadeIn, Toast, type ToastMsg } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette, WriterCover, useCoverUri, Banner, Confirm, Skeleton, FadeIn, Toast, type ToastMsg } from '@/components/writer/parts';
 
 const open = (id: string) => router.push({ pathname: '/write', params: { book: id } });
 
 /** Landing of Kitap Yaz: start a book, reopen local/cloud ones, explicitly convert or claim old drafts. */
 export function WriterShelf({ owner, offline }: { owner: string; offline: boolean }) {
+  const W = useWriterPalette();
+  const sh = useShStyles();
   const signed = owner !== 'guest';
   const { drafts, deleteDraft, legacyAvailable, importLocalData } = useApp();
   const lib = useGetWriterLibrary({ query: { enabled: signed, queryKey: scoped(getGetWriterLibraryQueryKey(), owner) }, request: actorRequest(signed ? owner : null) });
@@ -157,6 +160,8 @@ export function WriterShelf({ owner, offline }: { owner: string; offline: boolea
 }
 
 export function ShelfRow({ id, rec, sum, onPress }: { id: string; rec?: WriterRecord; sum?: WriterSummary; onPress?: () => void }) {
+  const W = useWriterPalette();
+  const sh = useShStyles();
   const title = rec?.doc.title || sum?.title || 'Adsız kitap';
   const uri = useCoverUri(rec ? rec.doc.cover : null, rec?.coverLocal?.uri ?? null);
   const cover = uri ?? sum?.coverUrl ?? null;
@@ -182,7 +187,9 @@ export function ShelfRow({ id, rec, sum, onPress }: { id: string; rec?: WriterRe
   );
 }
 
-const sh = StyleSheet.create({
+const useShStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', gap: 14, margin: 16, padding: 18, borderRadius: 22, backgroundColor: W.ink },
   heroIcon: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: W.gold, alignItems: 'center', justifyContent: 'center' },
   heroTitle: { fontFamily: F.serifBold, fontSize: 20, color: W.paper },
@@ -198,4 +205,5 @@ const sh = StyleSheet.create({
   empty: { alignItems: 'center', gap: 8, marginHorizontal: 16, padding: 26, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: W.border },
   emptyTitle: { fontFamily: F.serifBold, fontSize: 17, color: W.ink },
   emptyText: { fontFamily: F.body, fontSize: 13, color: W.muted, textAlign: 'center' },
+  });
 });

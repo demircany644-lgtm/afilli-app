@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
 import { useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -8,7 +9,7 @@ import {
 } from '@workspace/api-client-react';
 import { useCommunity } from '@/context/CommunityContext';
 import { apiError, goSignIn } from '@/components/bulletins/common';
-import { FoilButton, MarbleBackground, Notice, P, ProfileSkeleton, RoundIcon, StateCard, TopBar } from '@/components/profile/kit';
+import { FoilButton, MarbleBackground, Notice, ProfileSkeleton, RoundIcon, StateCard, TopBar } from '@/components/profile/kit';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileTabs, type ContentTab } from '@/components/profile/ProfileTabs';
 import { actorRequest, go, scoped, useIdentityKey, useOwnerGuard } from '@/components/profile/hooks';
@@ -21,6 +22,7 @@ export default function PublicProfileRoute() {
 }
 
 function PublicProfile({ id }: { id: string }) {
+  const { magazine: P } = useTheme();
   const { ready, userId } = useCommunity();
   const alive = useOwnerGuard(userId);
   const qc = useQueryClient();
@@ -64,7 +66,7 @@ function PublicProfile({ id }: { id: string }) {
     const notFound = (q.error as { status?: number } | null)?.status === 404;
     body = <StateCard testID="public-profile-error" icon={notFound ? 'user-x' : 'wifi-off'} title={notFound ? 'Bu profil bulunamadı' : 'Profil açılamadı'}
       text={notFound ? 'Hesap kapatılmış ya da bağlantı değişmiş olabilir.' : 'İnternet bağlantısı yok, tekrar dene.'}
-      action={notFound ? { label: 'Okurlara dön', testID: 'public-profile-people', onPress: () => go('/people') } : { label: 'Tekrar dene', testID: 'public-profile-retry', onPress: () => q.refetch() }} />;
+      action={notFound ? { label: 'Okurlara dön', testID: 'public-profile-people', onPress: () => go('/search?tab=people') } : { label: 'Tekrar dene', testID: 'public-profile-retry', onPress: () => q.refetch() }} />;
   } else {
     body = (
       <>

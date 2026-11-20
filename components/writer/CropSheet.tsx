@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { F, tap } from '@/components/ui';
 import { Btn } from '@/components/bulletins/common';
 import { cropRect, renderCover, type CropSpec } from '@/lib/writer-media';
 import type { LocalImage } from '@/lib/writer-store';
-import { W } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette,  } from '@/components/writer/parts';
 
 export type CropSource = { uri: string; width: number; height: number };
 const FW = 200, FH = 300;
 
 /** Real crop/rotate: the preview math is the same rectangle ImageManipulator renders. */
 export function CropSheet({ source, rotation0 = 0, onCancel, onDone }: { source: CropSource | null; rotation0?: CropSpec['rotation']; onCancel: () => void; onDone: (img: LocalImage) => void }) {
+  const W = useWriterPalette();
+  const cs = useCsStyles();
   const [spec, setSpec] = useState<CropSpec>({ rotation: rotation0, zoom: 1, dx: 0, dy: 0 });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -72,7 +75,9 @@ export function CropSheet({ source, rotation0 = 0, onCancel, onDone }: { source:
   );
 }
 
-const cs = StyleSheet.create({
+const useCsStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   back: { flex: 1, backgroundColor: 'rgba(43,29,18,0.6)', justifyContent: 'center', padding: 18 },
   card: { backgroundColor: W.paper, borderRadius: 20, padding: 18, alignItems: 'center', gap: 10, maxWidth: 420, width: '100%', alignSelf: 'center' },
   title: { fontFamily: F.serifBold, fontSize: 19, color: W.ink },
@@ -84,4 +89,5 @@ const cs = StyleSheet.create({
   tool: { width: 44, height: 44, borderRadius: 12, backgroundColor: W.input, alignItems: 'center', justifyContent: 'center' },
   meta: { fontFamily: F.body, fontSize: 11, color: W.muted, textAlign: 'center' },
   err: { fontFamily: F.med, fontSize: 13, color: W.danger, textAlign: 'center' },
+  });
 });

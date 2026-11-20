@@ -1,16 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Image, Modal, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
+import type { ThemeTokens } from '@/lib/themePalettes';
 import { Feather } from '@expo/vector-icons';
 import { useGetWriterImageAccess, getGetWriterImageAccessQueryKey, useGetWriterPresets, getGetWriterPresetsQueryKey } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
-import { b, Btn, mediaUrl } from '@/components/bulletins/common';
+import { Btn, mediaUrl } from '@/components/bulletins/common';
 import { scoped } from '@/components/profile/hooks';
 import { useCommunity } from '@/context/CommunityContext';
 import { writerMediaId } from '@/lib/writer-text';
 
-export const W = {
-  ...b, ink: b.text, paper: b.card, cream: b.background, soft: '#EADFC9', line: '#E3D3B5', deep: '#2B1D12', ok: '#5B7B4A', night: '#211810',
-};
+const WRITER_CACHE = new Map<string, ReturnType<typeof buildWriter>>();
+function buildWriter(t: ThemeTokens) {
+  const b = t.magazine;
+  return { ...b, ink: b.text, paper: b.card, cream: b.background, soft: t.isDark ? b.input : '#EADFC9', line: t.isDark ? b.border : '#E3D3B5', deep: '#2B1D12', ok: '#5B7B4A', night: '#211810' };
+}
+/** Writer palette derived from the active theme (cached per theme). */
+export function writerPalette(t: ThemeTokens) {
+  let w = WRITER_CACHE.get(t.id);
+  if (!w) { w = buildWriter(t); WRITER_CACHE.set(t.id, w); }
+  return w;
+}
+export function useWriterPalette() { return writerPalette(useTheme()); }
 
 export function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -36,6 +47,8 @@ export function FadeIn({ children, delay = 0, style }: { children: React.ReactNo
 
 export type ToastMsg = { text: string; tone: 'ok' | 'warn' | 'err'; at: number } | null;
 export function Toast({ msg }: { msg: ToastMsg }) {
+  const W = useWriterPalette();
+  const st = useStStyles();
   const reduced = useReducedMotion();
   const v = useRef(new Animated.Value(0)).current;
   const [shown, setShown] = useState<ToastMsg>(null);
@@ -59,6 +72,8 @@ export function Toast({ msg }: { msg: ToastMsg }) {
 }
 
 export function Chip({ label, on, onPress, testID, disabled }: { label: string; on: boolean; onPress: () => void; testID?: string; disabled?: boolean }) {
+  const W = useWriterPalette();
+  const st = useStStyles();
   return (
     <Pressable testID={testID} disabled={disabled} accessibilityRole="checkbox" accessibilityState={{ checked: on, disabled }} accessibilityLabel={label}
       onPress={() => { tap(); onPress(); }} style={({ pressed }) => [st.chip, on && st.chipOn, { opacity: disabled ? 0.4 : pressed ? 0.7 : 1 }]}>
@@ -69,6 +84,8 @@ export function Chip({ label, on, onPress, testID, disabled }: { label: string; 
 }
 
 export function Segmented<T extends string>({ value, options, onChange, testID }: { value: T; options: { v: T; label: string }[]; onChange: (v: T) => void; testID?: string }) {
+  const W = useWriterPalette();
+  const st = useStStyles();
   return (
     <View style={st.seg} accessibilityRole="radiogroup" testID={testID}>
       {options.map((o) => (
@@ -82,6 +99,7 @@ export function Segmented<T extends string>({ value, options, onChange, testID }
 }
 
 export function Label({ children, right }: { children: string; right?: string }) {
+  const st = useStStyles();
   return (
     <View style={st.labelRow}>
       <Text style={st.label}>{children}</Text>
@@ -106,6 +124,8 @@ export function useCoverUri(cover: string | null | undefined, localUri?: string 
 }
 
 export function WriterCover({ uri, title, author, w, adult, completed, loading }: { uri: string | null; title: string; author?: string; w: number; adult?: boolean; completed?: boolean; loading?: boolean }) {
+  const W = useWriterPalette();
+  const st = useStStyles();
   const h = Math.round(w * 1.5);
   const small = w < 80;
   return (
@@ -128,6 +148,8 @@ export function WriterCover({ uri, title, author, w, adult, completed, loading }
 }
 
 export function Confirm({ visible, title, text, confirm, danger, busy, onCancel, onConfirm }: { visible: boolean; title: string; text: string; confirm: string; danger?: boolean; busy?: boolean; onCancel: () => void; onConfirm: () => void }) {
+  const W = useWriterPalette();
+  const st = useStStyles();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={st.backdrop}>
@@ -145,6 +167,8 @@ export function Confirm({ visible, title, text, confirm, danger, busy, onCancel,
 }
 
 export function Banner({ icon, tone, title, text, children, testID }: { icon: keyof typeof Feather.glyphMap; tone: 'warn' | 'err' | 'info'; title: string; text?: string; children?: React.ReactNode; testID?: string }) {
+  const W = useWriterPalette();
+  const st = useStStyles();
   const color = tone === 'err' ? W.danger : tone === 'warn' ? '#9A6B1F' : W.ink;
   return (
     <View style={[st.banner, { borderColor: color }]} testID={testID} accessibilityRole="alert">
@@ -159,6 +183,7 @@ export function Banner({ icon, tone, title, text, children, testID }: { icon: ke
 }
 
 export function Skeleton({ h, style }: { h: number; style?: ViewStyle }) {
+  const W = useWriterPalette();
   const reduced = useReducedMotion();
   const v = useRef(new Animated.Value(0.5)).current;
   useEffect(() => {
@@ -169,7 +194,10 @@ export function Skeleton({ h, style }: { h: number; style?: ViewStyle }) {
   return <Animated.View style={[{ height: h, borderRadius: 14, backgroundColor: W.input, opacity: v }, style]} />;
 }
 
-export const st = StyleSheet.create({
+export const useStStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+
+  return StyleSheet.create({
   toast: { position: 'absolute', top: 8, alignSelf: 'center', zIndex: 50, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: W.deep, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, maxWidth: '92%' },
   toastText: { color: W.paper, fontFamily: F.med, fontSize: 13, flexShrink: 1 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 13, height: 34, borderRadius: 17, borderWidth: 1, borderColor: W.border, backgroundColor: W.paper },
@@ -202,4 +230,5 @@ export const st = StyleSheet.create({
   banner: { flexDirection: 'row', gap: 10, borderWidth: 1, borderRadius: 14, padding: 12, backgroundColor: W.paper, marginHorizontal: 16, marginTop: 12 },
   bannerTitle: { fontFamily: F.semi, fontSize: 14 },
   bannerText: { fontFamily: F.body, fontSize: 12.5, lineHeight: 18, color: W.ink },
+  });
 });

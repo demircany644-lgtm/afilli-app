@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,11 +14,13 @@ import { CoverCard } from '@/components/writer/CoverCard';
 import { BookInfo } from '@/components/writer/BookInfo';
 import { ChapterList } from '@/components/writer/ChapterList';
 import { EditorPanel } from '@/components/writer/EditorPanel';
-import { W, Toast, Banner, Confirm, Skeleton, FadeIn, type ToastMsg } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette, Toast, Banner, Confirm, Skeleton, FadeIn, type ToastMsg } from '@/components/writer/parts';
 import { publishProblems, type Problem } from '@/lib/writer-text';
 import { isDirty } from '@/lib/writer-store';
 
 export function WriterScreen({ owner, id, offline }: { owner: string; id: string; offline: boolean }) {
+  const W = useWriterPalette();
+  const ws = useWsStyles();
   const api = useWriterBook(owner, id, offline);
   const qc = useQueryClient();
   const { person } = useCommunity();
@@ -201,7 +204,9 @@ export function WriterScreen({ owner, id, offline }: { owner: string; id: string
 }
 function problemsFor(doc: Parameters<typeof publishProblems>[0], cover: boolean) { return publishProblems(doc, cover); }
 
-const ws = StyleSheet.create({
+const useWsStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   center: { alignItems: 'center', gap: 12, padding: 28, margin: 16, backgroundColor: W.paper, borderRadius: 20 },
   h: { fontFamily: F.serifBold, fontSize: 20, color: W.ink },
   p: { fontFamily: F.body, fontSize: 13, lineHeight: 19, color: W.ink, textAlign: 'center' },
@@ -218,4 +223,5 @@ const ws = StyleSheet.create({
   publishText: { fontFamily: F.serifBold, fontSize: 19, color: W.ink },
   hint: { fontFamily: F.body, fontSize: 12, lineHeight: 17, color: W.muted, textAlign: 'center' },
   row: { flexDirection: 'row', gap: 8 },
+  });
 });

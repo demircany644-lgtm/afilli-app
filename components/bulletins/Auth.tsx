@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { F } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
 import { TopBar } from '@/components/bulletins/TopBar';
-import { b, Btn } from '@/components/bulletins/common';
+import { Btn } from '@/components/bulletins/common';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 
 /** Prefer the server's Turkish error without logging credentials or codes. */
@@ -21,6 +22,8 @@ export function guardAuthAction(action: () => Promise<void>, report: (message: s
 export function goAfterAuth() { router.replace('/'); }
 
 export function AuthShell({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const { error } = useCommunity();
   return (
     <View style={{ flex: 1, backgroundColor: b.background }}>
@@ -42,6 +45,8 @@ export function AuthShell({ title, sub, children }: { title: string; sub: string
 }
 
 export function Field({ label, error, ...props }: TextInputProps & { label: string; error?: string | null }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   return (
     <View style={{ gap: 5 }}>
       <Text style={st.label}>{label}</Text>
@@ -52,10 +57,13 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
 }
 
 export function FormError({ text }: { text: string | null }) {
+  const st = useStStyles();
   return text ? <Text style={st.err} accessibilityLiveRegion="polite" testID="auth-error">{text}</Text> : null;
 }
 
 export function PasswordField(props: TextInputProps & { label: string; error?: string | null }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const [visible, setVisible] = useState(false);
   return <View style={{ gap: 6 }}>
     <Field {...props} secureTextEntry={!visible} autoCapitalize="none" />
@@ -67,7 +75,9 @@ export function PasswordField(props: TextInputProps & { label: string; error?: s
   </View>;
 }
 
-export const st = StyleSheet.create({
+export const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   wrap: { padding: 18, paddingBottom: 40, maxWidth: 460, width: '100%', alignSelf: 'center' },
   card: { backgroundColor: b.card, borderRadius: 22, padding: 20, gap: 14, borderWidth: 1.5, borderColor: b.gold },
   kicker: { fontFamily: F.semi, fontSize: 10, letterSpacing: 2, color: b.gold },
@@ -81,4 +91,5 @@ export const st = StyleSheet.create({
   line: { flex: 1, height: 1, backgroundColor: b.border },
   cancel: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', padding: 16 },
   cancelText: { fontFamily: F.med, fontSize: 13, color: b.muted },
+  });
 });

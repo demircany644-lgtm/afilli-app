@@ -1,14 +1,16 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Platform, Pressable, ScrollView, Share, StyleSheet, Text, View, type ScrollViewProps, type ScrollViewInstance } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView, type KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
 import colors from '@/constants/colors';
 import { F, tap } from '@/components/ui';
+import { useOptionalAppearance } from '@/context/AppearanceContext';
+import { LavaBackdrop } from '@/components/theme/LavaBackdrop';
 import { formatMagazineCount, type MagazinePost } from '@/data/magazine';
 
-export const m = colors.magazine;
 
 /** Scroll container that forwards a real ScrollView-compatible ref on both platforms. */
 export type MagazineScrollHandle = { scrollTo: (options: { x?: number; y?: number; animated?: boolean }) => void };
@@ -26,18 +28,22 @@ export const MagazineScrollView = forwardRef<MagazineScrollHandle, ScrollViewPro
 });
 
 export function MagazineHeader({ title, backTo, backLabel }: { title: string; backTo: Href; backLabel: string }) {
+  const { magazine: m } = useTheme();
+  const s = useSStyles();
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 67 : insets.top;
+  const lava = !!useOptionalAppearance()?.isLava;
   return (
-    <View style={[s.header, { paddingTop: top + 6 }]}>
+    <View style={[s.header, { paddingTop: top + 6 }, lava && { backgroundColor: colors.lava.bg, overflow: 'hidden' }]}>
+      {lava ? <LavaBackdrop still /> : null}
       <Pressable
         testID="magazine-back" accessibilityRole="button" accessibilityLabel={backLabel} hitSlop={12}
         onPress={() => { tap(); router.navigate(backTo); }}
         style={({ pressed }) => [s.back, { opacity: pressed ? 0.6 : 1 }]}
       >
-        <Feather name="arrow-left" size={28} color={m.text} />
+        <Feather name="arrow-left" size={28} color={lava ? colors.lava.headline : m.text} />
       </Pressable>
-      <Text style={s.headerTitle} numberOfLines={1} accessibilityRole="header">{title}</Text>
+      <Text style={[s.headerTitle, lava && { color: colors.lava.headline }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
       <View style={s.back} />
     </View>
   );
@@ -84,6 +90,8 @@ export function MagazineActions({ post, stats, ownReads, onLike, onComments, onS
   post: MagazinePost; stats: Stats; ownReads: boolean; prefix: string;
   onLike: () => void; onComments: () => void; onShare: () => void;
 }) {
+  const { magazine: m } = useTheme();
+  const s = useSStyles();
   const items = [
     {
       key: 'like', icon: stats.liked ? 'heart' as const : 'heart-outline' as const, label: displayCount(stats.likes, stats.liked),
@@ -121,6 +129,8 @@ export function MagazineActions({ post, stats, ownReads, onLike, onComments, onS
 }
 
 export function Notice({ text, tone = 'info', testID }: { text: string; tone?: 'info' | 'error'; testID?: string }) {
+  const { magazine: m } = useTheme();
+  const s = useSStyles();
   return (
     <View testID={testID} accessibilityLiveRegion="polite" style={[s.notice, { borderColor: tone === 'error' ? m.danger : m.border }]}>
       <Feather name={tone === 'error' ? 'alert-circle' : 'info'} size={15} color={tone === 'error' ? m.danger : m.muted} />
@@ -130,6 +140,7 @@ export function Notice({ text, tone = 'info', testID }: { text: string; tone?: '
 }
 
 export function MagazineSkeleton() {
+  const s = useSStyles();
   return (
     <View style={{ padding: 18, gap: 14 }} accessibilityLabel="Dergi yükleniyor">
       {[120, 220, 160].map((h, i) => <View key={i} style={[s.skel, { height: h }]} />)}
@@ -137,7 +148,9 @@ export function MagazineSkeleton() {
   );
 }
 
-const s = StyleSheet.create({
+const useSStyles = makeStyles((t) => {
+  const { magazine: m } = t;
+  return StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingBottom: 10, backgroundColor: m.background },
   back: { width: 44, height: 44, justifyContent: 'center' },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 26, fontFamily: 'Inter_700Bold', color: m.text },
@@ -147,4 +160,5 @@ const s = StyleSheet.create({
   notice: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', borderWidth: 1, borderRadius: 10, padding: 10, backgroundColor: m.card },
   noticeText: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: F.body },
   skel: { borderRadius: 16, backgroundColor: m.input, opacity: 0.7 },
+  });
 });

@@ -1,17 +1,20 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import type { WriterChapter } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { Sheet, SheetRow, Btn } from '@/components/bulletins/common';
 import { chapterStats, newChapter, MAX_CHAPTERS, CHAPTER_TITLE_MAX, MAX_CHAPTER_CHARS } from '@/lib/writer-text';
-import { W, Confirm, type ToastMsg } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette, Confirm, type ToastMsg } from '@/components/writer/parts';
 import type { WriterBookApi } from '@/components/writer/useWriterBook';
 
 const ROW = 70;
 type Props = { api: WriterBookApi; activeId: string; onSelect: (id: string) => void; onPublication: (ch: WriterChapter, action: 'publishChapter' | 'draftChapter') => void; actionsLocked: string | null; toast: (m: ToastMsg) => void };
 
 export function ChapterList({ api, activeId, onSelect, onPublication, actionsLocked, toast }: Props) {
+  const W = useWriterPalette();
+  const cl = useClStyles();
   const rec = api.rec!;
   const chapters = rec.doc.chapters;
   const bookPublic = rec.publication === 'published';
@@ -111,6 +114,8 @@ function ChapterRow({ ch, index, active, bookPublic, offset, dragging, onPress, 
   ch: WriterChapter; index: number; active: boolean; bookPublic: boolean; offset: number; dragging: boolean; total: number;
   onPress: () => void; onMenu: () => void; onDrag: (dy: number) => void; onDrop: (dy: number) => void; onMove: (d: -1 | 1) => void;
 }) {
+  const W = useWriterPalette();
+  const cl = useClStyles();
   const stats = useMemo(() => chapterStats(ch.html), [ch.html]);
   const cb = useRef({ onDrag, onDrop }); cb.current = { onDrag, onDrop };
   const pan = useMemo(() => PanResponder.create({
@@ -146,14 +151,16 @@ function ChapterRow({ ch, index, active, bookPublic, offset, dragging, onPress, 
   );
 }
 
-const cl = StyleSheet.create({
+const useClStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   card: { marginHorizontal: 16, marginTop: 14, padding: 14, backgroundColor: W.paper, borderRadius: 20, borderWidth: 1, borderColor: W.line },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: F.serifBold, fontSize: 19, color: W.ink },
   count: { fontFamily: F.body, fontSize: 14, color: W.muted },
   hint: { fontFamily: F.body, fontSize: 11.5, color: W.muted, marginTop: 2, marginBottom: 8 },
   row: { position: 'absolute', left: 0, right: 0, height: ROW - 6, flexDirection: 'row', alignItems: 'center', borderRadius: 14, backgroundColor: W.cream, borderWidth: 1, borderColor: 'transparent' },
-  rowOn: { borderColor: W.gold, backgroundColor: '#FBF1DD' },
+  rowOn: { borderColor: W.gold, backgroundColor: W.input },
   rowDrag: { zIndex: 10, elevation: 6, shadowColor: W.deep, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, backgroundColor: W.paper },
   handle: { width: 34, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'stretch' },
@@ -168,4 +175,5 @@ const cl = StyleSheet.create({
   addText: { fontFamily: F.semi, fontSize: 14, color: W.ink },
   input: { fontFamily: F.serif, fontSize: 17, color: W.ink, borderBottomWidth: 1.5, borderColor: W.gold, paddingVertical: 8 },
   lock: { fontFamily: F.body, fontSize: 12, color: W.muted, paddingHorizontal: 4, paddingVertical: 4 },
+  });
 });

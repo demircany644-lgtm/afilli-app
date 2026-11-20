@@ -1,15 +1,19 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { F, tap } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
-import { P, k } from './kit';
+import { SectionLabel , useKitStyles } from './kit';
 import { go } from './hooks';
 
 type Row = { icon: keyof typeof Feather.glyphMap; label: string; value?: number; path: string; testID: string };
 
 /** Private, on-device shelf: these counts are never shown to other readers. */
 export function LocalShelf({ signedIn }: { signedIn: boolean }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
   const { library, saved, drafts, store, legacyAvailable, storageError, retryLoad } = useApp();
   const rows: Row[] = [
     { icon: 'book-open', label: 'Kitaplık', value: Object.keys(library).length, path: '/library', testID: 'profile-local-library' },
@@ -17,11 +21,11 @@ export function LocalShelf({ signedIn }: { signedIn: boolean }) {
     { icon: 'edit-3', label: 'Taslaklar', value: drafts.length, path: '/write', testID: 'profile-local-drafts' },
     { icon: 'shopping-bag', label: 'Mağazam', value: store.length, path: '/store', testID: 'profile-store' },
     ...(signedIn ? [{ icon: 'message-circle' as const, label: 'Mesajlar', path: '/messages', testID: 'profile-local-messages' }] : []),
-    { icon: 'users', label: 'Okurları keşfet', path: '/people', testID: 'profile-local-people' },
+    { icon: 'users', label: 'Okurları keşfet', path: '/search?tab=people', testID: 'profile-local-people' },
   ];
   return (
     <View>
-      <Text style={k.section}>Bu cihazda</Text>
+      <SectionLabel>Bu cihazda</SectionLabel>
       {storageError ? (
         <Pressable testID="profile-storage-retry" onPress={() => { tap(); retryLoad(); }} style={[st.alert]}>
           <Feather name="alert-triangle" size={16} color={P.danger} />
@@ -51,7 +55,9 @@ export function LocalShelf({ signedIn }: { signedIn: boolean }) {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: P } = t;
+  return StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingHorizontal: 16 },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: P.border },
   label: { flex: 1, fontFamily: F.semi, fontSize: 15, color: P.text },
@@ -59,4 +65,5 @@ const st = StyleSheet.create({
   foot: { fontFamily: F.body, fontSize: 12, color: P.muted, textAlign: 'center', marginTop: 12, marginHorizontal: 30 },
   alert: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginBottom: 10, padding: 12, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: P.border, backgroundColor: P.card },
   alertText: { flex: 1, fontFamily: F.med, fontSize: 13, lineHeight: 19, color: P.danger },
+  });
 });

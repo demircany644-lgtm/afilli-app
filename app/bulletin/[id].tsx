@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useGetBulletin, getGetBulletinQueryKey } from '@workspace/api-client-react';
@@ -8,9 +9,11 @@ import { MagazineScrollView } from '@/components/MagazineUI';
 import { TopBar } from '@/components/bulletins/TopBar';
 import { BulletinCard } from '@/components/bulletins/BulletinCard';
 import { CommentsThread } from '@/components/bulletins/Comments';
-import { b, Btn, apiError, OFFLINE } from '@/components/bulletins/common';
+import { Btn, apiError, OFFLINE } from '@/components/bulletins/common';
 
 export default function BulletinDetail() {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const { id, focusComment } = useLocalSearchParams<{ id: string; focusComment?: string }>();
   const postId = String(id ?? '');
   const q = useGetBulletin(postId, { query: { enabled: !!postId, queryKey: getGetBulletinQueryKey(postId), refetchInterval: 20000 } });
@@ -37,9 +40,12 @@ export default function BulletinDetail() {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   wrap: { padding: 14, paddingBottom: 40, maxWidth: 680, width: '100%', alignSelf: 'center' },
   skel: { borderRadius: 18, backgroundColor: b.input },
   empty: { alignItems: 'center', gap: 12, padding: 28, backgroundColor: b.card, borderRadius: 18, borderWidth: 1, borderColor: b.border },
   title: { fontFamily: F.serifBold, fontSize: 17, color: b.text, textAlign: 'center' },
+  });
 });

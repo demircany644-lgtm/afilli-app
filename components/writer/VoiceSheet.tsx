@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
@@ -10,13 +11,15 @@ import { scoped, useOwnerGuard } from '@/components/profile/hooks';
 import { useCommunity } from '@/context/CommunityContext';
 import { useVoiceRecorder } from '@/lib/writer-voice';
 import { VoiceError, type Clip } from '@/lib/writer-voice-types';
-import { W } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette,  } from '@/components/writer/parts';
 
 const AUTO_STOP = 55;
 type Step = 'consent' | 'recording' | 'review' | 'sending' | 'transcript';
 
 /** Explicit, consented dictation. Never records or sends on its own; never sends manuscript text. */
 export function VoiceSheet({ visible, offline, onClose, onInsert }: { visible: boolean; offline: boolean; onClose: (inserted: boolean) => void; onInsert: (text: string) => void }) {
+  const W = useWriterPalette();
+  const vs = useVsStyles();
   const { userId, ready } = useCommunity();
   const guard = useOwnerGuard(userId);
   const status = useGetWriterVoiceStatus({ query: { enabled: visible && ready && !!userId, queryKey: scoped(getGetWriterVoiceStatusQueryKey(), userId) }, request: { headers: userId ? { 'X-Afilli-Actor': userId } : {} } });
@@ -120,7 +123,9 @@ export function VoiceSheet({ visible, offline, onClose, onInsert }: { visible: b
   );
 }
 
-const vs = StyleSheet.create({
+const useVsStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   box: { gap: 10, paddingVertical: 6 },
   h: { fontFamily: F.serifBold, fontSize: 17, color: W.ink },
   p: { fontFamily: F.body, fontSize: 13, lineHeight: 19, color: W.ink },
@@ -131,4 +136,5 @@ const vs = StyleSheet.create({
   dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: W.danger },
   time: { fontFamily: F.semi, fontSize: 18, color: W.ink, fontVariant: ['tabular-nums'] },
   input: { minHeight: 120, fontFamily: F.body, fontSize: 15, lineHeight: 22, color: W.ink, backgroundColor: W.cream, borderRadius: 12, padding: 12 },
+  });
 });

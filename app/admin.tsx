@@ -1,17 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetAdminOverview, getGetAdminOverviewQueryKey, useGetAdminAccounts, getGetAdminAccountsQueryKey,
   useUpdateAdminAccount, useGetAdminContent, getGetAdminContentQueryKey, useUpdateAdminContent,
+  useDeleteAdminAccount, useGetAdminAccountDeletion, getGetAdminAccountDeletionQueryKey,
   useGetAdminHistory, getGetAdminHistoryQueryKey,
   type AdminAccount, type AdminContent, type AdminContentKind, type AdminRole,
 } from '@workspace/api-client-react';
 import { useCommunity } from '@/context/CommunityContext';
 import { F, tap } from '@/components/ui';
 import { apiError, timeAgo } from '@/components/bulletins/common';
-import { FoilButton, MarbleBackground, Notice, P, PillTabs, Skeleton, StateCard, TopBar, k } from '@/components/profile/kit';
+import { FoilButton, MarbleBackground, Notice, PillTabs, Skeleton, StateCard, TopBar , useKitStyles } from '@/components/profile/kit';
 import { actorRequest, go, scoped, useFocusedForeground, useOwnerGuard, withIdentity } from '@/components/profile/hooks';
 
 const PAGE = 25;
@@ -27,24 +29,16 @@ type Pending =
   | { type: 'role'; account: AdminAccount; role: AdminRole }
   | { type: 'disable'; account: AdminAccount; disabled: boolean }
   | { type: 'nickname'; account: AdminAccount }
+  | { type: 'delete'; account: AdminAccount }
   | { type: 'content'; item: AdminContent; hidden: boolean };
 
 function useQ(userId: string | null, live: boolean) {
   return { staleTime: 15_000, refetchOnMount: 'always' as const, refetchInterval: live ? 30_000 : (false as const) , enabled: !!userId };
 }
 
-function useDebounced(value: string, ms = 350) {
-  const [v, setV] = useState(value);
-  const t = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (t.current) clearTimeout(t.current);
-    t.current = setTimeout(() => setV(value.trim()), ms);
-    return () => { if (t.current) clearTimeout(t.current); };
-  }, [value, ms]);
-  return v;
-}
 
 function Pager({ offset, total, next, onChange, loading, id }: { offset: number; total: number; next: number | null; onChange: (o: number) => void; loading: boolean; id: string }) {
+  const st = useStStyles();
   const from = total === 0 ? 0 : offset + 1; const to = Math.min(offset + PAGE, total);
   return (
     <View style={st.pager}>
@@ -55,6 +49,8 @@ function Pager({ offset, total, next, onChange, loading, id }: { offset: number;
   );
 }
 function PagerBtn({ icon, label, disabled, onPress, testID }: { icon: keyof typeof Feather.glyphMap; label: string; disabled: boolean; onPress: () => void; testID: string }) {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled}
       onPress={() => { tap(); onPress(); }} style={({ pressed }) => [k.round, { opacity: disabled ? 0.35 : pressed ? 0.6 : 1 }]}>
@@ -63,14 +59,17 @@ function PagerBtn({ icon, label, disabled, onPress, testID }: { icon: keyof type
   );
 }
 
-function Search({ value, onChange, placeholder, testID }: { value: string; onChange: (v: string) => void; placeholder: string; testID: string }) {
+/** Admin lists are not searchable; text search lives only in central Keşfet (public fields only). */
+function KesfetShortcut({ testID }: { testID: string }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
   return (
-    <View style={st.search}>
-      <Feather name="search" size={16} color={P.muted} />
-      <TextInput testID={testID} accessibilityLabel={placeholder} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={P.muted}
-        autoCapitalize="none" autoCorrect={false} maxLength={100} returnKeyType="search" style={st.searchInput} />
-      {value ? <Pressable onPress={() => onChange('')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Aramayı temizle"><Feather name="x" size={16} color={P.muted} /></Pressable> : null}
-    </View>
+    <Pressable testID={testID} accessibilityRole="link" accessibilityLabel="Arama için Keşfet'e git" onPress={() => { tap(); go('/search?tab=people'); }}
+      style={({ pressed }) => [st.search, { opacity: pressed ? 0.6 : 1 }]}>
+      <Feather name="compass" size={16} color={P.muted} />
+      <Text style={[st.searchInput, { color: P.muted }]}>Arama yalnızca Keşfet'te yapılır</Text>
+      <Feather name="chevron-right" size={16} color={P.muted} />
+    </Pressable>
   );
 }
 
@@ -79,11 +78,16 @@ function ListSkeleton() {
 }
 
 function Chip({ text, tone = 'plain' }: { text: string; tone?: 'plain' | 'gold' | 'danger' }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
   const c = tone === 'danger' ? P.danger : tone === 'gold' ? P.gold : P.muted;
   return <View style={[st.chip, { borderColor: c }]}><Text style={[st.chipText, { color: c }]}>{text}</Text></View>;
 }
 
 function Overview({ o, onTab }: { o: { role: AdminRole; users: number; disabledUsers: number; books: number; bulletins: number; comments: number; hiddenContent: number }; onTab: (t: Tab) => void }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
   const cells: { label: string; value: number; icon: keyof typeof Feather.glyphMap; id: string }[] = [
     { label: 'Hesap', value: o.users, icon: 'users', id: 'users' },
     { label: 'Askıdaki hesap', value: o.disabledUsers, icon: 'user-x', id: 'disabled' },
@@ -113,6 +117,8 @@ function Overview({ o, onTab }: { o: { role: AdminRole; users: number; disabledU
   );
 }
 function NavRow({ icon, label, sub, onPress, testID }: { icon: keyof typeof Feather.glyphMap; label: string; sub: string; onPress: () => void; testID: string }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} onPress={() => { tap(); onPress(); }}
       style={({ pressed }) => [st.navRow, { backgroundColor: pressed ? P.input : 'transparent' }]}>
@@ -124,18 +130,25 @@ function NavRow({ icon, label, sub, onPress, testID }: { icon: keyof typeof Feat
 }
 
 function Accounts({ userId, live, onAct }: { userId: string; live: boolean; onAct: (p: Pending) => void }) {
-  const [q, setQ] = useState(''); const dq = useDebounced(q); const [offset, setOffset] = useState(0);
-  useEffect(() => setOffset(0), [dq]);
-  const params = { q: dq || undefined, offset };
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
+  const [offset, setOffset] = useState(0);
+  const params = { offset };
   const list = useGetAdminAccounts(params, { request: actorRequest(userId), query: { ...useQ(userId, live), queryKey: scoped(getGetAdminAccountsQueryKey(params), userId) } });
+  useEffect(() => {
+    if (list.data && offset > 0 && offset >= list.data.total) {
+      setOffset(Math.max(0, Math.floor((list.data.total - 1) / PAGE) * PAGE));
+    }
+  }, [list.data?.total, offset]);
   const [open, setOpen] = useState<string | null>(null);
   return (
     <View style={{ gap: 12 }}>
-      <Search value={q} onChange={setQ} placeholder="Takma ad veya e-posta ara" testID="admin-accounts-search" />
+      <KesfetShortcut testID="admin-accounts-kesfet" />
       {list.isLoading && !list.data ? <ListSkeleton /> : list.isError && !list.data ? (
         <StateCard icon="wifi-off" title="Hesaplar yüklenemedi" text={apiError(list.error, 'Bağlantı yok, tekrar dene.')} action={{ label: 'Tekrar dene', testID: 'admin-accounts-retry', onPress: () => list.refetch() }} />
       ) : list.data && list.data.items.length === 0 ? (
-        <StateCard icon="user" title={dq ? 'Eşleşen hesap yok' : 'Henüz hesap yok'} text={dq ? `"${dq}" için sonuç bulunamadı.` : 'Kayıt olan hesaplar burada listelenir.'} testID="admin-accounts-empty" />
+        <StateCard icon="user" title="Henüz hesap yok" text="Kayıt olan hesaplar burada listelenir." testID="admin-accounts-empty" />
       ) : list.data ? (<>
         <View style={k.card}>
           {list.data.items.map((a) => {
@@ -157,7 +170,7 @@ function Accounts({ userId, live, onAct }: { userId: string; live: boolean; onAc
                 </Pressable>
                 {expanded ? (
                   <View style={st.actions}>
-                    {self ? <Text style={st.rowSub}>Kendi rolünü değiştiremez, hesabını askıya alamazsın.</Text> : null}
+                    {self ? <Text style={st.rowSub}>Kendi rolünü değiştiremez, hesabını askıya alamaz veya silemezsin.</Text> : null}
                     {(['user', 'admin', 'superadmin'] as AdminRole[]).filter((r) => r !== a.role).map((r) => {
                       const blocked = self || (a.disabled && r !== 'user');
                       return <SmallBtn key={r} icon="award" label={`${ROLE_LABEL[r]} yap`} disabled={blocked} testID={`admin-role-${r}-${a.id}`} onPress={() => onAct({ type: 'role', account: a, role: r })} />;
@@ -165,6 +178,7 @@ function Accounts({ userId, live, onAct }: { userId: string; live: boolean; onAc
                     {a.disabled && a.role === 'user' ? null : a.disabled ? <Text style={st.rowSub}>Askıdaki hesaplara yetki verilemez.</Text> : null}
                     <SmallBtn icon={a.disabled ? 'user-check' : 'user-x'} label={a.disabled ? 'Askıyı kaldır' : 'Askıya al'} danger={!a.disabled} disabled={self} testID={'admin-disable-' + a.id} onPress={() => onAct({ type: 'disable', account: a, disabled: !a.disabled })} />
                     <SmallBtn icon="edit-2" label="Takma adı değiştir" testID={'admin-nickname-' + a.id} onPress={() => onAct({ type: 'nickname', account: a })} />
+                    <SmallBtn icon="trash-2" label="Hesabı ve içeriklerini sil" danger disabled={self} testID={'admin-delete-' + a.id} onPress={() => onAct({ type: 'delete', account: a })} />
                   </View>
                 ) : null}
               </View>
@@ -178,6 +192,8 @@ function Accounts({ userId, live, onAct }: { userId: string; live: boolean; onAc
 }
 
 function SmallBtn({ icon, label, onPress, disabled, danger, testID }: { icon: keyof typeof Feather.glyphMap; label: string; onPress: () => void; disabled?: boolean; danger?: boolean; testID: string }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
   const c = danger ? P.danger : P.text;
   return (
     <Pressable testID={testID} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }}
@@ -188,10 +204,13 @@ function SmallBtn({ icon, label, onPress, disabled, danger, testID }: { icon: ke
 }
 
 function Content({ userId, live, onAct }: { userId: string; live: boolean; onAct: (p: Pending) => void }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
   const [kind, setKind] = useState<AdminContentKind>('book');
-  const [q, setQ] = useState(''); const dq = useDebounced(q); const [offset, setOffset] = useState(0);
-  useEffect(() => setOffset(0), [dq, kind]);
-  const params = { kind, q: dq || undefined, offset };
+  const [offset, setOffset] = useState(0);
+  useEffect(() => setOffset(0), [kind]);
+  const params = { kind, offset };
   const list = useGetAdminContent(params, { request: actorRequest(userId), query: { ...useQ(userId, live), queryKey: scoped(getGetAdminContentQueryKey(params), userId) } });
   return (
     <View style={{ gap: 12 }}>
@@ -206,12 +225,12 @@ function Content({ userId, live, onAct }: { userId: string; live: boolean; onAct
           );
         })}
       </ScrollView>
-      <Search value={q} onChange={setQ} placeholder="Başlık, metin veya yazar ara" testID="admin-content-search" />
+      <KesfetShortcut testID="admin-content-kesfet" />
       {kind === 'book' ? <Notice text="Taslak kitaplarda yalnızca künye bilgisi görünür; özel metinler yönetici panelinde açılmaz veya düzenlenmez." /> : null}
       {list.isLoading && !list.data ? <ListSkeleton /> : list.isError && !list.data ? (
         <StateCard icon="wifi-off" title="İçerik yüklenemedi" text={apiError(list.error, 'Bağlantı yok, tekrar dene.')} action={{ label: 'Tekrar dene', testID: 'admin-content-retry', onPress: () => list.refetch() }} />
       ) : list.data && list.data.items.length === 0 ? (
-        <StateCard icon="inbox" title={dq ? 'Eşleşen içerik yok' : 'Burada içerik yok'} text={dq ? `"${dq}" için sonuç bulunamadı.` : 'Bu türde denetlenecek içerik henüz yok.'} testID="admin-content-empty" />
+        <StateCard icon="inbox" title="Burada içerik yok" text="Bu türde denetlenecek içerik henüz yok." testID="admin-content-empty" />
       ) : list.data ? (<>
         <View style={k.card}>
           {list.data.items.map((c) => (
@@ -235,6 +254,8 @@ function Content({ userId, live, onAct }: { userId: string; live: boolean; onAct
 }
 
 function History({ userId, live }: { userId: string; live: boolean }) {
+  const st = useStStyles();
+  const k = useKitStyles();
   const [offset, setOffset] = useState(0);
   const params = { offset };
   const list = useGetAdminHistory(params, { request: actorRequest(userId), query: { ...useQ(userId, live), queryKey: scoped(getGetAdminHistoryQueryKey(params), userId) } });
@@ -248,7 +269,7 @@ function History({ userId, live }: { userId: string; live: boolean }) {
         {list.data.items.map((h) => (
           <View key={h.id} style={st.item} testID={'admin-history-' + h.id}>
             <View style={st.itemHead}>
-              <Text style={[st.rowTitle, { flex: 1 }]} numberOfLines={1}>{h.action}</Text>
+              <Text style={[st.rowTitle, { flex: 1 }]} numberOfLines={1}>{h.action === 'account.delete' ? 'Hesap ve içerikleri silindi' : h.action}</Text>
               <Text style={st.meta}>{new Date(h.createdAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })}</Text>
             </View>
             <Text style={st.rowSub} numberOfLines={1}>{h.actor} · {h.targetType} · {h.targetId}</Text>
@@ -262,9 +283,18 @@ function History({ userId, live }: { userId: string; live: boolean }) {
 }
 
 function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending | null; userId: string; onClose: () => void; onDone: (text: string) => void }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
   const qc = useQueryClient();
   const alive = useOwnerGuard(userId);
   const acc = useUpdateAdminAccount({ request: actorRequest(userId) });
+  const del = useDeleteAdminAccount({ request: actorRequest(userId) });
+  const deletionId = pending?.type === 'delete' ? pending.account.id : '';
+  const deletion = useGetAdminAccountDeletion(deletionId, { request: actorRequest(userId), query: {
+    queryKey: scoped(getGetAdminAccountDeletionQueryKey(deletionId), userId),
+    enabled: !!deletionId, staleTime: 0, refetchOnMount: 'always',
+  } });
   const mod = useUpdateAdminContent({ request: actorRequest(userId) });
   const [reason, setReason] = useState(''); const [nick, setNick] = useState('');
   const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false);
@@ -275,21 +305,24 @@ function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending |
   const reasonBad = r.length < 3 || r.length > 300;
   const nickBad = pending.type === 'nickname' && (n.length < 3 || n.length > 15 || n === pending.account.nickname);
   const self = pending.type !== 'content' && pending.account.id === userId;
-  const blocked = (pending.type === 'role' && (self || (pending.account.disabled && pending.role !== 'user'))) || (pending.type === 'disable' && self);
-  const title = pending.type === 'role' ? 'Rolü değiştir' : pending.type === 'disable' ? (pending.disabled ? 'Hesabı askıya al' : 'Askıyı kaldır') : pending.type === 'nickname' ? 'Takma adı değiştir' : pending.hidden ? 'İçeriği gizle' : 'İçeriği geri getir';
+  const deleteBad = pending.type === 'delete' && (!deletion.data || deletion.isError || deletion.isFetching || nick !== deletion.data.nickname);
+  const blocked = (pending.type === 'role' && (self || (pending.account.disabled && pending.role !== 'user'))) || ((pending.type === 'disable' || pending.type === 'delete') && self);
+  const title = pending.type === 'delete' ? 'Hesabı kalıcı sil' : pending.type === 'role' ? 'Rolü değiştir' : pending.type === 'disable' ? (pending.disabled ? 'Hesabı askıya al' : 'Askıyı kaldır') : pending.type === 'nickname' ? 'Takma adı değiştir' : pending.hidden ? 'İçeriği gizle' : 'İçeriği geri getir';
   const desc = pending.type === 'role' ? `${pending.account.nickname} hesabının rolü "${ROLE_LABEL[pending.account.role]}" yerine "${ROLE_LABEL[pending.role]}" olacak.`
     : pending.type === 'disable' ? (pending.disabled ? `${pending.account.nickname} giriş yapamayacak ve paylaşım yapamayacak. Bu işlem geri alınabilir.` : `${pending.account.nickname} yeniden giriş yapabilecek.`)
     : pending.type === 'nickname' ? `${pending.account.nickname} için yeni takma ad gir (3-15 karakter).`
+    : pending.type === 'delete' ? `${pending.account.nickname} hesabı, kitapları, taslakları, yorumları, bültenleri, beğenileri ve özel sohbetleri kalıcı silinecek. Bu içeriklere bağlı yanıtlar da kaldırılabilir. Oturumları kapanacak. Bu işlem geri alınamaz.`
     : `${KIND_ONE[pending.item.kind]} "${pending.item.title || pending.item.body.slice(0, 40)}" ${pending.hidden ? 'herkesten gizlenecek. Silinmez; daha sonra geri getirilebilir.' : 'yeniden görünür olacak.'}`;
 
   const submit = async () => {
-    if (lock.current || reasonBad || nickBad || blocked) return;
+    if (lock.current || reasonBad || nickBad || deleteBad || blocked) return;
     lock.current = true; setBusy(true); setErr(null);
     try {
       if (pending.type === 'content') await mod.mutateAsync({ kind: pending.item.kind, id: pending.item.id, data: { hidden: pending.hidden, reason: r } });
+      else if (pending.type === 'delete') await del.mutateAsync({ id: pending.account.id, data: { confirmation: nick, reason: r } });
       else await acc.mutateAsync({ id: pending.account.id, data: pending.type === 'role' ? { role: pending.role, reason: r } : pending.type === 'disable' ? { disabled: pending.disabled, reason: r } : { nickname: n, reason: r } });
       await qc.invalidateQueries();
-      if (alive()) onDone(pending.type === 'content' ? (pending.hidden ? 'İçerik gizlendi.' : 'İçerik geri getirildi.') : 'Hesap güncellendi.');
+      if (alive()) onDone(pending.type === 'delete' ? 'Hesap ve içerikleri silindi. Görsel dosyaları temizlik sırasına alındı.' : pending.type === 'content' ? (pending.hidden ? 'İçerik gizlendi.' : 'İçerik geri getirildi.') : 'Hesap güncellendi.');
     } catch (e) { if (alive()) setErr(apiError(e, 'İşlem tamamlanamadı. Tekrar dene.')); }
     finally { lock.current = false; if (alive()) setBusy(false); }
   };
@@ -303,6 +336,16 @@ function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending |
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 18, gap: 12 }}>
               <Text style={st.sheetTitle} accessibilityRole="header">{title}</Text>
               <Text style={st.rowSub}>{desc}</Text>
+              {pending.type === 'delete' ? (
+                <>
+                  {deletion.isFetching ? <ActivityIndicator color={P.gold} /> : deletion.isError ? (
+                    <Notice tone="error" text={apiError(deletion.error, 'Silme kapsamı yüklenemedi.')} />
+                  ) : deletion.data ? <Notice tone="error" text={`${deletion.data.books} kitap/taslak · ${deletion.data.bulletins} bülten · ${deletion.data.comments} yorum · ${deletion.data.conversations} özel sohbet · ${deletion.data.media} görsel. Bağlı kayıtlar da silinir. Yeni eklenen içerikler de silmeye dahildir. Görsellere erişim kapanır; dosyalar yükleme bağlantıları sona erdikten sonra temizlenir. Yönetici işlem kaydı korunur. Cihazdaki çevrimdışı kopyalar uzaktan silinemez.`} /> : null}
+                  {deletion.isError ? <FoilButton variant="outline" label="Tekrar dene" testID="admin-delete-retry" onPress={() => { void deletion.refetch(); }} /> : null}
+                  <Text style={k.label}>Onay için takma adı aynen yaz: {deletion.data?.nickname ?? pending.account.nickname}</Text>
+                  <TextInput testID="admin-delete-confirmation" accessibilityLabel="Silinecek hesabın takma adı" value={nick} onChangeText={setNick} autoCapitalize="none" autoCorrect={false} style={k.input} />
+                </>
+              ) : null}
               {blocked ? <Notice tone="error" text={self ? 'Kendi rolünü değiştiremez veya kendini askıya alamazsın.' : 'Askıdaki hesaplara yetki verilemez.'} /> : null}
               {pending.type === 'nickname' ? (
                 <View>
@@ -317,7 +360,7 @@ function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending |
                 <Text style={reason && reasonBad ? k.err : k.hint}>{r.length}/300 · en az 3 karakter. İşlem geçmişine kaydedilir.</Text>
               </View>
               {err ? <Notice tone="error" text={err} testID="admin-confirm-error" /> : null}
-              <FoilButton label="Onayla" icon="check" testID="admin-confirm-submit" busy={busy} disabled={reasonBad || nickBad || blocked} onPress={submit} style={{ flex: 0, minHeight: 48, flexShrink: 0 }} />
+              <FoilButton label={pending.type === 'delete' ? 'Kalıcı olarak sil' : 'Onayla'} icon={pending.type === 'delete' ? 'trash-2' : 'check'} testID="admin-confirm-submit" busy={busy} disabled={reasonBad || nickBad || deleteBad || blocked} onPress={submit} style={{ flex: 0, minHeight: 48, flexShrink: 0 }} />
               <FoilButton variant="outline" label="Vazgeç" testID="admin-confirm-cancel" disabled={busy} onPress={close} style={{ flex: 0, minHeight: 48, flexShrink: 0 }} />
             </ScrollView>
           </Pressable>
@@ -328,6 +371,8 @@ function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending |
 }
 
 function AdminPanel() {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
   const { ready, userId } = useCommunity();
   const live = useFocusedForeground();
   const [tab, setTab] = useState<Tab>('overview');
@@ -379,7 +424,9 @@ function AdminPanel() {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: P } = t;
+  return StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cell: { width: '31%', flexGrow: 1, minWidth: 96, padding: 12, gap: 4, borderRadius: 16, borderWidth: 1, borderColor: P.border, backgroundColor: P.card },
   cellValue: { fontFamily: F.serifBold, fontSize: 22, color: P.text },
@@ -409,6 +456,7 @@ const st = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(62,42,26,0.42)', justifyContent: 'flex-end' },
   sheet: { maxHeight: '88%', backgroundColor: P.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: Platform.OS === 'web' ? 34 : 20 },
   sheetTitle: { fontFamily: F.serifBold, fontSize: 20, color: P.text },
+  });
 });
 
 export default withIdentity(AdminPanel);

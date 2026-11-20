@@ -1,7 +1,7 @@
 # Afilli 1.2.1 — inceleme dalı
 
-Bu dal mevcut main (05984d47df0b857f2b3da301e4d09ff4c1a2489a) üzerine hazırlandı. Ana dal ve canlı uygulama değiştirilmedi.
-Android paket kimliği ve mevcut Expo proje bağlantısı korundu. Sürüm kodu 5.
+Bu dal mevcut main (bf8a4af09f737ff6aba6acfa06cc880ad28e52b5) üzerine hazırlandı. Ana dal ve canlı uygulama değiştirilmedi.
+Android paket kimliği ve mevcut Expo proje bağlantısı korundu. Sürüm kodu 6.
 
 ## Kontroller
 - pnpm sürümü: pnpm@10.26.1

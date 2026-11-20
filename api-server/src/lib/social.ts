@@ -62,23 +62,28 @@ export async function profileData(id: string, viewer: string | null): Promise<Re
     (SELECT count(*)::int FROM profile_follows WHERE follower_id=u.id) AS "followingCount",
     EXISTS(SELECT 1 FROM profile_follows WHERE followed_id=u.id AND follower_id=$2) AS following,
     (u.id=$2) IS TRUE AS "isMe",
-    (u.presence_active AND u.last_seen>now()-interval '60 seconds') AS online,u.last_seen AS "lastSeen",
-    EXISTS(SELECT 1 FROM conversations c WHERE
+    (u.online_visible AND u.presence_active AND u.last_seen>now()-interval '60 seconds') AS online,
+    CASE WHEN u.online_visible THEN u.last_seen ELSE NULL END AS "lastSeen",
+    (u.online_visible AND EXISTS(SELECT 1 FROM conversations c WHERE
       ((c.user_low=u.id AND c.user_high=$2) OR (c.user_high=u.id AND c.user_low=$2))
-      AND (CASE WHEN c.user_low=u.id THEN c.low_typing_until ELSE c.high_typing_until END)>now()) AS typing,
+      AND (CASE WHEN c.user_low=u.id THEN c.low_typing_until ELSE c.high_typing_until END)>now())) AS typing,
     EXISTS(SELECT 1 FROM (SELECT b.author_id FROM book_reads r JOIN authored_books b ON b.id=r.book_id
       WHERE r.created_at>now()-make_interval(days=>$3) AND r.reader_id<>b.author_id
       GROUP BY b.author_id ORDER BY count(*) DESC,b.author_id LIMIT $4) ranking WHERE ranking.author_id=u.id) AS popular
     FROM community_users u WHERE u.id=$1`, [id, viewer, settings.popularDays, settings.popularLimit]);
   const row = result.rows[0] ?? fail(404, 'Profil bulunamadı.');
+  const isAdmin = row.isMe ? await isAdministrator(id) : false;
+  const preference = isAdmin ? (await pool.query<{ online_visible: boolean }>(
+    'SELECT online_visible FROM community_users WHERE id=$1', [id])).rows[0]?.online_visible ?? null : null;
   return { ...row, online: !!row.online, lastSeen: row.lastSeen ? new Date(row.lastSeen).toISOString() : null,
-    premium: false, isAdmin: row.isMe ? await isAdministrator(id) : false };
+    premium: false, isAdmin, onlineVisible: preference };
 }
-export async function socialNotify(client: Transaction, recipient: string, actor: string, kind: string, event: string, threadId: string | null = null, bookId: string | null = null) {
-  if (recipient === actor) return;
-  await client.query(`INSERT INTO social_notifications(recipient_id,actor_id,kind,event_key,thread_id,book_id)
-    VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(recipient_id,event_key) DO UPDATE SET read=false,created_at=now()`,
-  [recipient, actor, kind, event, threadId, bookId]);
+export async function socialNotify(client: Transaction, recipient: string, actor: string, kind: string, event: string,
+  threadId: string | null = null, bookId: string | null = null, commentId: string | null = null, chapterId: string | null = null) {
+  if (recipient === actor || !['chapter', 'book_comment', 'comment_reply'].includes(kind)) return;
+  await client.query(`INSERT INTO social_notifications(recipient_id,actor_id,kind,event_key,thread_id,book_id,comment_id,chapter_id)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(recipient_id,event_key) DO NOTHING`,
+  [recipient, actor, kind, event, threadId, bookId, commentId, chapterId]);
 }
 export function pageCursor(value: unknown): { date: string | null; id: string | null } {
   if (!value) return { date: null, id: null };

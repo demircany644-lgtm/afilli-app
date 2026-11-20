@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, text, uuid, timestamp, date, integer, boolean, primaryKey, uniqueIndex, index, check } from 'drizzle-orm/pg-core';
+import { pgTable, pgSequence, text, uuid, timestamp, date, integer, bigint, jsonb, boolean, primaryKey, uniqueIndex, index, check, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { communityUsers, authoredBooks } from './community';
+import { writerCommentNodes } from './writer';
 
 export const socialSettings = pgTable('social_settings', {
   id: boolean('id').primaryKey().default(true),
@@ -45,16 +46,46 @@ export const conversations = pgTable('conversations', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex('conversation_pair_unique').on(t.userLow, t.userHigh),
   check('conversation_pair_order', sql`${t.userLow} < ${t.userHigh}`)]);
+export const directMessageChangeSequence = pgSequence('direct_message_change_seq');
+export const directMessageUploads = pgTable('direct_message_uploads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadId: uuid('thread_id').references(() => conversations.id, { onDelete: 'set null' }),
+  ownerId: text('owner_id').references(() => communityUsers.id, { onDelete: 'set null' }),
+  clientId: uuid('client_id').notNull(), size: integer('size').notNull(),
+  ready: boolean('ready').notNull().default(false),
+  width: integer('width'), height: integer('height'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  sourcePutUntil: timestamp('source_put_until', { withTimezone: true }).notNull().default(sql`now()+interval '16 minutes'`),
+  attachedAt: timestamp('attached_at', { withTimezone: true }),
+  deleteRequestedAt: timestamp('delete_requested_at', { withTimezone: true }),
+  purgedAt: timestamp('purged_at', { withTimezone: true }),
+}, t => [uniqueIndex('direct_upload_retry').on(t.threadId, t.ownerId, t.clientId),
+  index('direct_upload_cleanup').on(t.deleteRequestedAt, t.purgedAt),
+  check('direct_upload_size', sql`${t.size} BETWEEN 1 AND 2097152`)]);
 export const directMessages = pgTable('direct_messages', {
   id: uuid('id').primaryKey().defaultRandom(),
   threadId: uuid('thread_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
   senderId: text('sender_id').notNull().references(() => communityUsers.id),
   clientId: uuid('client_id').notNull(), body: text('body').notNull(),
+  sequence: bigint('sequence', { mode: 'bigint' }).generatedByDefaultAsIdentity().notNull(),
+  payloadHash: text('payload_hash'),
+  replyToId: uuid('reply_to_id').references((): AnyPgColumn => directMessages.id, { onDelete: 'set null' }),
+  hasReply: boolean('has_reply').notNull().default(false),
+  gif: jsonb('gif'),
+  photoId: uuid('photo_id').references(() => directMessageUploads.id),
+  changeSequence: bigint('change_sequence', { mode: 'bigint' }).notNull().default(sql`nextval('direct_message_change_seq')`),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  mediaExpiredAt: timestamp('media_expired_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   readAt: timestamp('read_at', { withTimezone: true }),
 }, (t) => [uniqueIndex('message_idempotency').on(t.threadId, t.senderId, t.clientId),
   index('message_thread_order').on(t.threadId, t.createdAt, t.id),
-  check('message_nonempty_limit', sql`length(trim(${t.body})) BETWEEN 1 AND 4000`)]);
+  uniqueIndex('message_sequence_unique').on(t.sequence),
+  index('message_thread_sequence').on(t.threadId, t.sequence),
+  index('message_thread_changes').on(t.threadId, t.changeSequence),
+  index('message_quote_target').on(t.replyToId),
+  uniqueIndex('message_photo_once').on(t.photoId),
+  check('message_nonempty_limit', sql`length(trim(${t.body})) <= 4000 AND (length(trim(${t.body})) > 0 OR ${t.gif} IS NOT NULL OR ${t.photoId} IS NOT NULL OR ${t.deletedAt} IS NOT NULL OR ${t.mediaExpiredAt} IS NOT NULL)`)]);
 export const socialNotifications = pgTable('social_notifications', {
   id: uuid('id').primaryKey().defaultRandom(),
   recipientId: text('recipient_id').notNull().references(() => communityUsers.id),
@@ -62,6 +93,8 @@ export const socialNotifications = pgTable('social_notifications', {
   kind: text('kind').notNull(), eventKey: text('event_key').notNull(),
   threadId: uuid('thread_id').references(() => conversations.id, { onDelete: 'cascade' }),
   bookId: uuid('book_id').references(() => authoredBooks.id, { onDelete: 'cascade' }),
+  commentId: uuid('comment_id').references(() => writerCommentNodes.id, { onDelete: 'cascade' }),
+  chapterId: uuid('chapter_id'),
   read: boolean('read').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex('social_notification_event').on(t.recipientId, t.eventKey)]);

@@ -1,19 +1,23 @@
 import React from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
-import { useGetConversations, getGetConversationsQueryKey, type Conversation } from '@workspace/api-client-react';
+import type { Conversation } from '@workspace/api-client-react';
+import { useDirectMessages } from '@/context/DirectMessagesContext';
 import { useCommunity } from '@/context/CommunityContext';
 import { useApp } from '@/context/AppContext';
 import { F, tap } from '@/components/ui';
 import { Avatar, timeAgo } from '@/components/bulletins/common';
-import { MarbleBackground, P, RoundIcon, S, Skeleton, StateCard, TopBar, k } from '@/components/profile/kit';
-import { go, scoped, useFocusedForeground, withIdentity } from '@/components/profile/hooks';
+import { MarbleBackground, RoundIcon, Skeleton, StateCard, TopBar, SectionLabel , useKitStyles } from '@/components/profile/kit';
+import { go, withIdentity } from '@/components/profile/hooks';
 import { SampleConversations } from '@/components/SampleConversations';
 
 function Row({ c }: { c: Conversation }) {
+  const { magazine: P, social: S } = useTheme();
+  const st = useStStyles();
   const status = c.peerTyping ? 'Yazıyor...' : c.lastMessage ?? 'Henüz mesaj yok';
   return (
-    <Pressable testID={'conversation-' + c.id} accessibilityRole="link" accessibilityLabel={`${c.peer.nickname}, ${status}${c.unreadCount ? ', ' + c.unreadCount + ' okunmamış' : ''}`}
+    <Pressable testID={'conversation-' + c.id} accessibilityRole="link" accessibilityLabel={`${c.peer.nickname}, ${status}${c.unreadCount ? ', okunmamış mesaj var' : ''}`}
       onPress={() => { tap(); go('/chat/' + c.id); }} style={({ pressed }) => [st.row, { transform: [{ scale: pressed ? 0.99 : 1 }] }]}>
       <View>
         <Avatar person={c.peer} size={48} />
@@ -26,17 +30,20 @@ function Row({ c }: { c: Conversation }) {
         </View>
         <Text style={[st.last, c.peerTyping && { color: S.typing }, c.unreadCount > 0 && { color: P.text, fontFamily: F.semi }]} numberOfLines={1}>{status}</Text>
       </View>
-      {c.unreadCount > 0 ? <View style={st.badge}><Text style={st.badgeText}>{c.unreadCount > 99 ? '99+' : c.unreadCount}</Text></View> : null}
+      {c.unreadCount > 0 ? <View accessibilityLabel="Okunmamış mesaj var" style={st.badge} /> : null}
     </Pressable>
   );
 }
 
 function Archive() {
+  const { magazine: P, magazine: m } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
   const { messages } = useApp();
   if (messages.length === 0) return null;
   return (
     <View testID="messages-local-archive">
-      <Text style={k.section}>Bu cihazdaki eski mesajlar</Text>
+      <SectionLabel>Bu cihazdaki eski mesajlar</SectionLabel>
       <View style={k.card}>
         {messages.map((m, i) => (
           <View key={m.id} style={[{ padding: 14, gap: 3 }, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: P.border }]}>
@@ -51,10 +58,14 @@ function Archive() {
 }
 
 function Messages() {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
   const { ready, userId } = useCommunity();
-  const active = useFocusedForeground();
-  const q = useGetConversations({ query: { enabled: ready && !!userId, queryKey: scoped(getGetConversationsQueryKey(), userId), refetchInterval: active ? 12000 : false } });
-  const items = q.data ?? [];
+  const dm = useDirectMessages();
+  const [refreshing, setRefreshing] = React.useState(false);
+  const refetch = () => { setRefreshing(true); dm.refresh().finally(() => setRefreshing(false)); };
+  const items = dm.conversations;
+  const q = { isLoading: dm.loading && items.length === 0, isError: !!dm.error, data: items.length ? items : (dm.loading || dm.error ? undefined : items), refetch, isRefetching: refreshing };
 
   let body: React.ReactNode;
   if (!ready || (userId && q.isLoading)) body = <View style={{ padding: 18, gap: 10 }}>{[0, 1, 2, 3].map((i) => <Skeleton key={i} w="100%" h={70} r={18} />)}</View>;
@@ -75,7 +86,7 @@ function Messages() {
       contentContainerStyle={{ paddingBottom: 30, paddingTop: 4 }}
       refreshing={q.isRefetching} onRefresh={() => q.refetch()}
       ListEmptyComponent={<StateCard testID="messages-empty" icon="feather" title="Henüz bir sohbetin yok" text="Okuduğun bir yazarın profilinden Mesaj'a dokunarak ilk mektubunu yaz."
-        action={{ label: 'Okurları keşfet', icon: 'users', testID: 'messages-find-people', onPress: () => go('/people') }} />}
+        action={{ label: 'Okurları keşfet', icon: 'users', testID: 'messages-find-people', onPress: () => go('/search?tab=people') }} />}
       ListFooterComponent={<Archive />} />
   );
 
@@ -89,14 +100,16 @@ function Messages() {
           style={({ pressed }) => [st.writerChat, { opacity: pressed ? 0.7 : 1 }]}>
           <Text style={st.writerChatLabel}>Yazar sohbeti</Text>
         </Pressable>
-        {userId ? <RoundIcon icon="edit" label="Yeni sohbet" testID="messages-new" onPress={() => go('/people')} /> : null}
+        {userId ? <RoundIcon icon="edit" label="Yeni sohbet" testID="messages-new" onPress={() => go('/search?tab=people')} /> : null}
       </>} />
       {body}
     </View>
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: P } = t;
+  return StyleSheet.create({
   writerChat: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center', borderWidth: 1, borderColor: P.border, borderRadius: 22, backgroundColor: P.card },
   writerChatLabel: { fontFamily: F.semi, fontSize: 12, color: P.text },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 74, marginHorizontal: 18, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, borderWidth: 1, borderColor: P.border, backgroundColor: P.card },
@@ -104,8 +117,8 @@ const st = StyleSheet.create({
   name: { flex: 1, fontFamily: F.semi, fontSize: 15, color: P.text },
   time: { fontFamily: F.body, fontSize: 11, color: P.muted },
   last: { fontFamily: F.body, fontSize: 13, color: P.muted, marginTop: 2 },
-  badge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: P.gold },
-  badgeText: { fontFamily: F.semi, fontSize: 11, color: P.text },
+  badge: { width: 9, height: 9, borderRadius: 5, backgroundColor: P.danger },
+  });
 });
 
 export default withIdentity(Messages);

@@ -9,6 +9,7 @@ export const communityUsers = pgTable('community_users', {
   facebookUrl: text('facebook_url'), xUrl: text('x_url'),
   lastSeen: timestamp('last_seen', { withTimezone: true }),
   presenceActive: boolean('presence_active').notNull().default(false),
+  onlineVisible: boolean('online_visible').notNull().default(true),
 }, (t) => [uniqueIndex('community_handle_unique').on(t.handle)]);
 export const authoredBooks = pgTable('authored_books', {
   id: uuid('id').defaultRandom().primaryKey(),

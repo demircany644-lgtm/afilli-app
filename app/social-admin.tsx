@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetMyProfile, getGetMyProfileQueryKey, getGetSocialSettingsQueryKey, useUpdateAdminSettings } from '@workspace/api-client-react';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useCommunity } from '@/context/CommunityContext';
 import { apiError } from '@/components/bulletins/common';
-import { FoilButton, MarbleBackground, Notice, P, ProfileSkeleton, StateCard, TopBar, k } from '@/components/profile/kit';
+import { FoilButton, MarbleBackground, Notice, ProfileSkeleton, StateCard, TopBar , useKitStyles } from '@/components/profile/kit';
 import { useSocialSettings } from '@/components/profile/SocialRow';
 import { actorRequest, go, scoped, useOwnerGuard, withIdentity } from '@/components/profile/hooks';
 
 function SocialAdmin() {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   const { ready, userId } = useCommunity();
   const qc = useQueryClient();
   const me = useGetMyProfile({ query: { enabled: ready && !!userId, queryKey: scoped(getGetMyProfileQueryKey(), userId) } });
