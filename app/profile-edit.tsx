@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
 import { useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetMyProfile, getGetMyProfileQueryKey, useUpdateMyProfile, type ProfileEditInput } from '@workspace/api-client-react';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useCommunity } from '@/context/CommunityContext';
 import { apiError } from '@/components/bulletins/common';
-import { FoilButton, MarbleBackground, Notice, P, ProfileSkeleton, StateCard, TopBar, k } from '@/components/profile/kit';
+import { FoilButton, MarbleBackground, Notice, ProfileSkeleton, StateCard, TopBar , useKitStyles } from '@/components/profile/kit';
 import { MediaField, type MediaChange } from '@/components/profile/MediaField';
 import { actorRequest, go, goBack, scoped, useOwnerGuard, withIdentity } from '@/components/profile/hooks';
 import { PROFILE_HANDLE_RE } from '@/lib/social-links';
@@ -16,6 +17,8 @@ const AUTHOR_CACHES = ['/api/my-profile', '/api/profiles', '/api/bulletins', '/a
 type Form = { nickname: string; handle: string; bio: string; quote: string };
 
 function Field({ label, hint, error, testID, ...rest }: TextInputProps & { label: string; hint?: string; error?: string | null; testID: string }) {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   return (
     <View>
       <Text style={k.label}>{label}</Text>
@@ -26,6 +29,7 @@ function Field({ label, hint, error, testID, ...rest }: TextInputProps & { label
 }
 
 function ProfileEdit() {
+  const { magazine: P } = useTheme();
   const { ready, userId, refreshProfile } = useCommunity();
   const alive = useOwnerGuard(userId);
   const params = useLocalSearchParams<{ prefillName?: string; prefillBio?: string; focus?: string }>();

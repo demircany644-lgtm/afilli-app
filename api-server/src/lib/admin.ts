@@ -44,7 +44,7 @@ export function reasonText(value: string) {
 }
 export const accountColumns = `a.user_id AS id,u.nickname,a.email,a.role,a.disabled,
   a.email_verified AS "emailVerified",a.created_at AS "createdAt"`;
-export async function adminAccount(db: PoolClient, id: string): Promise<AdminAccount> {
+export async function adminAccount(db: PoolClient | typeof pool, id: string): Promise<AdminAccount> {
   const result = await db.query<AdminAccount & { createdAt: Date }>(
     `SELECT ${accountColumns} FROM afilli_auth_accounts a JOIN community_users u ON u.id=a.user_id WHERE a.user_id=$1`, [id]);
   const row = result.rows[0] ?? fail(404, 'Hesap bulunamadı.');

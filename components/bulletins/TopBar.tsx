@@ -1,13 +1,16 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { F, tap } from '@/components/ui';
-import { b } from '@/components/bulletins/common';
+
 
 /** Fixed top row: back on the left, centered title, search/messages/profile on the right. */
 export function TopBar({ title, backTo = '/', icons = true }: { title: string; backTo?: Href; icons?: boolean }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 67 : insets.top;
   const icon = (name: keyof typeof Feather.glyphMap, path: Href, label: string) => (
@@ -32,9 +35,12 @@ export function TopBar({ title, backTo = '/', icons = true }: { title: string; b
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingBottom: 8, backgroundColor: b.background, borderBottomWidth: 1, borderColor: b.border },
   side: { width: 108, flexDirection: 'row', alignItems: 'center' },
   icon: { width: 36, height: 40, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, textAlign: 'center', fontFamily: F.serifBold, fontSize: 20, color: b.text },
+  });
 });

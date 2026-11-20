@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, type Href } from 'expo-router';
 import { useMagazine } from '@/context/MagazineContext';
 import { useApp } from '@/context/AppContext';
 import { SAMPLE_MAGAZINE_ID } from '@/data/magazine';
 import { F, tap } from '@/components/ui';
-import { MagazineHeader, MagazineScrollView, MagazineSkeleton, Notice, m } from '@/components/MagazineUI';
+import { MagazineHeader, MagazineScrollView, MagazineSkeleton, Notice } from '@/components/MagazineUI';
 
 export default function MagazineComments() {
+  const { magazine: m } = useTheme();
+  const st = useStStyles();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = String(rawId ?? '');
   const mag = useMagazine();
@@ -72,7 +75,9 @@ export default function MagazineComments() {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: m } = t;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: m.background },
   content: { padding: 16, gap: 12, paddingBottom: 24 },
   title: { fontSize: 19, fontFamily: F.semi, fontWeight: '700', color: m.text },
@@ -86,4 +91,5 @@ const st = StyleSheet.create({
   input: { flex: 1, minHeight: 48, maxHeight: 140, backgroundColor: m.input, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, fontFamily: F.body, color: m.text },
   send: { width: 48, height: 48, borderRadius: 10, backgroundColor: m.gold, alignItems: 'center', justifyContent: 'center' },
   err: { fontSize: 13, fontFamily: F.semi, color: m.danger },
+  });
 });

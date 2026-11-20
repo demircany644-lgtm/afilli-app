@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { F, tap } from '@/components/ui';
 import type { EditorSel } from '@/lib/writer-editor-html';
-import { W } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette,  } from '@/components/writer/parts';
 
 export const INK_COLORS = [
   { v: '#3E2A1A', label: 'Mürekkep' }, { v: '#9A7430', label: 'Altın' }, { v: '#A6392D', label: 'Kırmızı' },
@@ -13,6 +14,8 @@ type Cmd = (name: string, value?: unknown) => void;
 type Extra = { onLink: () => void; onImage: () => void; onSpell: () => void; onVoice: () => void; night: boolean; onNight: () => void; focus: boolean; onFocus: () => void; spellBusy: boolean; imageBusy: boolean };
 
 function T({ icon, mc, label, on, onPress, text, disabled, busy }: { icon?: keyof typeof Feather.glyphMap; mc?: keyof typeof MaterialCommunityIcons.glyphMap; label: string; on?: boolean; onPress: () => void; text?: string; disabled?: boolean; busy?: boolean }) {
+  const W = useWriterPalette();
+  const tb = useTbStyles();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: !!on, disabled: !!disabled, busy: !!busy }} disabled={disabled}
       testID={'tool-' + label.replace(/\s+/g, '-').toLowerCase()} onPress={() => { tap(); onPress(); }} hitSlop={2}
@@ -23,6 +26,7 @@ function T({ icon, mc, label, on, onPress, text, disabled, busy }: { icon?: keyo
 }
 
 export function Toolbar({ sel, cmd, x }: { sel: EditorSel | null; cmd: Cmd; x: Extra }) {
+  const tb = useTbStyles();
   const [panel, setPanel] = useState<null | 'size' | 'color'>(null);
   const s = sel;
   return (
@@ -76,7 +80,9 @@ export function Toolbar({ sel, cmd, x }: { sel: EditorSel | null; cmd: Cmd; x: E
   );
 }
 
-const tb = StyleSheet.create({
+const useTbStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   wrap: { backgroundColor: W.paper, borderRadius: 14, borderWidth: 1, borderColor: W.line, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 2, padding: 5 },
   btn: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
@@ -87,4 +93,5 @@ const tb = StyleSheet.create({
   opt: { paddingHorizontal: 14, height: 38, borderRadius: 10, backgroundColor: W.cream, justifyContent: 'center' },
   optText: { fontFamily: F.serif, color: W.ink },
   swatch: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: W.paper, shadowColor: W.deep, shadowOpacity: 0.2, shadowRadius: 2, elevation: 2 },
+  });
 });

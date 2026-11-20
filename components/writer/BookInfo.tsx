@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import type { WriterDocumentAgeRating, WriterDocumentCompletion } from '@workspace/api-client-react';
 import { F } from '@/components/ui';
 import { GENRES, LANGUAGES, TITLE_MAX, DESC_MAX } from '@/lib/writer-text';
-import { W, Chip, Segmented, Label } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette, Chip, Segmented, Label } from '@/components/writer/parts';
 import type { WriterBookApi } from '@/components/writer/useWriterBook';
 
 export function BookInfo({ api }: { api: WriterBookApi }) {
+  const W = useWriterPalette();
+  const bi = useBiStyles();
   const doc = api.rec!.doc;
   const [touched, setTouched] = useState(false);
   const tl = doc.title.trim().length;
@@ -52,11 +55,14 @@ export function BookInfo({ api }: { api: WriterBookApi }) {
   );
 }
 
-const bi = StyleSheet.create({
+const useBiStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   card: { marginHorizontal: 16, marginTop: 14, padding: 16, paddingTop: 2, backgroundColor: W.paper, borderRadius: 20, borderWidth: 1, borderColor: W.line },
   title: { fontFamily: F.serifBold, fontSize: 20, color: W.ink, borderBottomWidth: 1.5, borderColor: W.gold, paddingVertical: 8 },
   desc: { fontFamily: F.body, fontSize: 14, lineHeight: 21, color: W.ink, minHeight: 92, backgroundColor: W.cream, borderRadius: 12, padding: 12 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   hint: { fontFamily: F.body, fontSize: 11.5, color: W.muted, marginTop: 6 },
   err: { fontFamily: F.med, fontSize: 12, color: W.danger, marginTop: 6 },
+  });
 });

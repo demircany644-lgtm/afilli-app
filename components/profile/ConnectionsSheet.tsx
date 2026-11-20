@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
 import { useGetProfileConnections, getGetProfileConnectionsQueryKey, type CommunityPerson } from '@workspace/api-client-react';
 import { Avatar, Sheet } from '@/components/bulletins/common';
 import { F, tap } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
-import { FoilButton, P, Skeleton, StateCard } from './kit';
+import { FoilButton, Skeleton, StateCard } from './kit';
 import { go, scoped } from './hooks';
 
 type Kind = 'followers' | 'following';
 
 function Page({ id, kind, cursor, onNext, isLast }: { id: string; kind: Kind; cursor?: string; onNext: (c: string) => void; isLast: boolean }) {
+  const { magazine: P } = useTheme();
   const { ready, userId } = useCommunity();
   const params = cursor ? { kind, cursor } : { kind };
   const q = useGetProfileConnections(id, params, { query: { enabled: ready && !!id, queryKey: scoped(getGetProfileConnectionsQueryKey(id, params), userId) } });

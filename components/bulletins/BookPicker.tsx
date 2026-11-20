@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useGetWriterLibrary, getGetWriterLibraryQueryKey, useGetAuthoredBooks, getGetAuthoredBooksQueryKey, getAuthoredBook, type AuthoredBook } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
 import { scoped, actorRequest, useOwnerGuard } from '@/components/profile/hooks';
-import { b, Sheet, Btn, BookCover, apiError, mediaUrl, OFFLINE } from '@/components/bulletins/common';
+import { Sheet, Btn, BookCover, apiError, mediaUrl, OFFLINE } from '@/components/bulletins/common';
 import { WriterCover } from '@/components/writer/parts';
 
 /**
@@ -14,6 +15,8 @@ import { WriterCover } from '@/components/writer/parts';
  * drafts point to Kitap Yaz and are NEVER published by attaching them.
  */
 export function BookPicker({ visible, onClose, onSelect }: { visible: boolean; onClose: () => void; onSelect: (book: AuthoredBook) => void }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const { userId, ready } = useCommunity();
   const guard = useOwnerGuard(userId);
   const on = visible && ready && !!userId;
@@ -82,7 +85,9 @@ export function BookPicker({ visible, onClose, onSelect }: { visible: boolean; o
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: b.border },
   title: { fontFamily: F.serifBold, fontSize: 15, color: b.text },
   muted: { fontFamily: F.body, fontSize: 12, color: b.muted },
@@ -90,4 +95,5 @@ const st = StyleSheet.create({
   err: { color: b.danger, fontFamily: F.med, fontSize: 13, marginBottom: 8 },
   empty: { alignItems: 'center', gap: 8, paddingVertical: 18 },
   note: { fontFamily: F.body, fontSize: 12, lineHeight: 17, color: b.muted, marginTop: 14, padding: 10, borderRadius: 10, backgroundColor: b.background },
+  });
 });

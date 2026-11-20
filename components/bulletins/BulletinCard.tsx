@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -10,11 +11,13 @@ import {
 } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
-import { b, Avatar, BookCover, Sheet, SheetRow, ConfirmDelete, apiError, mediaUrl, timeAgo, goSignIn } from '@/components/bulletins/common';
+import { Avatar, BookCover, Sheet, SheetRow, ConfirmDelete, apiError, mediaUrl, timeAgo, goSignIn } from '@/components/bulletins/common';
 import { ReactionPicker, ReactionBuckets, ReactionPeopleSheet, LikesSheet } from '@/components/bulletins/Reactions';
 import { Composer } from '@/components/bulletins/Composer';
 
 function Photo({ p }: { p: BulletinPhoto }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const [ratio, setRatio] = useState<number | null>(null);
   const [failed, setFailed] = useState(false);
   const uri = mediaUrl(p.url);
@@ -32,6 +35,8 @@ function Photo({ p }: { p: BulletinPhoto }) {
 }
 
 export function BulletinCard({ post, onChange, onRemoved, detail }: { post: Bulletin; onChange?: (b: Bulletin) => void; onRemoved?: (id: string) => void; detail?: boolean }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const qc = useQueryClient();
   const { userId } = useCommunity();
   const [menu, setMenu] = useState(false);
@@ -161,7 +166,9 @@ export function BulletinCard({ post, onChange, onRemoved, detail }: { post: Bull
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   card: { backgroundColor: b.card, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: b.border, marginBottom: 14 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   name: { fontFamily: F.serifBold, fontSize: 16, color: b.text },
@@ -181,4 +188,5 @@ const st = StyleSheet.create({
   countBtn: { minHeight: 40, minWidth: 28, justifyContent: 'center', paddingHorizontal: 4 },
   count: { fontFamily: F.semi, fontSize: 13, color: b.text },
   editTitle: { fontFamily: F.serifBold, fontSize: 22, color: b.text, marginBottom: 12 },
+  });
 });

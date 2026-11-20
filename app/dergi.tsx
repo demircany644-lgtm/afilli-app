@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,7 +11,7 @@ import {
   MAGAZINE_WORD_LIMIT, SAMPLE_MAGAZINE, SAMPLE_MAGAZINE_ID, countMagazineWords, limitMagazineText, type MagazinePost,
 } from '@/data/magazine';
 import { F, tap } from '@/components/ui';
-import { MagazineActions, MagazineHeader, MagazineScrollView, MagazineSkeleton, Notice, m, sharePost } from '@/components/MagazineUI';
+import { MagazineActions, MagazineHeader, MagazineScrollView, MagazineSkeleton, Notice, sharePost } from '@/components/MagazineUI';
 import type { MagazineScrollHandle } from '@/components/MagazineUI';
 
 const COVER = require('@/assets/images/magazine/autumn-cover.webp');
@@ -18,6 +19,8 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const GATE_MSG = 'Dergi yazısı yazmak ve yayınlamak için abone olmalısınız. Ödeme sistemi henüz bağlı olmadığı için şu an abonelik başlatılamıyor.';
 
 export default function Dergi() {
+  const { magazine: m } = useTheme();
+  const st = useStStyles();
   const mag = useMagazine();
   const { name } = useApp();
   const scrollRef = useRef<MagazineScrollHandle>(null);
@@ -258,7 +261,9 @@ export default function Dergi() {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: m } = t;
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: m.background },
   content: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 20, gap: 14 },
   card: {
@@ -300,4 +305,5 @@ const st = StyleSheet.create({
   archiveTitle: { fontSize: 16, fontFamily: F.semi, color: m.text },
   archiveItem: { paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: m.input, gap: 3 },
   archiveItemTitle: { fontSize: 15, fontFamily: F.semi, color: m.text },
+  });
 });

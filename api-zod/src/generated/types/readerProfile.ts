@@ -23,6 +23,11 @@ export interface ReaderProfile {
   isMe: boolean;
   isAdmin: boolean;
   online: boolean;
+  /**
+     * Own administrator visibility preference; null for other viewers and regular accounts
+     * @nullable
+     */
+  onlineVisible?: boolean | null;
   /** @nullable */
   lastSeen: string | null;
   typing: boolean;

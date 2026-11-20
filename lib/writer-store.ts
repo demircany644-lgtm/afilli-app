@@ -63,7 +63,7 @@ const isNat = (x: unknown): x is number => typeof x === 'number' && Number.isInt
 const isTime = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x) && x >= 0;
 const strOrNull = (x: unknown) => x === null || typeof x === 'string';
 const dateOrNull = (x: unknown) => x === null || typeof x === 'string' && Number.isFinite(Date.parse(x));
-const genres = new Set(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim']);
+const genres = new Set(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim']);
 const optional = <T>(x: unknown, ok: (v: unknown) => boolean, dflt: T): T | false => x === undefined ? dflt : ok(x) ? x as T : false;
 
 function validDoc(d: unknown): d is WriterDocument {
@@ -156,13 +156,20 @@ async function rawGet(owner: string, id: string): Promise<WriterRecord | null> {
   const raw = await AsyncStorage.getItem(bookKey(owner, id));
   return raw == null ? null : decodeRecord(raw, owner, id);
 }
-async function isTomb(owner: string, id: string) { return (await AsyncStorage.getItem(tombKey(owner, id))) != null; }
+async function isTomb(owner: string, id: string) {
+  return (await AsyncStorage.getItem(PREFIX + 'owner-deleted:' + owner)) != null || (await AsyncStorage.getItem(tombKey(owner, id))) != null;
+}
 async function guestClaimed(owner: string, id: string) { return owner === 'guest' && (await AsyncStorage.getItem(ledgerKey(id))) != null; }
 async function rawPut(owner: string, id: string, next: WriterRecord) {
   if (next.owner !== owner || next.id !== id) throw new WriterStoreError('Kayıt sahibi veya kimliği uyuşmuyor; hiçbir şey yazılmadı.');
   if (await isTomb(owner, id)) throw new WriterDeletedError('Bu kitap silinmiş; yeniden yazılmadı.');
   if (await guestClaimed(owner, id)) throw new WriterDeletedError('Bu misafir taslağı bir hesaba aktarılmış; yeniden yazılmadı.');
   await AsyncStorage.setItem(bookKey(owner, id), JSON.stringify(next));
+  // Another tab can commit owner deletion while this tab's write awaits IO.
+  if (await isTomb(owner, id)) {
+    await AsyncStorage.removeItem(bookKey(owner, id));
+    throw new WriterDeletedError('Bu hesap veya kitap silinmiş; geç kayıt kaldırıldı.');
+  }
 }
 
 export function readRecord(owner: string, id: string): Promise<WriterRecord | null> {
@@ -195,6 +202,27 @@ export function removeRecord(owner: string, id: string): Promise<void> {
     await AsyncStorage.setItem(tombKey(owner, id), JSON.stringify({ at: Date.now() }));
     await AsyncStorage.removeItem(bookKey(owner, id));
   });
+}
+
+/** Preserve non-billable ownership/tombstones, remove only this deleted owner's text. */
+export async function purgeOwnerWriterRecords(owner: string): Promise<void> {
+  if (!owner || owner === 'guest') throw new WriterStoreError('Hesap kimliği gerekli.');
+  await AsyncStorage.setItem(PREFIX + 'owner-deleted:' + owner, '1');
+  const prefix = PREFIX + 'book:' + owner + ':';
+  await Promise.allSettled([...queues.entries()].filter(([key]) => key.startsWith(prefix) || key.startsWith('gclaim:')).map(([, run]) => run));
+  const keys = await AsyncStorage.getAllKeys();
+  for (const key of keys.filter(key => key.startsWith(prefix))) await removeRecord(owner, key.slice(prefix.length));
+  for (const key of keys.filter(key => key.startsWith(PREFIX + 'gclaim:'))) {
+    await serial(key, async () => {
+      const raw = await AsyncStorage.getItem(key);
+      if (!raw) return;
+      const ledger = JSON.parse(raw) as ClaimLedger;
+      if (ledger.owner !== owner || !ledger.snapshot) return;
+      const fingerprint = ledger.docHash ?? await docHash(ledger.snapshot.doc);
+      await removeRecord('guest', ledger.guestId);
+      await AsyncStorage.setItem(key, JSON.stringify({ ...ledger, docHash: fingerprint, done: true, snapshot: null }));
+    });
+  }
 }
 
 /**
@@ -271,6 +299,7 @@ async function finishClaim(led: ClaimLedger) {
 export function claimGuestRecord(owner: string, id: string): Promise<void> {
   if (owner === 'guest') return Promise.reject(new WriterStoreError('Önce giriş yap.'));
   return serial('gclaim:' + id, async () => {
+    if (await AsyncStorage.getItem(PREFIX + 'owner-deleted:' + owner)) throw new WriterDeletedError('Bu hesap silinmiş; taslak aktarılmadı.');
     const existing = await readLedger(id);
     if (existing) {
       if (existing.owner !== owner) throw new WriterStoreError('Bu taslak bu cihazda başka bir hesaba aktarılmış.');

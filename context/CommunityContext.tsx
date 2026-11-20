@@ -1,14 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { getMyProfile, updatePresence, setAuthTokenGetter, type CommunityPerson } from '@workspace/api-client-react';
-
-type Session = {
-  ready: boolean; userId: string | null; person: CommunityPerson | null;
-  error: string | null; signOut: (redirectTo?: string) => Promise<void>; refreshProfile: () => Promise<void>;
-};
-const CommunityContext = createContext<Session | null>(null);
+import { setLiveProgressOwner } from '@/lib/reading-progress';
+import { CommunityContext } from './community-session';
 
 export function CommunityProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded, userId, getToken, signOut: endSession } = useAuth();
@@ -19,6 +15,7 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const previous = useRef<string | null | undefined>(undefined);
   const currentIdentity = useRef(userId); currentIdentity.current = userId;
+  useEffect(() => { setLiveProgressOwner(transportReady ? userId : null); }, [transportReady, userId]);
 
   useEffect(() => {
     const owner = userId;

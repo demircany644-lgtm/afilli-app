@@ -6,6 +6,8 @@ import { SaveWriterBookBody, PatchWriterBookBody, PatchWriterBookResponse, Delet
 import { route, requirePerson, parse, uuid, fail, viewer, transaction } from '../lib/community';
 import { authoredBook, authoredCards, librarySummaries, ownWriter, patchWriter, publishWriter, requirePublished, saveWriter, writerRow } from '../lib/writer-service';
 import { legacyDocument, writerBook } from '../lib/writer-document';
+import { addComment, commentNode, commentScope } from '../lib/book-comments';
+import { commentTree } from '../lib/book-comment-query';
 
 const router: IRouter = Router();
 router.get('/writer-books', route(async (req, res) => res.json(await librarySummaries((await requirePerson(req)).id))));
@@ -83,33 +85,15 @@ router.put('/authored-books/:id/like', route(async (req, res) => {
   });
   res.json(await authoredBook(id, owner.id));
 }));
-async function commentData(id: string) {
-  return (await pool.query(`SELECT c.id,c.body,c.chapter_id AS "chapterId",c.created_at AS "createdAt",
-    json_build_object('id',u.id,'nickname',u.nickname,'avatar',u.avatar) AS author
-    FROM writer_comments c JOIN community_users u ON u.id=c.author_id WHERE c.id=$1 AND NOT c.moderation_hidden`, [id])).rows[0]
-    ?? fail(404, 'Yorum bulunamadı veya denetim nedeniyle gizlendi.');
-}
 router.get('/authored-books/:id/comments', route(async (req, res) => {
-  const id = uuid(req.params.id);
-  const book = await authoredBook(id, viewer(req));
-  const chapterIds = (book.chapters ?? []).map(chapter => chapter.id);
-  const rows = await pool.query<{ id: string }>(`SELECT id FROM writer_comments WHERE book_id=$1 AND NOT moderation_hidden
-    AND ($2::boolean OR chapter_id IS NULL OR chapter_id=ANY($3::uuid[]))
-    ORDER BY created_at DESC,id DESC LIMIT 100`, [id, !!book.canEdit, chapterIds]);
-  res.json(await Promise.all(rows.rows.map(row => commentData(row.id))));
+  const scope = await commentScope(uuid(req.params.id));
+  const rows = await pool.query<{ id: string }>(`WITH RECURSIVE ${commentTree()}
+    SELECT n.id FROM visible_comment_nodes n JOIN writer_comments c ON c.id=n.id
+    ORDER BY n.created_at DESC,n.id DESC LIMIT 100`, [scope.id, scope.chapters]);
+  res.json(await Promise.all(rows.rows.map(row => commentNode(row.id, viewer(req), pool, scope))));
 }));
 router.post('/authored-books/:id/comments', route(async (req, res) => {
   const person = await requirePerson(req), id = uuid(req.params.id), input = parse(AddAuthoredBookCommentBody, req.body);
-  if (!input.body.trim()) return fail(400, 'Yorumunu yaz.');
-  const commentId = await transaction(async db => {
-    const row = await writerRow(id, db, true); await requirePublished(id, db);
-    const chapter = row.published_data ?? legacyDocument(row);
-    if (input.chapterId && !chapter.chapters.some(ch => ch.id === input.chapterId)) return fail(404, 'Bu bölüm henüz yayında değil.');
-    const result = await db.query<{ id: string }>(`INSERT INTO writer_comments(book_id,author_id,client_id,chapter_id,body)
-      VALUES($1,$2,$3,$4,$5) ON CONFLICT(book_id,author_id,client_id) DO UPDATE SET client_id=excluded.client_id RETURNING id`,
-    [id, person.id, input.clientId, input.chapterId ?? null, input.body.trim()]);
-    return result.rows[0].id;
-  });
-  res.json(await commentData(commentId));
+  res.json(await transaction(db => addComment(db, id, person.id, input)));
 }));
 export default router;

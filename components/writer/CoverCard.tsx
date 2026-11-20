@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useGetWriterPresets, getGetWriterPresetsQueryKey } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
@@ -7,12 +8,14 @@ import { Sheet, SheetRow, Btn, mediaUrl, apiError } from '@/components/bulletins
 import { scoped } from '@/components/profile/hooks';
 import { useCommunity } from '@/context/CommunityContext';
 import { pickImage } from '@/lib/writer-media';
-import { W, WriterCover, useCoverUri, Banner, type ToastMsg } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette, WriterCover, useCoverUri, Banner, type ToastMsg } from '@/components/writer/parts';
 import { CropSheet, type CropSource } from '@/components/writer/CropSheet';
 import type { WriterBookApi } from '@/components/writer/useWriterBook';
 
 /** Large dashed-gold cover slot with book-shaped live preview and crop/rotate/change/remove. */
 export function CoverCard({ api, author, offline, toast }: { api: WriterBookApi; author: string; offline: boolean; toast: (m: ToastMsg) => void }) {
+  const W = useWriterPalette();
+  const cc = useCcStyles();
   const { userId, ready } = useCommunity();
   const rec = api.rec!;
   const doc = rec.doc;
@@ -101,7 +104,9 @@ export function CoverCard({ api, author, offline, toast }: { api: WriterBookApi;
   );
 }
 
-const cc = StyleSheet.create({
+const useCcStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   wrap: { marginHorizontal: 16, marginTop: 14 },
   drop: { borderWidth: 2, borderStyle: 'dashed', borderColor: W.gold, borderRadius: 20, backgroundColor: W.paper, alignItems: 'center', paddingVertical: 30, gap: 6 },
   cam: { width: 62, height: 62, borderRadius: 31, backgroundColor: W.cream, alignItems: 'center', justifyContent: 'center', marginBottom: 4, borderWidth: 1, borderColor: W.line },
@@ -120,4 +125,5 @@ const cc = StyleSheet.create({
   presetImg: { width: 80, height: 120, borderRadius: 8, backgroundColor: W.input },
   presetText: { fontFamily: F.med, fontSize: 11, color: W.ink, textAlign: 'center' },
   err: { fontFamily: F.med, fontSize: 13, color: W.danger },
+  });
 });

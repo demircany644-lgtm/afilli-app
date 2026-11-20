@@ -5,4 +5,8 @@ export type {
   GetConversationMessagesParams,
   GetProfileConnectionsParams,
   GetProfileContentParams,
+  GetBookCommentThreadsParams,
+  GetWriterCommentRepliesParams,
+  SyncConversationMessagesParams,
+  GetConversationChangesParams,
 } from './generated/types';

@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useGetWriterLibrary, getGetWriterLibraryQueryKey, type WriterSummary } from '@workspace/api-client-react';
@@ -12,12 +13,16 @@ import { Btn, apiError } from '@/components/bulletins/common';
 import { scoped, actorRequest, withIdentity } from '@/components/profile/hooks';
 import { getBook } from '@/data/catalog';
 import { listRecords, type WriterRecord } from '@/lib/writer-store';
-import { W, Segmented, Skeleton, Banner } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette, Segmented, Skeleton, Banner } from '@/components/writer/parts';
 import { ShelfRow } from '@/components/writer/WriterShelf';
+import { SavedBooks } from '@/components/discovery/SavedBooks';
+import { isUuid } from '@/components/discovery/parts';
 
 type Tab = 'reading' | 'mine' | 'published' | 'drafts';
 
 function Library() {
+  const W = useWriterPalette();
+  const s = useSStyles();
   const { library, saved, removeFromLibrary, ready: shelfReady, storageError } = useApp();
   const { ready, userId } = useCommunity();
   const owner = ready ? userId ?? 'guest' : null;
@@ -33,7 +38,8 @@ function Library() {
     return () => { on = false; };
   }, [owner]));
 
-  const items = [...new Set([...saved, ...Object.keys(library)])]
+  const realIds = saved.filter(isUuid);
+  const items = [...new Set([...saved, ...Object.keys(library)])].filter((id) => !isUuid(id))
     .map((id) => ({ b: getBook(id), ch: library[id] })).filter((x) => x.b);
   const map = new Map<string, { rec?: WriterRecord; sum?: WriterSummary }>();
   (local ?? []).forEach((r) => map.set(r.id, { rec: r }));
@@ -53,11 +59,14 @@ function Library() {
             options={[{ v: 'reading', label: 'Kitaplığım' }, { v: 'mine', label: 'Yazdıklarım' }, { v: 'published', label: 'Yayınlananlar' }, { v: 'drafts', label: 'Taslaklar' }]} />
         </View>
         {storageError ? <Banner icon="alert-triangle" tone="err" title="Kitaplık kaydı doğrulanamadı" text={storageError} /> : null}
-        {tab === 'reading' ? (!shelfReady ? <View style={{ padding: 16 }}><Skeleton h={96} /></View> : items.length === 0 ? (
+        {tab === 'reading' ? (!shelfReady ? <View style={{ padding: 16 }}><Skeleton h={96} /></View> : items.length === 0 && realIds.length === 0 ? (
           <Empty icon="book" title="Rafların henüz boş" text="Bir kitapta Kitaplığıma Ekle'ye dokun veya okumaya başla.">
             <GoldButton label="Kitap keşfet" icon="search" testID="library-discover" onPress={() => router.push('/search')} style={{ marginTop: 8 }} />
           </Empty>
-        ) : items.map(({ b, ch }) => <View key={b!.id}>
+        ) : <>
+          {realIds.length ? <SavedBooks ids={realIds} /> : null}
+          {items.length ? <Text style={s.sample}>Örnek seçki · gerçek yayın değildir</Text> : null}
+          {items.map(({ b, ch }) => <View key={b!.id}>
           <BookRow book={b!} sub={ch === undefined ? 'Kitaplığına eklendi' : 'Kaldığın yer: ' + (b!.chapters[ch]?.title ?? '')} testID={'library-' + b!.id} />
           {removal === b!.id ? <View style={s.removeConfirm}>
             <Text style={s.note}>Kitaplık kaydı ve okuma konumu kaldırılacak. Yazdığın kitaplar ve taslakların silinmez.</Text>
@@ -68,7 +77,8 @@ function Library() {
           </View> : <Pressable testID={'library-remove-' + b!.id} accessibilityRole="button" accessibilityLabel={b!.title + ', kitaplıktan kaldır'} onPress={() => setRemoval(b!.id)} style={s.remove}>
             <Feather name="bookmark" size={14} color={W.muted} /><Text style={s.removeText}>Kitaplıktan kaldır</Text>
           </Pressable>}
-        </View>)) : (
+        </View>)}
+        </>) : (
           <>
             {localErr ? <Banner icon="alert-triangle" tone="err" title="Cihazdaki kitaplar okunamadı" text={localErr + ' Kayıtlar silinmedi.'} /> : null}
             {userId && lib.isError ? <Banner icon="cloud-off" tone="warn" title="Bulut kitapların alınamadı" text={apiError(lib.error, 'Sunucuya ulaşılamadı.')}><Btn label="Tekrar dene" ghost onPress={() => void lib.refetch()} /></Banner> : null}
@@ -93,11 +103,15 @@ function Library() {
 }
 export default withIdentity(Library);
 
-const s = StyleSheet.create({
+const useSStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   remove: { alignSelf: 'flex-end', marginRight: 22, marginBottom: 12, marginTop: -6, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
   removeText: { fontFamily: F.body, fontSize: 12, color: W.muted },
   removeConfirm: { marginHorizontal: 20, marginBottom: 16, gap: 10, alignItems: 'center' },
+  sample: { fontFamily: F.semi, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase', color: W.muted, marginHorizontal: 20, marginTop: 10, marginBottom: 6 },
   note: { fontFamily: F.body, fontSize: 12.5, color: W.muted, marginHorizontal: 18, marginBottom: 10 },
   empty: { alignItems: 'center', gap: 10, margin: 16, padding: 26, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: W.border },
   emptyTitle: { fontFamily: F.serifBold, fontSize: 17, color: W.ink },
+  });
 });

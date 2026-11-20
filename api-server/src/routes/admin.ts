@@ -6,6 +6,8 @@ import { UpdateAdminAccountBody, UpdateAdminContentBody, UpdateAdminSettingsBody
   type AdminAccount, type AdminContent } from '@workspace/api-zod';
 import { route, parse, fail, uuid } from '../lib/community';
 import { personId } from '../lib/social';
+import { deletionScope, deleteAccount } from '../lib/admin-account-delete';
+import { DeleteAdminAccountBody, GetAdminAccountDeletionResponse } from '@workspace/api-zod';
 import { adminActor, adminWrite, adminPage, reasonText, accountColumns, adminAccount, audit,
   contentSources, contentKind, contentSelect, contentRecord, saveAdminSettings } from '../lib/admin';
 
@@ -34,6 +36,16 @@ router.get('/admin/accounts', route(async (req, res) => {
     JOIN community_users u ON u.id=a.user_id WHERE ${condition}`, [search])).rows[0].n as number;
   res.json(GetAdminAccountsResponse.parse({ items: result.rows.map(r => ({ ...r, createdAt: new Date(r.createdAt).toISOString() })),
     total, nextOffset: offset + 25 < total ? offset + 25 : null }));
+}));
+router.get('/admin/accounts/:id/deletion', route(async (req, res) => {
+  await adminActor(req, pool, true);
+  res.json(GetAdminAccountDeletionResponse.parse(await deletionScope(pool, personId(req.params.id))));
+}));
+router.delete('/admin/accounts/:id', route(async (req, res) => {
+  const id = personId(req.params.id), input = parse(DeleteAdminAccountBody, req.body);
+  const reason = reasonText(input.reason);
+  await adminWrite(req, true, (db, actor) => deleteAccount(db, actor.id, id, input.confirmation, reason));
+  res.status(204).end();
 }));
 router.patch('/admin/accounts/:id', route(async (req, res) => {
   const id = personId(req.params.id), input = parse(UpdateAdminAccountBody, req.body), reason = reasonText(input.reason);

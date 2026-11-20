@@ -195,11 +195,8 @@ router.put('/bulletin-reactions', route(async (req, res) => {
   res.json(await reactions(input.targetType, id, person.id));
 }));
 router.get('/bulletin-notifications', route(async (req, res) => {
-  const person = await requirePerson(req);
-  const result = await pool.query(`SELECT n.id,n.post_id AS "postId",n.comment_id AS "commentId",n.read,n.created_at AS "createdAt",
-    u.nickname||', bültenine '||CASE n.kind WHEN 'like' THEN 'beğeni bıraktı' WHEN 'comment' THEN 'yorum yaptı' WHEN 'reply' THEN 'cevap verdi' ELSE 'tepki verdi' END AS body
-    FROM bulletin_notifications n JOIN community_users u ON u.id=n.actor_id WHERE n.recipient_id=$1 ORDER BY n.created_at DESC,n.id DESC LIMIT 100`, [person.id]);
-  res.json(result.rows);
+  await requirePerson(req);
+  res.json([]); // Compatibility: general bulletin activity is not an inbox event.
 }));
 router.patch('/bulletin-notifications/:id', route(async (req, res) => {
   const person = await requirePerson(req), id = uuid(req.params.id);

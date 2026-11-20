@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import Svg, { Path } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
@@ -9,9 +10,18 @@ import colors from '@/constants/colors';
 import { F, tap } from '@/components/ui';
 import { mediaUrl, timeAgo } from '@/components/bulletins/common';
 import { goBack } from './hooks';
+import { useOptionalAppearance } from '@/context/AppearanceContext';
+import { LavaBackdrop } from '@/components/theme/LavaBackdrop';
 
-export const P = colors.magazine;
-export const S = colors.social;
+const LAVA_TEXT = colors.lava.headline;
+const lavaHeading = { color: LAVA_TEXT, textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } };
+
+/** Section heading; always sits on the cream reading panel. */
+export function SectionLabel({ children }: { children: React.ReactNode }) {
+  const k = useKitStyles();
+  return <Text accessibilityRole="header" style={k.section}>{children}</Text>;
+}
+
 
 /** Slow opacity breathing; static when the user prefers reduced motion. */
 function useShimmer(min = 0.35, max = 0.85, ms = 2600) {
@@ -28,6 +38,21 @@ function useShimmer(min = 0.35, max = 0.85, ms = 2600) {
 
 /** Fixed, non-scrolling cream marble with faint gold veins and corner dust. */
 export function MarbleBackground() {
+  const k = useKitStyles();
+  const lava = !!useOptionalAppearance()?.isLava;
+  if (!lava) return <CreamMarble />;
+  // Live lava frames the screen; all content sits on a cream reading panel so
+  // dark profile/list text never lands on exposed lava (even while scrolling).
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <LavaBackdrop />
+      <View style={k.lavaPanel}><CreamMarble /></View>
+    </View>
+  );
+}
+
+function CreamMarble() {
+  const { magazine: P, social: S } = useTheme();
   const dust = useShimmer(0.25, 0.7, 3400);
   const dots = [[6, 8, 2], [14, 4, 1.5], [10, 14, 1], [88, 6, 1.6], [94, 12, 2.2], [82, 3, 1], [5, 92, 1.8], [12, 96, 1.2], [92, 90, 2], [86, 97, 1.3]];
   return (
@@ -50,21 +75,27 @@ export function MarbleBackground() {
 }
 
 export function TopBar({ title, back, right, backFallback = '/profile' }: { title: string; back?: boolean; right?: React.ReactNode; backFallback?: string }) {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   const ins = useSafeAreaInsets();
+  const lava = !!useOptionalAppearance()?.isLava;
   return (
-    <View style={[k.top, { paddingTop: (Platform.OS === 'web' ? 67 : ins.top) + 6 }]}>
+    <View style={[k.top, { paddingTop: (Platform.OS === 'web' ? 67 : ins.top) + 6 }, lava && k.topLava]}>
+      {lava ? <LavaBackdrop still /> : null}
       {back ? (
         <Pressable testID="profile-back" accessibilityRole="button" accessibilityLabel="Geri" hitSlop={8} onPress={() => { tap(); goBack(backFallback); }} style={k.round}>
           <Feather name="chevron-left" size={22} color={P.text} />
         </Pressable>
       ) : null}
-      <Text accessibilityRole="header" numberOfLines={1} style={[k.title, { fontSize: back ? 24 : 32 }]}>{title}</Text>
+      <Text accessibilityRole="header" numberOfLines={1} style={[k.title, { fontSize: back ? 24 : 32 }, lava && lavaHeading]}>{title}</Text>
       <View style={{ flexDirection: 'row', gap: 8 }}>{right}</View>
     </View>
   );
 }
 
 export function RoundIcon({ icon, label, onPress, testID }: { icon: keyof typeof Feather.glyphMap; label: string; onPress: () => void; testID: string }) {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} hitSlop={6} onPress={() => { tap(); onPress(); }}
       style={({ pressed }) => [k.round, { opacity: pressed ? 0.7 : 1 }]}>
@@ -75,12 +106,14 @@ export function RoundIcon({ icon, label, onPress, testID }: { icon: keyof typeof
 
 export type Presence = { online: boolean; typing: boolean; lastSeen: string | null };
 export function presenceOf(p: Presence) {
-  if (p.typing) return { color: S.typing, text: 'Yazıyor...' };
-  if (p.online) return { color: S.online, text: 'Çevrimiçi' };
-  return { color: S.offline, text: p.lastSeen ? 'Son görülme: ' + timeAgo(p.lastSeen) : 'Çevrimdışı' };
+  if (p.typing) return { color: colors.social.typing, text: 'Yazıyor...' };
+  if (p.online) return { color: colors.social.online, text: 'Çevrimiçi' };
+  return { color: colors.social.offline, text: p.lastSeen ? 'Son görülme: ' + timeAgo(p.lastSeen) : 'Çevrimdışı' };
 }
 
 export function GoldAvatar({ nickname, avatar, size = 112, crown, presence }: { nickname: string; avatar: string | null; size?: number; crown?: 'premium' | 'popular' | null; presence?: Presence | null }) {
+  const { magazine: P, social: S } = useTheme();
+  const k = useKitStyles();
   const glint = useShimmer(0.45, 1, 2200);
   const initials = (nickname.trim() || 'A').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toLocaleUpperCase('tr-TR');
   const inner = size - 16;
@@ -112,6 +145,8 @@ export function GoldAvatar({ nickname, avatar, size = 112, crown, presence }: { 
 }
 
 export function StatusLine({ presence }: { presence: Presence }) {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   const st = presenceOf(presence);
   return (
     <View style={k.statusLine} testID="profile-status-text">
@@ -122,10 +157,13 @@ export function StatusLine({ presence }: { presence: Presence }) {
 }
 
 export function FoilButton({ label, icon, onPress, testID, variant = 'foil', busy, disabled, style }: { label: string; icon?: keyof typeof Feather.glyphMap; onPress: () => void; testID: string; variant?: 'foil' | 'outline'; busy?: boolean; disabled?: boolean; style?: ViewStyle }) {
+  const { magazine: P, social: S } = useTheme();
+  const k = useKitStyles();
+  const ink = variant === 'foil' ? P.onAccent : P.text;
   const content = (
     <>
-      {busy ? <ActivityIndicator size="small" color={P.text} /> : icon ? <Feather name={icon} size={16} color={P.text} /> : null}
-      <Text style={k.btnText} numberOfLines={1}>{label}</Text>
+      {busy ? <ActivityIndicator size="small" color={ink} /> : icon ? <Feather name={icon} size={16} color={ink} /> : null}
+      <Text style={[k.btnText, { color: ink }]} numberOfLines={1}>{label}</Text>
     </>
   );
   return (
@@ -140,6 +178,8 @@ export function FoilButton({ label, icon, onPress, testID, variant = 'foil', bus
 }
 
 export function StatCard({ icon, value, label, onPress, testID }: { icon: keyof typeof MaterialCommunityIcons.glyphMap; value: string; label: string; onPress: () => void; testID: string }) {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={`${value} ${label}, listeyi aç`} onPress={() => { tap(); onPress(); }}
       style={({ pressed }) => [k.stat, { transform: [{ scale: pressed ? 0.97 : 1 }] }]}>
@@ -151,13 +191,15 @@ export function StatCard({ icon, value, label, onPress, testID }: { icon: keyof 
 }
 
 export function PillTabs<T extends string>({ tabs, value, onChange }: { tabs: { key: T; label: string }[]; value: T; onChange: (t: T) => void }) {
+  const { magazine: P, social: S } = useTheme();
+  const k = useKitStyles();
   return (
     <View style={k.pills} accessibilityRole="tablist">
       {tabs.map((t) => {
         const on = t.key === value;
         return (
           <Pressable key={t.key} testID={'profile-tab-' + t.key} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => { tap(); onChange(t.key); }} style={{ flex: 1 }}>
-            {on ? <LinearGradient colors={[S.foilLight, S.foilMid]} style={k.pill}><Text style={[k.pillText, { fontFamily: F.semi }]}>{t.label}</Text></LinearGradient>
+            {on ? <LinearGradient colors={[S.foilLight, S.foilMid]} style={k.pill}><Text style={[k.pillText, { fontFamily: F.semi, color: P.onAccent }]}>{t.label}</Text></LinearGradient>
               : <View style={k.pill}><Text style={[k.pillText, { color: P.muted }]}>{t.label}</Text></View>}
           </Pressable>
         );
@@ -167,6 +209,8 @@ export function PillTabs<T extends string>({ tabs, value, onChange }: { tabs: { 
 }
 
 export function StateCard({ icon, title, text, action, testID }: { icon: keyof typeof Feather.glyphMap; title: string; text: string; action?: { label: string; onPress: () => void; testID: string; icon?: keyof typeof Feather.glyphMap }; testID?: string }) {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   return (
     <View style={k.state} testID={testID}>
       <View style={k.stateRing}><Feather name={icon} size={24} color={P.gold} /></View>
@@ -178,6 +222,7 @@ export function StateCard({ icon, title, text, action, testID }: { icon: keyof t
 }
 
 export function Skeleton({ w, h, r = 10, style }: { w: number | `${number}%`; h: number; r?: number; style?: ViewStyle }) {
+  const { magazine: P } = useTheme();
   const pulse = useShimmer(0.45, 0.9, 900);
   return <Animated.View style={[{ width: w, height: h, borderRadius: r, backgroundColor: P.input }, pulse, style]} />;
 }
@@ -195,6 +240,8 @@ export function ProfileSkeleton() {
 }
 
 export function Notice({ text, tone = 'info', action, testID }: { text: string; tone?: 'info' | 'error'; action?: { label: string; onPress: () => void }; testID?: string }) {
+  const { magazine: P } = useTheme();
+  const k = useKitStyles();
   return (
     <View testID={testID} accessibilityLiveRegion="polite" style={[k.notice, { borderColor: tone === 'error' ? P.danger : P.border }]}>
       <Feather name={tone === 'error' ? 'wifi-off' : 'info'} size={16} color={tone === 'error' ? P.danger : P.gold} />
@@ -204,7 +251,9 @@ export function Notice({ text, tone = 'info', action, testID }: { text: string; 
   );
 }
 
-export const k = StyleSheet.create({
+export const useKitStyles = makeStyles((t) => {
+  const { magazine: P, social: S } = t;
+  return StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingBottom: 8 },
   title: { flex: 1, fontFamily: F.serifBold, color: P.text, letterSpacing: 0.2 },
   round: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: P.border, backgroundColor: P.card, alignItems: 'center', justifyContent: 'center' },
@@ -233,5 +282,8 @@ export const k = StyleSheet.create({
   label: { fontFamily: F.semi, fontSize: 13, color: P.text, marginBottom: 6 },
   hint: { fontFamily: F.body, fontSize: 12, color: P.muted, marginTop: 4 },
   err: { fontFamily: F.med, fontSize: 12, color: P.danger, marginTop: 4 },
+  topLava: { backgroundColor: colors.lava.bg, overflow: 'hidden', marginBottom: 8, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
+  lavaPanel: { position: 'absolute', top: 0, bottom: 0, left: 10, right: 10, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)' },
   section: { fontFamily: F.serifBold, fontSize: 18, color: P.text, marginHorizontal: 20, marginTop: 22, marginBottom: 10 },
+  });
 });

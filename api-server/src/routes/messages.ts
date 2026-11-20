@@ -1,30 +1,19 @@
 import { Router, type IRouter } from 'express';
+import { createHash } from 'node:crypto';
 import { pool } from '@workspace/db';
-import { StartConversationBody, SendConversationMessageBody, SetConversationTypingBody, type Conversation, type DirectMessage } from '@workspace/api-zod';
-import { route, requirePerson, parse, fail, uuid, transaction, type Transaction } from '../lib/community';
-import { personId, PERSON, socialNotify, pageCursor } from '../lib/social';
+import { StartConversationBody, SendConversationMessageBody, SetConversationTypingBody, ReadConversationBody } from '@workspace/api-zod';
+import { route, requirePerson, parse, fail, uuid, transaction } from '../lib/community';
+import { personId, pageCursor } from '../lib/social';
+import { bookNotifications, readBookNotification } from '../lib/book-notifications';
+import { member, threads, messageData, sequence, validateGif } from '../lib/direct-messages';
+import { directEvent, openDirectEvents } from '../lib/direct-events';
+import { purgeDirectPhotoQueue } from '../lib/direct-media';
 
 const router: IRouter = Router();
-async function member(thread: string, actor: string, client: Transaction | typeof pool = pool, lock = false) {
-  const row = (await client.query<{ user_low: string; user_high: string }>(`SELECT user_low,user_high FROM conversations
-    WHERE id=$1 AND (user_low=$2 OR user_high=$2) ${lock ? 'FOR UPDATE' : ''}`, [thread, actor])).rows[0];
-  return row ?? fail(404, 'Konuşma bulunamadı.');
-}
-async function threads(actor: string, id: string | null = null): Promise<Conversation[]> {
-  const result = await pool.query<Conversation>(`SELECT c.id,${PERSON} AS peer,
-    (SELECT body FROM direct_messages WHERE thread_id=c.id ORDER BY created_at DESC,id DESC LIMIT 1) AS "lastMessage",
-    c.updated_at AS "updatedAt",(SELECT count(*)::int FROM direct_messages WHERE thread_id=c.id AND sender_id<>$1 AND read_at IS NULL) AS "unreadCount",
-    coalesce((CASE WHEN c.user_low=u.id THEN c.low_typing_until ELSE c.high_typing_until END)>now(),false) AS "peerTyping",
-    coalesce(u.presence_active AND u.last_seen>now()-interval '60 seconds',false) AS "peerOnline",u.last_seen AS "peerLastSeen"
-    FROM conversations c JOIN community_users u ON u.id=CASE WHEN c.user_low=$1 THEN c.user_high ELSE c.user_low END
-    WHERE (c.user_low=$1 OR c.user_high=$1) AND ($2::uuid IS NULL OR c.id=$2) ORDER BY c.updated_at DESC,c.id DESC LIMIT 100`, [actor, id]);
-  return result.rows.map((row) => ({ ...row, updatedAt: new Date(row.updatedAt).toISOString(), peerLastSeen: row.peerLastSeen ? new Date(row.peerLastSeen).toISOString() : null }));
-}
-async function messageData(ids: string[]): Promise<DirectMessage[]> {
-  const rows = (await pool.query<DirectMessage>(`SELECT m.id,m.thread_id AS "threadId",${PERSON} AS sender,m.body,m.created_at AS "createdAt",m.read_at AS "readAt"
-    FROM direct_messages m JOIN community_users u ON u.id=m.sender_id WHERE m.id=ANY($1::uuid[]) ORDER BY m.created_at DESC,m.id DESC`, [ids])).rows;
-  return rows.map((row) => ({ ...row, createdAt: new Date(row.createdAt).toISOString(), readAt: row.readAt ? new Date(row.readAt).toISOString() : null }));
-}
+router.get('/message-events', route(async (req, res) => {
+  const actor = await requirePerson(req);
+  await openDirectEvents(req, res, actor.id);
+}));
 router.get('/conversations', route(async (req, res) => {
   const actor = await requirePerson(req); res.json(await threads(actor.id));
 }));
@@ -41,58 +30,118 @@ router.get('/conversations/:id', route(async (req, res) => {
   res.json((await threads(actor.id, id))[0]);
 }));
 router.get('/conversations/:id/messages', route(async (req, res) => {
-  const actor = await requirePerson(req), id = uuid(req.params.id), cursor = pageCursor(req.query.cursor);
+  const actor = await requirePerson(req), id = uuid(req.params.id);
   await member(id, actor.id);
-  const rows = (await pool.query<{ id: string; created_at: Date }>(`SELECT id,created_at FROM direct_messages WHERE thread_id=$1 AND
-    ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid)) ORDER BY created_at DESC,id DESC LIMIT 31`, [id, cursor.date, cursor.id])).rows;
+  // Capture BEFORE selecting the head, so a concurrent deletion cannot fall
+  // between the displayed snapshot and its change-recovery starting point.
+  const changeCursor = (await pool.query<{ cursor: string }>('SELECT coalesce(max(change_sequence),0)::text AS cursor FROM direct_messages WHERE thread_id=$1', [id])).rows[0].cursor;
+  let filter = '', boundary: unknown[] = [];
+  if (typeof req.query.cursor === 'string' && req.query.cursor.startsWith('s:')) {
+    filter = 'AND sequence<$2::bigint'; boundary = [sequence(req.query.cursor.slice(2))];
+  } else if (req.query.cursor) {
+    const cursor = pageCursor(req.query.cursor);
+    filter = 'AND (created_at,id)<($2::timestamptz,$3::uuid)'; boundary = [cursor.date, cursor.id];
+  }
+  const rows = (await pool.query<{ id: string; sequence: string }>(`SELECT id,sequence::text FROM direct_messages WHERE thread_id=$1 ${filter}
+    ORDER BY direct_messages.sequence DESC LIMIT 31`, [id, ...boundary])).rows;
   const page = rows.slice(0, 30), last = page.at(-1);
-  res.json({ items: await messageData(page.map((item) => item.id)), nextCursor: rows.length > 30 && last ? `${last.created_at.toISOString()}|${last.id}` : null });
+  res.json({ items: await messageData(page.map(item => item.id)), nextCursor: rows.length > 30 && last ? `s:${last.sequence}` : null, changeCursor });
+}));
+router.get('/conversations/:id/changes', route(async (req, res) => {
+  const actor = await requirePerson(req), id = uuid(req.params.id), after = sequence(req.query.after);
+  await member(id, actor.id);
+  const rows = (await pool.query<{ id: string; change_sequence: string }>(`SELECT id,change_sequence::text FROM direct_messages
+    WHERE thread_id=$1 AND change_sequence>$2::bigint ORDER BY direct_messages.change_sequence LIMIT 101`, [id, after])).rows;
+  const page = rows.slice(0, 100);
+  res.json({ items: await messageData(page.map(row => row.id)), nextAfter: page.at(-1)?.change_sequence ?? after, hasMore: rows.length > 100 });
+}));
+router.delete('/conversations/:id/messages/:messageId', route(async (req, res) => {
+  const actor = await requirePerson(req), id = uuid(req.params.id), messageId = uuid(req.params.messageId);
+  await transaction(async client => {
+    const pair = await member(id, actor.id, client, true);
+    const found = (await client.query<{ sender_id: string; deleted_at: Date | null; photo_id: string | null }>(
+      'SELECT sender_id,deleted_at,photo_id FROM direct_messages WHERE id=$1 AND thread_id=$2 FOR UPDATE', [messageId, id])).rows[0];
+    if (!found || found.sender_id !== actor.id) return fail(403, 'Yalnızca kendi mesajını silebilirsin.');
+    if (found.deleted_at) return;
+    await client.query(`UPDATE direct_messages SET body='',gif=NULL,deleted_at=clock_timestamp(),change_sequence=nextval('direct_message_change_seq') WHERE id=$1`, [messageId]);
+    await client.query("UPDATE direct_messages SET change_sequence=nextval('direct_message_change_seq') WHERE thread_id=$1 AND reply_to_id=$2", [id, messageId]);
+    if (found.photo_id) await client.query('UPDATE direct_message_uploads SET delete_requested_at=coalesce(delete_requested_at,clock_timestamp()) WHERE id=$1', [found.photo_id]);
+    await directEvent(client, pair, id, 'sync');
+  });
+  res.json((await messageData([messageId]))[0]);
+  void purgeDirectPhotoQueue().catch(() => req.log.warn('Silinen mesajın fotoğraf temizliği yeniden denenecek'));
+}));
+router.get('/conversations/:id/sync', route(async (req, res) => {
+  const actor = await requirePerson(req), id = uuid(req.params.id), after = sequence(req.query.after);
+  await member(id, actor.id);
+  const rows = (await pool.query<{ id: string; sequence: string }>(`SELECT id,sequence::text FROM direct_messages
+    WHERE thread_id=$1 AND sequence>$2::bigint ORDER BY direct_messages.sequence LIMIT 101`, [id, after])).rows;
+  const page = rows.slice(0, 100);
+  const items = (await messageData(page.map(item => item.id))).reverse();
+  res.json({ items, nextAfter: page.at(-1)?.sequence ?? after, hasMore: rows.length > 100 });
 }));
 router.post('/conversations/:id/messages', route(async (req, res) => {
   const actor = await requirePerson(req), id = uuid(req.params.id), input = parse(SendConversationMessageBody, req.body);
-  if (!input.body.trim()) return fail(400, 'Boş mesaj gönderilemez.');
-  const message = await transaction(async (client) => {
+  const body = input.body.trim(), reply = input.replyToId ?? null;
+  if (!body && !input.gif && !input.photoId) return fail(400, 'Boş mesaj gönderilemez.');
+  if (input.gif && input.photoId) return fail(400, 'Tek gönderimde bir fotoğraf veya GIF seç.');
+  const payload = [body, reply, input.gif?.provider ?? null, input.gif?.id ?? null, input.gif?.url ?? null];
+  if (input.photoId) payload.push(input.photoId); // Preserve legacy text/GIF retry hashes.
+  const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+  const message = await transaction(async client => {
     const pair = await member(id, actor.id, client, true);
-    const previous = (await client.query<{ id: string }>('SELECT id FROM direct_messages WHERE thread_id=$1 AND sender_id=$2 AND client_id=$3', [id, actor.id, input.clientId])).rows[0];
-    if (previous) return previous.id;
+    const previous = (await client.query<{ id: string; body: string; payload_hash: string | null }>(
+      'SELECT id,body,payload_hash FROM direct_messages WHERE thread_id=$1 AND sender_id=$2 AND client_id=$3', [id, actor.id, input.clientId])).rows[0];
+    if (previous) {
+      if (previous.payload_hash ? previous.payload_hash !== hash : previous.body !== body || reply || input.gif) return fail(409, 'Bu gönderim kimliği başka bir mesaja ait. İlk mesaj korunuyor.');
+      return previous.id;
+    }
+    if (reply && !(await client.query('SELECT id FROM direct_messages WHERE id=$1 AND thread_id=$2 AND deleted_at IS NULL FOR KEY SHARE', [reply, id])).rowCount)
+      return fail(422, 'Yanıtlanan mesaj silinmiş. Alıntıyı kaldırarak gönderebilirsin.', 'REPLY_UNAVAILABLE');
+    if (input.photoId) {
+      const photo = (await client.query(`SELECT id FROM direct_message_uploads WHERE id=$1 AND thread_id=$2 AND owner_id=$3 AND client_id=$4
+        AND ready AND attached_at IS NULL AND delete_requested_at IS NULL AND purged_at IS NULL FOR UPDATE`, [input.photoId, id, actor.id, input.clientId])).rows[0];
+      if (!photo) return fail(422, 'Fotoğraf hazır değil veya bu gönderime ait değil.', 'PHOTO_UNAVAILABLE');
+      await client.query('UPDATE direct_message_uploads SET attached_at=clock_timestamp() WHERE id=$1', [input.photoId]);
+    }
+    const gif = validateGif(input.gif);
     const recent = (await client.query<{ count: number }>("SELECT count(*)::int AS count FROM direct_messages WHERE sender_id=$1 AND created_at>now()-interval '1 minute'", [actor.id])).rows[0];
     if (recent.count >= 60) return fail(429, 'Çok hızlı mesaj gönderiyorsun. Biraz bekleyip tekrar dene.');
-    const row = (await client.query<{ id: string }>('INSERT INTO direct_messages(thread_id,sender_id,client_id,body) VALUES($1,$2,$3,$4) RETURNING id', [id, actor.id, input.clientId, input.body.trim()])).rows[0];
+    const row = (await client.query<{ id: string }>(`INSERT INTO direct_messages(thread_id,sender_id,client_id,body,payload_hash,reply_to_id,has_reply,gif,photo_id)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9) RETURNING id`, [id, actor.id, input.clientId, body, hash, reply, !!reply, gif ? JSON.stringify(gif) : null, input.photoId ?? null])).rows[0];
     const typing = pair.user_low === actor.id ? 'low_typing_until' : 'high_typing_until';
-    await client.query(`UPDATE conversations SET updated_at=now(),${typing}=NULL WHERE id=$1`, [id]);
-    const recipient = pair.user_low === actor.id ? pair.user_high : pair.user_low;
-    await socialNotify(client, recipient, actor.id, 'message', 'message:' + row.id, id);
+    await client.query(`UPDATE conversations SET updated_at=clock_timestamp(),${typing}=NULL WHERE id=$1`, [id]);
+    await directEvent(client, pair, id, 'message');
     return row.id;
   });
   res.status(201).json((await messageData([message]))[0]);
 }));
 router.put('/conversations/:id/read', route(async (req, res) => {
-  const actor = await requirePerson(req), id = uuid(req.params.id);
-  await transaction(async (client) => {
-    await member(id, actor.id, client, true);
-    await client.query('UPDATE direct_messages SET read_at=now() WHERE thread_id=$1 AND sender_id<>$2 AND read_at IS NULL', [id, actor.id]);
+  const actor = await requirePerson(req), id = uuid(req.params.id), input = parse(ReadConversationBody, req.body ?? {});
+  const through = input?.throughSequence ? sequence(input.throughSequence) : null;
+  await transaction(async client => {
+    const pair = await member(id, actor.id, client, true);
+    const result = await client.query(`UPDATE direct_messages SET read_at=clock_timestamp(),change_sequence=nextval('direct_message_change_seq') WHERE thread_id=$1 AND sender_id<>$2 AND read_at IS NULL AND deleted_at IS NULL
+      AND ($3::bigint IS NULL OR sequence<=$3::bigint)`, [id, actor.id, through]);
+    if (result.rowCount) await directEvent(client, pair, id, 'read');
     await client.query("UPDATE social_notifications SET read=true WHERE thread_id=$1 AND recipient_id=$2 AND kind='message'", [id, actor.id]);
   });
   res.status(204).end();
 }));
 router.put('/conversations/:id/typing', route(async (req, res) => {
   const actor = await requirePerson(req), id = uuid(req.params.id), input = parse(SetConversationTypingBody, req.body);
-  const pair = await member(id, actor.id);
-  const column = pair.user_low === actor.id ? 'low_typing_until' : 'high_typing_until';
-  await pool.query(`UPDATE conversations SET ${column}=CASE WHEN $2 THEN now()+interval '6 seconds' ELSE NULL END WHERE id=$1`, [id, input.typing]);
+  await transaction(async client => {
+    const pair = await member(id, actor.id, client, true);
+    const column = pair.user_low === actor.id ? 'low_typing_until' : 'high_typing_until';
+    await client.query(`UPDATE conversations SET ${column}=CASE WHEN $2 THEN now()+interval '6 seconds' ELSE NULL END WHERE id=$1`, [id, input.typing]);
+    await directEvent(client, pair, id, 'typing');
+  });
   res.status(204).end();
 }));
 router.get('/social-notifications', route(async (req, res) => {
-  const actor = await requirePerson(req);
-  const rows = (await pool.query(`SELECT n.id,n.actor_id AS "actorId",n.thread_id AS "threadId",n.book_id AS "bookId",n.read,n.created_at AS "createdAt",
-    u.nickname||CASE n.kind WHEN 'message' THEN ' sana mesaj gönderdi.' WHEN 'publication' THEN ' yeni bir kitap yayımladı.' WHEN 'chapter' THEN ' yeni bir bölüm yayımladı.' ELSE ' seni takip etmeye başladı.' END AS body
-    FROM social_notifications n JOIN community_users u ON u.id=n.actor_id WHERE n.recipient_id=$1 ORDER BY n.created_at DESC,n.id DESC LIMIT 100`, [actor.id])).rows;
-  res.json(rows);
+  const actor = await requirePerson(req); res.json((await bookNotifications(actor.id)).items);
 }));
 router.patch('/social-notifications/:id', route(async (req, res) => {
-  const actor = await requirePerson(req), id = uuid(req.params.id);
-  const result = await pool.query('UPDATE social_notifications SET read=true WHERE id=$1 AND recipient_id=$2', [id, actor.id]);
-  if (!result.rowCount) return fail(404, 'Bildirim bulunamadı.');
-  res.status(204).end();
+  const actor = await requirePerson(req); await readBookNotification(actor.id, uuid(req.params.id)); res.status(204).end();
 }));
 export default router;

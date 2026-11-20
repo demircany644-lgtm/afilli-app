@@ -4,9 +4,11 @@ import { router } from 'expo-router';
 import { requestPasswordCode } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
 import { Btn } from '@/components/bulletins/common';
-import { AuthShell, Field, PasswordField, FormError, authMsg, goAfterAuth, st } from '@/components/bulletins/Auth';
+import { DeletionCleanupNotice } from '@/components/profile/DeleteAccount';
+import { AuthShell, Field, PasswordField, FormError, authMsg, goAfterAuth, useStStyles as useAuthStyles } from '@/components/bulletins/Auth';
 
 export default function SignIn() {
+  const st = useAuthStyles();
   const auth = useAuth();
   const [step, setStep] = useState<'form' | 'forgot' | 'reset'>('form');
   const [email, setEmail] = useState(''), [password, setPassword] = useState(''), [code, setCode] = useState('');
@@ -36,6 +38,7 @@ export default function SignIn() {
   return <AuthShell title={step === 'form' ? 'Giriş yap' : 'Şifre belirle'} sub={step === 'form'
     ? 'E-posta adresin ve şifrenle Afilli’ye devam et.'
     : 'Eski hesabını koruyarak şifre belirle veya şifreni yenile.'}>
+    <DeletionCleanupNotice />
     {auth.offline ? <Text style={st.sub}>Bağlantı yok veya oturum doğrulanamadı. Uygulama açık kalır; giriş için internet gerekir.</Text> : null}
     <Field label="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address"
       autoComplete="email" editable={!busy && step !== 'reset'} maxLength={254} testID="signin-email" />

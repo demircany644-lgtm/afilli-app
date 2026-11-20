@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { checkWriterSpelling, getWriterImageAccess, type WriterChapter } from '@workspace/api-client-react';
 import { randomUUID } from 'expo-crypto';
@@ -9,7 +10,7 @@ import { useOwnerGuard } from '@/components/profile/hooks';
 import { RichEditor } from '@/components/writer/RichEditor';
 import { Toolbar } from '@/components/writer/Toolbar';
 import { VoiceSheet } from '@/components/writer/VoiceSheet';
-import { W, type ToastMsg } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette, type ToastMsg } from '@/components/writer/parts';
 import type { EditorEvent, EditorHandle, EditorSel } from '@/lib/writer-editor-html';
 import { chapterStats, writerMediaId, MAX_CHAPTER_CHARS } from '@/lib/writer-text';
 import { pickImage, prepareInlineImage, uploadImage } from '@/lib/writer-media';
@@ -19,6 +20,8 @@ type Props = { api: WriterBookApi; chapter: WriterChapter; index: number; owner:
   night: boolean; setNight: (v: boolean) => void; focus: boolean; setFocus: (v: boolean) => void; toast: (m: ToastMsg) => void };
 
 export function EditorPanel({ api, chapter, index, owner, offline, height, night, setNight, focus, setFocus, toast }: Props) {
+  const W = useWriterPalette();
+  const ep = useEpStyles();
   const ed = useRef<EditorHandle>(null);
   const guard = useOwnerGuard(owner === 'guest' ? null : owner);
   const [sel, setSel] = useState<EditorSel | null>(null);
@@ -162,7 +165,9 @@ export function EditorPanel({ api, chapter, index, owner, offline, height, night
   );
 }
 
-const ep = StyleSheet.create({
+const useEpStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   wrap: { marginHorizontal: 16, marginTop: 14 },
   chHead: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 8 },
   chNum: { fontFamily: F.semi, fontSize: 11, letterSpacing: 1.2, color: W.gold, textTransform: 'uppercase' },
@@ -177,4 +182,5 @@ const ep = StyleSheet.create({
   link: { fontFamily: F.semi, fontSize: 12, color: W.gold, textDecorationLine: 'underline' },
   note: { fontFamily: F.body, fontSize: 12.5, lineHeight: 18, color: W.muted, paddingVertical: 6 },
   input: { fontFamily: F.body, fontSize: 15, color: W.ink, backgroundColor: W.cream, borderRadius: 12, paddingHorizontal: 12, height: 46 },
+  });
 });

@@ -1,15 +1,18 @@
 import React, { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { useGetMyProfile, getGetMyProfileQueryKey } from '@workspace/api-client-react';
 import { useCommunity } from '@/context/CommunityContext';
 import { F } from '@/components/ui';
-import { FoilButton, MarbleBackground, Notice, P, ProfileSkeleton, RoundIcon, StateCard, TopBar } from '@/components/profile/kit';
+import { FoilButton, MarbleBackground, Notice, ProfileSkeleton, RoundIcon, StateCard, TopBar } from '@/components/profile/kit';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileTabs, type ContentTab } from '@/components/profile/ProfileTabs';
+import { OnlineVisibility } from '@/components/profile/OnlineVisibility';
 import { LocalShelf } from '@/components/profile/LocalShelf';
 import { go, scoped, withIdentity } from '@/components/profile/hooks';
 
 function Guest() {
+  const st = useStStyles();
   return (
     <View testID="profile-guest">
       <View style={st.crest}>
@@ -27,6 +30,7 @@ function Guest() {
 }
 
 function Profile() {
+  const { magazine: P } = useTheme();
   const { ready, userId, error: sessionError, refreshProfile } = useCommunity();
   const [tab, setTab] = useState<ContentTab>('books');
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -52,6 +56,7 @@ function Profile() {
             <FoilButton variant="outline" label="Profili Düzenle" icon="edit-2" testID="profile-edit" onPress={() => go('/profile-edit')} />
             <FoilButton variant="outline" label="Mesajlar" icon="message-circle" testID="profile-messages" onPress={() => go('/messages')} />
           </>} />
+        {p.isAdmin ? <OnlineVisibility profile={p} /> : null}
         <View onLayout={(e) => { tabsY.current = e.nativeEvent.layout.y; }}>
           <ProfileTabs profileId={p.id} isMe tab={tab} onTab={setTab} />
         </View>
@@ -65,7 +70,7 @@ function Profile() {
       <MarbleBackground />
       <ScrollView ref={scroll} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <TopBar back backFallback="/" title="Profil" right={<>
-          <RoundIcon icon="search" label="Okurları bul" testID="profile-people" onPress={() => go('/people')} />
+          <RoundIcon icon="search" label="Okurları bul" testID="profile-people" onPress={() => go('/search?tab=people')} />
           <RoundIcon icon="more-horizontal" label="Ayarlar" testID="profile-settings" onPress={() => go('/profile-settings')} />
         </>} />
         {body}
@@ -76,9 +81,12 @@ function Profile() {
 
 export default withIdentity(Profile);
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: P } = t;
+  return StyleSheet.create({
   crest: { marginHorizontal: 18, marginTop: 10, padding: 22, borderRadius: 24, borderWidth: 1, borderColor: P.gold, backgroundColor: P.card, alignItems: 'center', gap: 6 },
   kicker: { fontFamily: F.script, fontSize: 26, color: P.gold },
   guestTitle: { fontFamily: F.serifBold, fontSize: 24, lineHeight: 31, color: P.text, textAlign: 'center' },
   guestText: { fontFamily: F.body, fontSize: 14, lineHeight: 21, color: P.muted, textAlign: 'center' },
+  });
 });

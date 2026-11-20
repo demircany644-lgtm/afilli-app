@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import {
   useGetBulletinReactionPeople, getGetBulletinReactionPeopleQueryKey, useGetBulletinLikes, getGetBulletinLikesQueryKey,
   type BulletinReaction, type BulletinReactionInputTargetType,
 } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
-import { b, EMOJIS, Sheet, PersonRow, apiError, OFFLINE, Btn } from '@/components/bulletins/common';
+import { EMOJIS, Sheet, PersonRow, apiError, OFFLINE, Btn } from '@/components/bulletins/common';
 
 /** Emoji picker: tap selected to remove, another to change. One reaction per person. */
 export function ReactionPicker({ visible, onClose, current, onPick, busy }: {
   visible: boolean; onClose: () => void; current: string | null; onPick: (emoji: string | null) => void; busy: boolean;
 }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   return (
     <Sheet visible={visible} onClose={onClose} title="Tepki ver" testID="reaction-picker">
       <View style={st.grid}>
@@ -33,6 +36,7 @@ export function ReactionPicker({ visible, onClose, current, onPick, busy }: {
 }
 
 export function ReactionBuckets({ reactions, onBucket }: { reactions: BulletinReaction[]; onBucket: (emoji: string) => void }) {
+  const st = useStStyles();
   const list = reactions.filter((r) => r.count > 0);
   if (!list.length) return null;
   return (
@@ -51,6 +55,8 @@ export function ReactionBuckets({ reactions, onBucket }: { reactions: BulletinRe
 }
 
 export function ReactionPeopleSheet({ target, emoji, onClose }: { target: { id: string; type: BulletinReactionInputTargetType } | null; emoji: string | null; onClose: () => void }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const params = { targetId: target?.id ?? '', targetType: target?.type ?? 'post' };
   const q = useGetBulletinReactionPeople(params, { query: { enabled: !!target, queryKey: getGetBulletinReactionPeopleQueryKey(params) } });
   const [all, setAll] = useState(false);
@@ -72,6 +78,8 @@ export function ReactionPeopleSheet({ target, emoji, onClose }: { target: { id: 
 }
 
 export function LikesSheet({ postId, onClose }: { postId: string | null; onClose: () => void }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const q = useGetBulletinLikes(postId ?? '', { query: { enabled: !!postId, queryKey: getGetBulletinLikesQueryKey(postId ?? '') } });
   return (
     <Sheet visible={!!postId} onClose={onClose} title="Beğenenler">
@@ -83,7 +91,9 @@ export function LikesSheet({ postId, onClose }: { postId: string | null; onClose
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
   pick: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: b.background, borderWidth: 1.5, borderColor: 'transparent' },
   pickSel: { borderColor: b.gold, backgroundColor: b.input },
@@ -95,4 +105,5 @@ const st = StyleSheet.create({
   bucketSel: { borderColor: b.gold, backgroundColor: b.input },
   bucketEmoji: { fontSize: 14 },
   bucketCount: { fontFamily: F.semi, fontSize: 12, color: b.text },
+  });
 });

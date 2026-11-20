@@ -5,6 +5,43 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface CommunityPerson {
+  id: string;
+  nickname: string;
+  /** @nullable */
+  avatar: string | null;
+}
+
+export interface DiscoveryBookCard {
+  id: string;
+  title: string;
+  author: CommunityPerson;
+  /** @nullable */
+  coverUrl?: string | null;
+  genres: string[];
+  readCount: number;
+  likeCount: number;
+  commentCount: number;
+  publishedAt: string;
+}
+
+export interface DiscoveryBookPage {
+  items: DiscoveryBookCard[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface ReadingPositionInput {
+  chapterId: string;
+}
+
+export interface ReadingPosition {
+  /** @nullable */
+  chapterId: string | null;
+  resumed: boolean;
+  chapterMissing: boolean;
+}
+
 export interface SocialSettings {
   /**
      * @maxLength 120
@@ -48,6 +85,11 @@ export interface ReaderProfile {
   isMe: boolean;
   isAdmin: boolean;
   online: boolean;
+  /**
+     * Own administrator visibility preference; null for other viewers and regular accounts
+     * @nullable
+     */
+  onlineVisible?: boolean | null;
   /** @nullable */
   lastSeen: string | null;
   typing: boolean;
@@ -74,13 +116,6 @@ export interface ProfileEditInput {
   avatarUploadId?: string | null;
   /** @nullable */
   coverUploadId?: string | null;
-}
-
-export interface CommunityPerson {
-  id: string;
-  nickname: string;
-  /** @nullable */
-  avatar: string | null;
 }
 
 export interface PeoplePage {
@@ -218,6 +253,32 @@ export interface PresenceInput {
   active: boolean;
 }
 
+export interface VisibilityInput {
+  visible: boolean;
+}
+
+export interface AccountDeletionInput {
+  /**
+     * @minLength 1
+     * @maxLength 1024
+     */
+  password: string;
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  confirmation: string;
+  requestId: string;
+}
+
+export interface AccountDeletionReceiptInput {
+  requestId: string;
+}
+
+export interface AccountDeletionReceipt {
+  deleted: boolean;
+}
+
 export interface TypingInput {
   typing: boolean;
 }
@@ -226,13 +287,98 @@ export interface StartConversationInput {
   peerId: string;
 }
 
-export interface MessageInput {
-  clientId: string;
+export type MessageGifProvider = typeof MessageGifProvider[keyof typeof MessageGifProvider];
+
+
+export const MessageGifProvider = {
+  klipy: 'klipy',
+} as const;
+
+export interface MessageGif {
+  provider: MessageGifProvider;
   /**
      * @minLength 1
-     * @maxLength 4000
+     * @maxLength 250
      */
+  id: string;
+  /** @maxLength 250 */
+  title: string;
+  /** @maxLength 2048 */
+  url: string;
+  /**
+     * @minimum 1
+     * @maximum 4000
+     */
+  width: number;
+  /**
+     * @minimum 1
+     * @maximum 4000
+     */
+  height: number;
+  /** @maxLength 2048 */
+  sourceUrl: string;
+  /** @maxLength 500 */
+  attribution: string;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  license: string | null;
+}
+
+export interface MessageInput {
+  clientId: string;
+  /** @maxLength 4000 */
   body: string;
+  /** @nullable */
+  replyToId?: string | null;
+  gif?: MessageGif | null;
+  /** @nullable */
+  photoId?: string | null;
+}
+
+export interface DirectPhotoInput {
+  clientId: string;
+  /**
+     * @minimum 1
+     * @maximum 2097152
+     */
+  size: number;
+}
+
+export interface DirectPhotoUpload {
+  id: string;
+  /** @nullable */
+  uploadUrl: string | null;
+  ready: boolean;
+}
+
+export interface MessagePhoto {
+  id: string;
+  width: number;
+  height: number;
+}
+
+export interface MediaCleanupResult {
+  hasMore: boolean;
+  retryNeeded: boolean;
+}
+
+export interface MessageQuote {
+  /** @nullable */
+  id: string | null;
+  available: boolean;
+  sender: CommunityPerson | null;
+  /** @nullable */
+  body: string | null;
+  gif: MessageGif | null;
+  photo?: MessagePhoto | null;
+  mediaExpired?: boolean;
+}
+
+export interface MessageReadInput {
+  /** @pattern ^[0-9]{1,19}$ */
+  throughSequence?: string;
 }
 
 export interface Conversation {
@@ -256,15 +402,47 @@ export interface DirectMessage {
   createdAt: string;
   /** @nullable */
   readAt: string | null;
+  clientId: string;
+  sequence: string;
+  reply: MessageQuote | null;
+  gif: MessageGif | null;
+  photo?: MessagePhoto | null;
+  changeSequence?: string;
+  /** @nullable */
+  deletedAt?: string | null;
+  /** @nullable */
+  mediaExpiresAt?: string | null;
+  mediaExpired?: boolean;
+}
+
+export interface MessageSyncPage {
+  items: DirectMessage[];
+  nextAfter: string;
+  hasMore: boolean;
 }
 
 export interface MessagePage {
   items: DirectMessage[];
   /** @nullable */
   nextCursor: string | null;
+  changeCursor?: string;
 }
 
+export type SocialNotificationKind = typeof SocialNotificationKind[keyof typeof SocialNotificationKind];
+
+
+export const SocialNotificationKind = {
+  chapter: 'chapter',
+  book_comment: 'book_comment',
+  comment_reply: 'comment_reply',
+} as const;
+
 export interface SocialNotification {
+  kind: SocialNotificationKind;
+  /** @nullable */
+  commentId: string | null;
+  /** @nullable */
+  chapterId: string | null;
   id: string;
   body: string;
   read: boolean;
@@ -345,6 +523,25 @@ export const WriterDocumentGenresItem = {
   Aşk: 'Aşk',
   Tarihi: 'Tarihi',
   Kişisel_Gelişim: 'Kişisel Gelişim',
+  Polisiye: 'Polisiye',
+  Gerilim: 'Gerilim',
+  Gizem: 'Gizem',
+  Macera: 'Macera',
+  Mizah: 'Mizah',
+  Dram: 'Dram',
+  Romantik: 'Romantik',
+  Gençlik: 'Gençlik',
+  Çocuk: 'Çocuk',
+  Masal: 'Masal',
+  Deneme: 'Deneme',
+  Anı: 'Anı',
+  Biyografi: 'Biyografi',
+  Gezi: 'Gezi',
+  Felsefe: 'Felsefe',
+  Psikoloji: 'Psikoloji',
+  Bilim: 'Bilim',
+  Sanat: 'Sanat',
+  Eğitim: 'Eğitim',
 } as const;
 
 export type WriterDocumentAgeRating = typeof WriterDocumentAgeRating[keyof typeof WriterDocumentAgeRating];
@@ -452,6 +649,25 @@ export const WriterMetadataGenresItem = {
   Aşk: 'Aşk',
   Tarihi: 'Tarihi',
   Kişisel_Gelişim: 'Kişisel Gelişim',
+  Polisiye: 'Polisiye',
+  Gerilim: 'Gerilim',
+  Gizem: 'Gizem',
+  Macera: 'Macera',
+  Mizah: 'Mizah',
+  Dram: 'Dram',
+  Romantik: 'Romantik',
+  Gençlik: 'Gençlik',
+  Çocuk: 'Çocuk',
+  Masal: 'Masal',
+  Deneme: 'Deneme',
+  Anı: 'Anı',
+  Biyografi: 'Biyografi',
+  Gezi: 'Gezi',
+  Felsefe: 'Felsefe',
+  Psikoloji: 'Psikoloji',
+  Bilim: 'Bilim',
+  Sanat: 'Sanat',
+  Eğitim: 'Eğitim',
 } as const;
 
 export type WriterMetadataAgeRating = typeof WriterMetadataAgeRating[keyof typeof WriterMetadataAgeRating];
@@ -597,15 +813,75 @@ export interface WriterCommentInput {
   body: string;
   /** @nullable */
   chapterId?: string | null;
+  /** @nullable */
+  parentId?: string | null;
 }
 
+export interface SavedBookSubscriptionsInput {
+  /** @maxItems 100 */
+  bookIds: string[];
+}
+
+export interface BookSubscriptionInput {
+  saved: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type CommentReactionInputReaction = typeof CommentReactionInputReaction[keyof typeof CommentReactionInputReaction] | null;
+
+
+export const CommentReactionInputReaction = {
+  like: 'like',
+  love: 'love',
+} as const;
+
+export interface CommentReactionInput {
+  /** @nullable */
+  reaction: CommentReactionInputReaction;
+}
+
+export type WriterCommentReactionsItemReaction = typeof WriterCommentReactionsItemReaction[keyof typeof WriterCommentReactionsItemReaction];
+
+
+export const WriterCommentReactionsItemReaction = {
+  like: 'like',
+  love: 'love',
+} as const;
+
+export type WriterCommentReactionsItem = {
+  reaction: WriterCommentReactionsItemReaction;
+  count: number;
+  selected: boolean;
+};
+
 export interface WriterComment {
+  bookId: string;
+  /** @nullable */
+  parentId: string | null;
+  deleted: boolean;
+  replyCount: number;
+  reactions: WriterCommentReactionsItem[];
   id: string;
   author: CommunityPerson;
   body: string;
   /** @nullable */
   chapterId: string | null;
   createdAt: string;
+}
+
+export interface WriterCommentPage {
+  items: WriterComment[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface BookNotificationPage {
+  items: SocialNotification[];
+  /** @nullable */
+  nextCursor: string | null;
+  unreadCount: number;
 }
 
 export interface BulletinReactionPerson {
@@ -733,6 +1009,28 @@ export interface AdminAccountUpdate {
   reason: string;
 }
 
+export interface AdminAccountDeletionInput {
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  reason: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  confirmation: string;
+}
+
+export interface AdminAccountDeletion {
+  nickname: string;
+  books: number;
+  bulletins: number;
+  comments: number;
+  conversations: number;
+  media: number;
+}
+
 export interface AdminAccountPage {
   items: AdminAccount[];
   total: number;
@@ -831,6 +1129,34 @@ export interface AccountRegistration {
   acceptedRules: true;
 }
 
+export type GetDiscoveryBooksParams = {
+sort?: GetDiscoveryBooksSort;
+/**
+ * @maxLength 100
+ */
+search?: string;
+/**
+ * @maxLength 2048
+ */
+cursor?: string;
+};
+
+export type GetDiscoveryBooksSort = typeof GetDiscoveryBooksSort[keyof typeof GetDiscoveryBooksSort];
+
+
+export const GetDiscoveryBooksSort = {
+  new: 'new',
+  read: 'read',
+  popular: 'popular',
+} as const;
+
+export type GetBookCardsParams = {
+/**
+ * @maxLength 1200
+ */
+ids: string;
+};
+
 export type GetAdminAccountsParams = {
 /**
  * @maxLength 100
@@ -902,6 +1228,20 @@ export type GetConversationMessagesParams = {
 cursor?: string;
 };
 
+export type SyncConversationMessagesParams = {
+/**
+ * @pattern ^[0-9]{1,19}$
+ */
+after: string;
+};
+
+export type GetConversationChangesParams = {
+/**
+ * @pattern ^[0-9]{1,19}$
+ */
+after: string;
+};
+
 export type GetBulletinsParams = {
 cursor?: string;
 };
@@ -922,5 +1262,17 @@ export const GetBulletinReactionPeopleTargetType = {
 export type RequestBulletinUpload200 = {
   id: string;
   uploadURL: string;
+};
+
+export type GetBookNotificationsParams = {
+cursor?: string;
+};
+
+export type GetBookCommentThreadsParams = {
+cursor?: string;
+};
+
+export type GetWriterCommentRepliesParams = {
+cursor?: string;
 };
 

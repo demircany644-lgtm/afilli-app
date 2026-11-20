@@ -1,12 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { Btn, b } from '@/components/bulletins/common';
-import { AuthShell, Field, PasswordField, FormError, authMsg, goAfterAuth, st } from '@/components/bulletins/Auth';
+import { Btn } from '@/components/bulletins/common';
+import { AuthShell, Field, PasswordField, FormError, authMsg, goAfterAuth, useStStyles as useAuthStyles } from '@/components/bulletins/Auth';
 
 export default function SignUp() {
+  const st = useAuthStyles();
+  const { magazine: b } = useTheme();
   const auth = useAuth();
   const [email, setEmail] = useState(''), [nick, setNick] = useState(''), [password, setPassword] = useState('');
   const [accepted, setAccepted] = useState(false), [busy, setBusy] = useState(false);

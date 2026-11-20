@@ -52,6 +52,7 @@ export async function loadLocalAccount(userId: string | null, initial: State) {
 }
 export async function legacyToImport(userId: string, initial: State) {
   const reserve = async () => {
+    if (await AsyncStorage.getItem('afilli:account-deleted:v1:' + userId)) throw new Error('Bu hesap silindi; eski kayıtlar yeniden aktarılmadı.');
     const claim = decodeClaim(await AsyncStorage.getItem(CLAIM_KEY), initial);
     if (claim && claim.ownerId !== userId) throw new Error('Bu eski kayıtlar başka bir hesaba aktarılmış.');
     if (claim?.state) return claim.state;
@@ -69,6 +70,12 @@ export async function legacyToImport(userId: string, initial: State) {
   const operation = claimQueue.then(reserve, reserve);
   claimQueue = operation.then(() => undefined, () => undefined);
   return operation;
+}
+/** Barrier for deletion: finish any claim admitted before the owner tombstone. */
+export async function waitForLocalClaims() {
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    await navigator.locks.request(CLAIM_KEY, async () => {});
+  } else await claimQueue;
 }
 export function mergeLegacy(current: State, legacy: State): State {
   const drafts = [...current.drafts, ...legacy.drafts.filter((draft) => !current.drafts.some((own) => own.id === draft.id))];

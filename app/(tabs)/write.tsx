@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,7 +11,7 @@ import { Btn } from '@/components/bulletins/common';
 import { F } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
 import { useOffline, withIdentity, actorRequest } from '@/components/profile/hooks';
-import { W, Skeleton } from '@/components/writer/parts';
+import { useWriterPalette, writerPalette, Skeleton } from '@/components/writer/parts';
 import { WriterShelf } from '@/components/writer/WriterShelf';
 import { WriterScreen } from '@/components/writer/WriterScreen';
 import { listRecords, newRecord, updateRecord } from '@/lib/writer-store';
@@ -24,6 +25,7 @@ const lastKey = (owner: string) => 'afilli:writer:last:' + owner;
  * Nothing is created until the device listing has been read successfully.
  */
 function useEntryBook(owner: string | null, wanted: string | null, enabled: boolean, offline: boolean) {
+  const { magazine: b } = useTheme();
   const [id, setId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -63,6 +65,8 @@ function useEntryBook(owner: string | null, wanted: string | null, enabled: bool
 }
 
 function Write() {
+  const W = useWriterPalette();
+  const s = useSStyles();
   const { ready, userId } = useCommunity();
   const { book, shelf } = useLocalSearchParams<{ book?: string; shelf?: string }>();
   const offline = useOffline();
@@ -92,8 +96,11 @@ function Loading() {
 }
 export default withIdentity(Write);
 
-const s = StyleSheet.create({
+const useSStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   err: { alignItems: 'center', gap: 12, padding: 28, margin: 16, backgroundColor: W.paper, borderRadius: 20 },
   h: { fontFamily: F.serifBold, fontSize: 20, color: W.ink },
   p: { fontFamily: F.body, fontSize: 13, lineHeight: 19, color: W.ink, textAlign: 'center' },
+  });
 });

@@ -6,9 +6,9 @@ import { publicBook } from './book-access';
 
 export const EMOJIS = ['❤️', '😍', '😂', '😮', '😢', '👏', '📖', '👍'];
 export class CommunityError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public code?: string) { super(message); }
 }
-export const fail = (status: number, message: string): never => { throw new CommunityError(status, message); };
+export const fail = (status: number, message: string, code?: string): never => { throw new CommunityError(status, message, code); };
 export function uuid(value: unknown): string {
   if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) return fail(400, 'Geçersiz kayıt.');
   return value;
@@ -20,11 +20,14 @@ export async function transaction<T>(fn: (client: Transaction) => Promise<T>): P
   catch (error) { await client.query('ROLLBACK'); throw error; }
   finally { client.release(); }
 }
-export const viewer = authenticatedUserId;
+export function viewer(req: Request) {
+  const id = authenticatedUserId(req);
+  if (req.header('X-Afilli-Actor') && req.header('X-Afilli-Actor') !== id) return fail(401, 'Hesabın değişti. İşlemi kendi hesabında yeniden dene.');
+  return id;
+}
 export async function requirePerson(req: Request): Promise<CommunityPerson> {
   const id = viewer(req);
   if (!id) return fail(401, 'Devam etmek için giriş yap.');
-  if (req.header('X-Afilli-Actor') && req.header('X-Afilli-Actor') !== id) return fail(401, 'Hesabın değişti. İşlemi kendi hesabında yeniden dene.');
   const found = await pool.query<CommunityPerson>('SELECT id,nickname,avatar FROM community_users WHERE id=$1', [id]);
   if (found.rows[0]) return found.rows[0];
   return fail(401, 'Hesabın bulunamadı. Yeniden giriş yap; mevcut kayıtların silinmedi.');
@@ -33,7 +36,7 @@ export const route = (fn: RequestHandler): RequestHandler => async (req, res, ne
   res.setHeader('Cache-Control', 'no-store');
   try { await fn(req, res, next); }
   catch (error) {
-    if (error instanceof CommunityError) { res.status(error.status).json({ error: error.message }); return; }
+    if (error instanceof CommunityError) { res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) }); return; }
     req.log.error({ errorType: error instanceof Error ? error.name : 'Unknown' }, 'Bülten işlemi başarısız');
     res.status(500).json({ error: 'İşlem tamamlanamadı. Tekrar dene.' });
   }
@@ -47,14 +50,9 @@ export async function postOwner(id: string, client: Transaction | typeof pool = 
   const result = await client.query<{ author_id: string }>('SELECT author_id FROM bulletins WHERE id=$1 AND NOT moderation_hidden', [id]);
   return result.rows[0]?.author_id ?? fail(404, 'Bülten bulunamadı.');
 }
-export async function notify(client: Transaction, recipient: string, actor: string, kind: string, postId: string, commentId: string | null = null) {
-  if (recipient === actor) return;
-  const eventKey = `${kind}:${postId}:${commentId ?? ''}:${actor}`;
-  await client.query(
-    `INSERT INTO bulletin_notifications(recipient_id,actor_id,kind,event_key,post_id,comment_id)
-     VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(recipient_id,event_key)
-     DO UPDATE SET read=false,created_at=now()`, [recipient, actor, kind, eventKey, postId, commentId],
-  );
+export async function notify(_client: Transaction, _recipient: string, _actor: string, _kind: string, _postId: string, _commentId: string | null = null) {
+  // Compatibility for bulletin actions: the inbox now contains only book
+  // chapter/comment/reply events, never general bulletin activity.
 }
 const PERSON_SQL = `json_build_object('id',u.id,'nickname',u.nickname,'avatar',u.avatar)`;
 const BOOK_SQL = `json_build_object('id',b.id,'title',b.title,'body','','coverUrl',b.cover,'cover',b.published_data->>'cover',

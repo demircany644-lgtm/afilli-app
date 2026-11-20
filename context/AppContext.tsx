@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveAccountCache } from '@/lib/account-local-delete';
 import { useAuth } from '@/context/AuthContext';
-import { localKey, loadLocalAccount, legacyToImport, mergeLegacy } from '@/lib/local-account-data';
+import { loadLocalAccount, legacyToImport, mergeLegacy } from '@/lib/local-account-data';
 import { removeLibraryEntry } from '@/lib/library';
 
 export type Draft = { id: string; title: string; body: string; updatedAt: number; ownerId?: string };
@@ -15,7 +15,7 @@ type Ctx = State & {
   ready: boolean; unread: number;
   legacyAvailable: boolean; storageError: string | null;
   importLocalData: () => Promise<{ name: string; bio: string }>; retryLoad: () => void;
-  toggleSave: (id: string) => void; isSaved: (id: string) => boolean;
+  toggleSave: (id: string) => void; setBookSaved: (id: string, saved: boolean) => void; isSaved: (id: string) => boolean;
   openBook: (id: string, chapter: number) => void;
   removeFromLibrary: (id: string) => void;
   saveDraft: (d: { id?: string; title: string; body: string }) => Draft;
@@ -51,14 +51,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready || loadedFor.current !== userId) return;
     let active = true;
-    AsyncStorage.setItem(localKey(userId), JSON.stringify(s)).then(() => { if (active) setStorageError(null); })
+    saveAccountCache(userId, JSON.stringify(s)).then(() => { if (active) setStorageError(null); })
       .catch(() => { if (active) setStorageError('Cihaz kaydı başarısız. İçeriğin bu oturumda korunuyor; yeniden dene.'); });
     return () => { active = false; };
   }, [s, ready, userId]);
   const retryLoad = useCallback(() => {
     const owner = currentUser.current;
     if (ready && loadedFor.current === owner) {
-      void AsyncStorage.setItem(localKey(owner), JSON.stringify(currentState.current))
+      void saveAccountCache(owner, JSON.stringify(currentState.current))
         .then(() => { if (currentUser.current === owner) setStorageError(null); })
         .catch(() => { if (currentUser.current === owner) setStorageError('Cihaz kaydı başarısız. İçeriğin bu oturumda korunuyor; yeniden dene.'); });
     } else setLoadAttempt((value) => value + 1);
@@ -74,12 +74,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const legacy = await legacyToImport(owner, initial);
     const base = currentUser.current === owner ? currentState.current : (await loadLocalAccount(owner, initial)).state;
     const merged = mergeLegacy(base, legacy);
-    await AsyncStorage.setItem(localKey(owner), JSON.stringify(merged));
+    await saveAccountCache(owner, JSON.stringify(merged));
     if (currentUser.current === owner) { setS((value) => mergeLegacy(value, legacy)); setLegacyAvailable(false); }
     return { name: legacy.name, bio: legacy.bio };
   }, [userId, ready]);
 
   const toggleSave = useCallback((id: string) => updateState((p) => ({ ...p, saved: p.saved.includes(id) ? p.saved.filter((x) => x !== id) : [id, ...p.saved] })), [updateState]);
+  /** Idempotent: sets the final state instead of flipping a possibly stale one. Throws if the owner switched. */
+  const setBookSaved = useCallback((id: string, saved: boolean) => updateState((p) => p.saved.includes(id) === saved ? p : ({ ...p, saved: saved ? [id, ...p.saved] : p.saved.filter((x) => x !== id) })), [updateState]);
   const openBook = useCallback((id: string, chapter: number) => updateState((p) => ({ ...p, library: { ...p.library, [id]: chapter } })), [updateState]);
   const removeFromLibrary = useCallback((id: string) => updateState((p) => removeLibraryEntry(p, id)), [updateState]);
   const saveDraft = useCallback((d: { id?: string; title: string; body: string }) => {
@@ -104,9 +106,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return {
       ...visible, ready: ready && loadedFor.current === userId, legacyAvailable: loadedFor.current === userId && legacyAvailable,
       storageError, importLocalData, retryLoad, unread: visible.messages.filter((m) => !m.read).length,
-      toggleSave, isSaved: (id) => visible.saved.includes(id), openBook, removeFromLibrary, saveDraft, deleteDraft, addStoreItem, removeStoreItem, markAllRead, setProfile, markNotificationRead,
+      toggleSave, setBookSaved, isSaved: (id) => visible.saved.includes(id), openBook, removeFromLibrary, saveDraft, deleteDraft, addStoreItem, removeStoreItem, markAllRead, setProfile, markNotificationRead,
     };
-  }, [s, ready, userId, legacyAvailable, storageError, importLocalData, retryLoad, toggleSave, openBook, removeFromLibrary, saveDraft, deleteDraft, addStoreItem, removeStoreItem, markAllRead, setProfile, markNotificationRead]);
+  }, [s, ready, userId, legacyAvailable, storageError, importLocalData, retryLoad, toggleSave, setBookSaved, openBook, removeFromLibrary, saveDraft, deleteDraft, addStoreItem, removeStoreItem, markAllRead, setProfile, markNotificationRead]);
   return <C.Provider value={value}>{children}</C.Provider>;
 }
 export function useApp() { const c = useContext(C); if (!c) throw new Error('useApp outside provider'); return c; }

@@ -15,4 +15,6 @@ export interface WriterCommentInput {
   body: string;
   /** @nullable */
   chapterId?: string | null;
+  /** @nullable */
+  parentId?: string | null;
 }

@@ -3,13 +3,13 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import colors from '@/constants/colors';
 
 // Quill resting on an open book: the Afilli mark.
-export function FeatherBookMark({ size = 40, color }: { size?: number; color: string }) {
+export function FeatherBookMark({ size = 40, color, bg = colors.home.bg }: { size?: number; color: string; bg?: string }) {
   return (
     <Svg width={size} height={size * 0.8} viewBox="0 0 50 40">
       <Path d="M4 30 C12 26 20 27 25 31 C30 27 38 26 46 30 L46 36 C38 32 30 33 25 37 C20 33 12 32 4 36 Z" fill="none" stroke={color} strokeWidth={1.8} strokeLinejoin="round" />
       <Path d="M25 31 L25 37" stroke={color} strokeWidth={1.4} />
       <Path d="M10 27 C14 14 26 5 42 2 C38 12 30 22 14 26 Z" fill={color} />
-      <Path d="M12 28 C20 20 28 13 38 6" stroke={colors.home.bg} strokeWidth={0.9} fill="none" />
+      <Path d="M12 28 C20 20 28 13 38 6" stroke={bg} strokeWidth={0.9} fill="none" />
     </Svg>
   );
 }

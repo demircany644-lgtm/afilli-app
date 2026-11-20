@@ -1,81 +1,161 @@
-import React, { useMemo, useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColors } from '@/hooks/useColors';
-import { BookRow } from '@/components/BookList';
-import { Empty, webBottom } from '@/components/ui';
-import { BOOKS, HOME_SECTIONS, trNorm } from '@/data/catalog';
-import { useGetPublishedBooks, getGetPublishedBooksQueryKey } from '@workspace/api-client-react';
+import { useGetDiscoveryBooks, getGetDiscoveryBooksQueryKey, useGetPeople, getGetPeopleQueryKey, type CommunityPerson, type DiscoveryBookCard } from '@workspace/api-client-react';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
+import { F, tap, webBottom } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
 import { actorRequest, scoped } from '@/components/profile/hooks';
-import { mediaUrl } from '@/components/bulletins/common';
+import { Skeleton, StateCard } from '@/components/profile/kit';
+import { BookResultRow, LoadMore, PersonRow, SHELVES, SORT_LABEL, useDebouncedValue, type Sort } from '@/components/discovery/parts';
+
+type Tab = 'books' | 'people';
+const SORTS: Sort[] = ['new', 'read', 'popular'];
 
 export default function Search() {
-  const { section: raw } = useLocalSearchParams<{ section?: string }>();
-  const section = HOME_SECTIONS.find((item) => item.id === raw);
-  return <Discovery key={section?.id ?? 'all'} section={section} />;
+  const p = useLocalSearchParams<{ section?: string; sort?: string; tab?: string }>();
+  const shelf = SHELVES.find((s) => s.id === p.section);
+  const initialSort: Sort = shelf?.sort ?? (SORTS.includes(p.sort as Sort) ? (p.sort as Sort) : 'new');
+  const initialTab: Tab = p.tab === 'people' ? 'people' : 'books';
+  return <Discovery key={initialTab + ':' + initialSort} initialSort={initialSort} initialTab={initialTab} />;
 }
 
-function Discovery({ section }: { section?: (typeof HOME_SECTIONS)[number] }) {
-  const c = useColors();
+function Discovery({ initialSort, initialTab }: { initialSort: Sort; initialTab: Tab }) {
+  const { magazine: P } = useTheme();
+  const st = useStyles();
   const ins = useSafeAreaInsets();
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [sort, setSort] = useState<Sort>(initialSort);
   const [q, setQ] = useState('');
-  const { ready, userId } = useCommunity();
-  const published = useGetPublishedBooks({ query: { enabled: ready, queryKey: scoped(getGetPublishedBooksQueryKey(), userId) }, request: actorRequest(userId) });
-  const results = useMemo(() => {
-    const n = trNorm(q);
-    const candidates = section ? BOOKS.filter((b) => section.ids.some((id) => id === b.id)) : BOOKS;
-    return candidates.filter((b) => [b.title, b.author, b.alias, b.genre].some((f) => trNorm(f).includes(n)));
-  }, [q, section]);
-  const communityResults = useMemo(() => {
-    const n = trNorm(q);
-    const items = (published.data ?? []).filter((b) => [b.title, b.author.nickname, ...(b.genres ?? [])].some((f) => trNorm(f).includes(n)));
-    if (section?.id === 'oneriler') return [...items].sort((a, b) => (b.likeCount ?? 0) - (a.likeCount ?? 0));
-    if (section) return [...items].sort((a, b) => (b.readCount ?? 0) - (a.readCount ?? 0));
-    return items;
-  }, [q, published.data, section]);
+  const search = useDebouncedValue(q);
+  const shelfTitle = SHELVES.find((s) => s.sort === sort)?.title ?? 'Keşfet';
+
   return (
-    <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={0} style={{ flex: 1, backgroundColor: c.background }}>
-      <View style={[s.bar, { paddingTop: (Platform.OS === 'web' ? 67 : ins.top) + 8 }]}>
-        <View style={[s.field, { backgroundColor: c.paper, borderColor: c.gold }]}>
-          <Feather name="search" size={18} color={c.gold} />
-          <TextInput testID="search-input" autoFocus={!section} value={q} onChangeText={setQ} placeholder="Kitap, yazar veya tür" placeholderTextColor={c.mutedForeground}
-            style={[s.in, { color: c.brown }]} returnKeyType="search" autoCorrect={false} autoCapitalize="none" accessibilityLabel="Ara" />
-          {!!q && <Pressable testID="search-clear" accessibilityLabel="Temizle" hitSlop={8} onPress={() => setQ('')}><Feather name="x-circle" size={18} color={c.mutedForeground} /></Pressable>}
+    <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={0} style={{ flex: 1, backgroundColor: P.background }}>
+      <View style={[st.bar, { paddingTop: (Platform.OS === 'web' ? 67 : ins.top) + 8 }]}>
+        <View style={st.field}>
+          <Feather name="search" size={18} color={t_gold(P)} />
+          <TextInput testID="search-input" value={q} onChangeText={setQ} maxLength={100}
+            placeholder={tab === 'books' ? 'Kitap, yazar veya tür' : 'Okur veya yazar adı'} placeholderTextColor={P.muted}
+            style={st.in} returnKeyType="search" autoCorrect={false} autoCapitalize="none" accessibilityLabel={tab === 'books' ? 'Kitap ara' : 'Kişi ara'} />
+          {q ? <Pressable testID="search-clear" accessibilityRole="button" accessibilityLabel="Aramayı temizle" hitSlop={8} onPress={() => setQ('')}><Feather name="x-circle" size={18} color={P.muted} /></Pressable> : null}
         </View>
         <Pressable testID="search-cancel" accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} hitSlop={8}>
-          <Text style={[s.cancel, { color: c.brown }]}>Vazgeç</Text>
+          <Text style={st.cancel}>Kapat</Text>
         </Pressable>
       </View>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: 8, paddingBottom: 30 + webBottom }}>
-        <Text testID="discovery-title" style={[s.heading, { color: c.brown }]}>{section?.title ?? 'Kitapları Keşfet'}</Text>
-        {section ? <Pressable testID="discovery-all" accessibilityRole="button" onPress={() => router.setParams({ section: undefined })} style={{ marginHorizontal: 20, marginBottom: 14 }}><Text style={{ color: c.gold, fontFamily: 'Inter_500Medium' }}>Tüm kitaplarda ara</Text></Pressable> : null}
-        <Text style={[s.h, { color: c.mutedForeground }]}>{q ? (results.length + communityResults.length) + ' sonuç' : 'Örnek okuma seçkisi'}</Text>
-        {results.length === 0 && communityResults.length === 0 ? <Empty icon="search" title="Sonuç bulunamadı" text={'"' + q + '" için eşleşen kitap, yazar veya tür yok.'} />
-          : results.map((b) => <BookRow key={b.id} book={b} testID={'result-' + b.id} />)}
-        <Text style={[s.h, { color: c.mutedForeground, marginTop: 14 }]}>Topluluğun Yayınladıkları</Text>
-        {published.isError ? <View style={s.notice}><Text style={{ color: c.destructive }}>Topluluk kitapları alınamadı. Örnek seçki kullanılabilir.</Text><Pressable testID="discovery-retry" accessibilityRole="button" onPress={() => void published.refetch()}><Text style={{ color: c.gold }}>Tekrar dene</Text></Pressable></View>
-          : published.isLoading || !ready ? <Text style={[s.notice, { color: c.mutedForeground }]}>Kitaplar yükleniyor…</Text>
-          : communityResults.length === 0 ? <Text style={[s.notice, { color: c.mutedForeground }]}>{q ? 'Bu aramayla eşleşen topluluk kitabı yok.' : 'Henüz yayınlanmış topluluk kitabı yok.'}</Text>
-          : communityResults.map((b) => <Pressable key={b.id} testID={'published-result-' + b.id} accessibilityRole="button" accessibilityLabel={b.title + ', ' + b.author.nickname} onPress={() => router.push({ pathname: '/authored-book/[id]', params: { id: b.id } })} style={[s.published, { backgroundColor: c.paper, borderColor: c.border }]}>
-            {b.coverUrl ? <Image source={{ uri: mediaUrl(b.coverUrl) }} style={{ width: 52, height: 74, borderRadius: 4 }} /> : <Feather name="book-open" size={34} color={c.gold} />}
-            <View style={{ flex: 1, gap: 4 }}><Text style={{ color: c.brown, fontFamily: 'PlayfairDisplay_700Bold', fontSize: 16 }}>{b.title}</Text><Text style={{ color: c.mutedForeground, fontFamily: 'Inter_400Regular', fontSize: 12 }}>{b.author.nickname}</Text><Text style={{ color: c.gold, fontSize: 12 }}>{b.genres?.join(' · ')}</Text></View>
-            <Feather name="chevron-right" size={18} color={c.mutedForeground} />
-          </Pressable>)}
+      <View style={st.tabs} accessibilityRole="tablist">
+        {([['books', 'Kitaplar', 'book-open'], ['people', 'Kişiler', 'users']] as const).map(([k, label, icon]) => (
+          <Pressable key={k} testID={'discovery-tab-' + k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => { tap(); setTab(k); }}
+            style={[st.tab, tab === k && st.tabOn]}>
+            <Feather name={icon} size={15} color={tab === k ? P.card : P.text} />
+            <Text style={[st.tabText, tab === k && { color: P.card }]}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 30 + webBottom, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
+        <Text testID="discovery-title" accessibilityRole="header" style={st.heading}>{tab === 'people' ? 'Okurlar ve yazarlar' : search ? 'Arama sonuçları' : shelfTitle}</Text>
+        {tab === 'books' ? (
+          <>
+            <View style={st.sorts}>
+              {SORTS.map((s) => (
+                <Pressable key={s} testID={'discovery-sort-' + s} accessibilityRole="button" accessibilityState={{ selected: sort === s }} onPress={() => { tap(); setSort(s); }}
+                  style={[st.sort, sort === s && st.sortOn]}>
+                  <Text style={[st.sortText, sort === s && { color: P.text, fontFamily: F.semi }]}>{SORT_LABEL[s]}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <BookPages key={sort + '|' + search} sort={sort} search={search} />
+          </>
+        ) : <PeoplePages key={search} search={search} />}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-const s = StyleSheet.create({
-  heading: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, marginHorizontal: 20, marginBottom: 12 },
-  notice: { marginHorizontal: 20, marginBottom: 16, gap: 8, fontFamily: 'Inter_400Regular' },
-  published: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 14, padding: 12, marginHorizontal: 18, marginBottom: 10 },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 10 },
-  field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, height: 44 },
-  in: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 15, height: 44 },
-  cancel: { fontFamily: 'Inter_500Medium', fontSize: 15 },
-  h: { fontFamily: 'Inter_600SemiBold', fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase', marginHorizontal: 20, marginBottom: 10 },
+const t_gold = (P: { gold: string }) => P.gold;
+
+function ListSkeleton({ h }: { h: number }) {
+  return <View style={{ paddingHorizontal: 18, gap: 10 }} accessibilityLabel="Yükleniyor">{[0, 1, 2, 3].map((i) => <Skeleton key={i} w="100%" h={h} r={16} />)}</View>;
+}
+
+/** Cursor-paged accumulation keyed by the query identity; remounts reset it. */
+function useAccumulate<T extends { id: string }>(page: T[] | undefined, cursor: string | undefined) {
+  const [items, setItems] = useState<T[]>([]);
+  useEffect(() => {
+    if (!page) return;
+    setItems((prev) => {
+      if (!cursor) return page;
+      const seen = new Set(prev.map((p) => p.id));
+      return [...prev, ...page.filter((p) => !seen.has(p.id))];
+    });
+  }, [page, cursor]);
+  return items;
+}
+
+function BookPages({ sort, search }: { sort: Sort; search: string }) {
+  const { ready, userId } = useCommunity();
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const params = { sort, ...(search ? { search } : {}), ...(cursor ? { cursor } : {}) };
+  const q = useGetDiscoveryBooks(params, { query: { enabled: ready, queryKey: scoped(getGetDiscoveryBooksQueryKey(params), userId) }, request: actorRequest(userId) });
+  const items = useAccumulate<DiscoveryBookCard>(q.data?.items, cursor);
+  if ((!ready || q.isLoading) && !cursor) return <ListSkeleton h={100} />;
+  if (q.isError && !cursor) return <StateCard testID="discovery-error" icon="wifi-off" title="Kitaplar yüklenemedi" text="Bağlantını kontrol edip tekrar dene." action={{ label: 'Tekrar dene', testID: 'discovery-retry', onPress: () => void q.refetch() }} />;
+  if (items.length === 0 && q.data) return <StateCard testID="discovery-empty" icon="book" title={search ? 'Eşleşen kitap yok' : 'Henüz yayımlanmış kitap yok'} text={search ? `"${search}" için kitap, yazar veya tür bulunamadı.` : 'Yazarlar ilk kitaplarını yayımladığında burada görünecek.'} />;
+  return (
+    <View>
+      {items.map((b) => <BookResultRow key={b.id} card={b} testID={'published-result-' + b.id} />)}
+      <LoadMore testID="discovery-more" next={!!q.data?.nextCursor} busy={q.isFetching} error={q.isError}
+        onMore={() => { if (q.isError) void q.refetch(); else if (q.data?.nextCursor) setCursor(q.data.nextCursor); }} />
+      {!q.data?.nextCursor && !q.isError && items.length > 0 ? <EndMark /> : null}
+    </View>
+  );
+}
+
+function PeoplePages({ search }: { search: string }) {
+  const { ready, userId } = useCommunity();
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const params = { ...(search ? { search } : {}), ...(cursor ? { cursor } : {}) };
+  const q = useGetPeople(params, { query: { enabled: ready, queryKey: scoped(getGetPeopleQueryKey(params), userId) }, request: actorRequest(userId) });
+  const items = useAccumulate<CommunityPerson>(q.data?.items, cursor);
+  if ((!ready || q.isLoading) && !cursor) return <ListSkeleton h={64} />;
+  if (q.isError && !cursor) return <StateCard testID="people-error" icon="wifi-off" title="Kişiler yüklenemedi" text="Bağlantını kontrol edip tekrar dene." action={{ label: 'Tekrar dene', testID: 'people-retry', onPress: () => void q.refetch() }} />;
+  if (items.length === 0 && q.data) return <StateCard testID="people-empty" icon="users" title={search ? 'Kimse bulunamadı' : 'Henüz okur yok'} text={search ? `"${search}" ile eşleşen bir okur yok. Başka bir ad dene.` : 'İlk okurlar katıldığında burada görünecek.'} />;
+  return (
+    <View>
+      {items.map((p) => <PersonRow key={p.id} person={p} />)}
+      <LoadMore testID="people-more" next={!!q.data?.nextCursor} busy={q.isFetching} error={q.isError}
+        onMore={() => { if (q.isError) void q.refetch(); else if (q.data?.nextCursor) setCursor(q.data.nextCursor); }} />
+      {!q.data?.nextCursor && !q.isError && items.length > 0 ? <EndMark /> : null}
+    </View>
+  );
+}
+
+function EndMark() {
+  const st = useStyles();
+  return <View style={st.end} accessibilityLabel="Listenin sonu"><View style={st.endRule} /><Text style={st.endText}>Hepsi bu kadar</Text><View style={st.endRule} /></View>;
+}
+
+const useStyles = makeStyles((t) => {
+  const P = t.magazine;
+  return StyleSheet.create({
+    bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 10, width: '100%', maxWidth: 640, alignSelf: 'center' },
+    field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: t.social.foilMid, backgroundColor: P.card, borderRadius: 999, paddingHorizontal: 14, height: 46 },
+    in: { flex: 1, fontFamily: F.body, fontSize: 15, height: 46, color: P.text },
+    cancel: { fontFamily: F.med, fontSize: 15, color: P.text },
+    tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 6, width: '100%', maxWidth: 640, alignSelf: 'center' },
+    tab: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', height: 40, borderRadius: 20, borderWidth: 1, borderColor: P.border, backgroundColor: P.card },
+    tabOn: { backgroundColor: P.text, borderColor: P.text },
+    tabText: { fontFamily: F.med, fontSize: 14, color: P.text },
+    heading: { fontFamily: F.serifBold, fontSize: 25, color: P.text, marginHorizontal: 20, marginTop: 10, marginBottom: 10 },
+    sorts: { flexDirection: 'row', gap: 18, marginHorizontal: 20, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: P.border },
+    sort: { paddingVertical: 8, borderBottomWidth: 2, borderBottomColor: 'transparent', marginBottom: -1 },
+    sortOn: { borderBottomColor: t.social.foilMid },
+    sortText: { fontFamily: F.med, fontSize: 14, color: P.muted },
+    end: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 40, marginVertical: 16 },
+    endRule: { flex: 1, height: 1, backgroundColor: P.border },
+    endText: { fontFamily: F.serif, fontSize: 13, color: P.muted, fontStyle: 'italic' },
+  });
 });

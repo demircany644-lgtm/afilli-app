@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { F, tap } from '@/components/ui';
 import { prepareBulletinPhoto, type LocalBulletinPhoto } from '@/lib/bulletin-photos';
-import { b, Sheet, SheetRow, Btn, mediaUrl } from '@/components/bulletins/common';
+import { Sheet, SheetRow, Btn, mediaUrl } from '@/components/bulletins/common';
 
 export const MAX_PHOTOS = 4;
 
 export function PhotoSourceSheet({ visible, onClose, remaining, onAdd }: {
   visible: boolean; onClose: () => void; remaining: number; onAdd: (p: LocalBulletinPhoto[], error: string | null) => void;
 }) {
+  const st = useStStyles();
   const [denied, setDenied] = useState<string | null>(null);
   const handle = async (res: ImagePicker.ImagePickerResult) => {
     if (res.canceled) return;
@@ -64,6 +66,8 @@ export function PhotoSourceSheet({ visible, onClose, remaining, onAdd }: {
 }
 
 export function PhotoPreview({ photos, onRemove, uploading, locked }: { photos: LocalBulletinPhoto[]; onRemove: (id: string) => void; uploading: Record<string, 'up' | 'fail'>; locked: boolean }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   if (!photos.length) return null;
   return (
     <View style={st.grid}>
@@ -86,7 +90,9 @@ export function PhotoPreview({ photos, onRemove, uploading, locked }: { photos: 
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   err: { color: b.danger, fontFamily: F.med, fontSize: 13 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   tile: { width: '48%', backgroundColor: b.input, borderRadius: 12, overflow: 'hidden', justifyContent: 'center' },
@@ -95,4 +101,5 @@ const st = StyleSheet.create({
   overlayText: { color: b.card, fontFamily: F.semi, fontSize: 12 },
   ok: { position: 'absolute', left: 6, top: 6, width: 20, height: 20, borderRadius: 10, backgroundColor: b.gold, alignItems: 'center', justifyContent: 'center' },
   x: { position: 'absolute', right: 6, top: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(62,42,26,0.8)', alignItems: 'center', justifyContent: 'center' },
+  });
 });

@@ -5,12 +5,15 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MessageGif } from './messageGif';
 
 export interface MessageInput {
   clientId: string;
-  /**
-     * @minLength 1
-     * @maxLength 4000
-     */
+  /** @maxLength 4000 */
   body: string;
+  /** @nullable */
+  replyToId?: string | null;
+  gif?: MessageGif | null;
+  /** @nullable */
+  photoId?: string | null;
 }

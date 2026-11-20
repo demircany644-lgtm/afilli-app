@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useGetSocialSettings, getGetSocialSettingsQueryKey } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
-import { P, S } from './kit';
+
 
 /** One shared setting for every profile; refresh when the app comes back and periodically. */
 export function useSocialSettings() {
@@ -15,6 +16,8 @@ export function useSocialSettings() {
 }
 
 export function OfficialInstagramIcon() {
+  const { social: S } = useTheme();
+  const st = useStStyles();
   const { data } = useSocialSettings();
   const [error, setError] = useState(false);
   const url = data?.instagramUrl;
@@ -34,8 +37,11 @@ export function OfficialInstagramIcon() {
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: P } = t;
+  return StyleSheet.create({
   container: { alignItems: 'center', marginTop: 6 },
   icon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   error: { fontFamily: F.med, fontSize: 12, color: P.danger, textAlign: 'center', marginTop: 6 },
+  });
 });

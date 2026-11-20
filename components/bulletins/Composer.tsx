@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
@@ -9,7 +10,7 @@ import { F, tap } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { useCommunity } from '@/context/CommunityContext';
 import { restoreBulletinPhotos, uploadBulletinPhoto, type LocalBulletinPhoto } from '@/lib/bulletin-photos';
-import { b, Avatar, BookCover, Btn, apiError, goSignIn } from '@/components/bulletins/common';
+import { Avatar, BookCover, Btn, apiError, goSignIn } from '@/components/bulletins/common';
 import { PhotoSourceSheet, PhotoPreview, MAX_PHOTOS } from '@/components/bulletins/PhotoTools';
 import { BookPicker } from '@/components/bulletins/BookPicker';
 
@@ -33,6 +34,8 @@ function fromPost(p: Bulletin): Draft {
 }
 
 export function Composer({ editing, onCreated, onDone }: { editing?: Bulletin; onCreated?: (b: Bulletin) => void; onDone?: (b: Bulletin | null) => void }) {
+  const { magazine: b } = useTheme();
+  const st = useStStyles();
   const qc = useQueryClient();
   const { name } = useApp();
   const { userId, person, ready, error: sessionError } = useCommunity();
@@ -195,7 +198,9 @@ export function Composer({ editing, onCreated, onDone }: { editing?: Bulletin; o
   );
 }
 
-const st = StyleSheet.create({
+const useStStyles = makeStyles((t) => {
+  const { magazine: b } = t;
+  return StyleSheet.create({
   card: { backgroundColor: b.card, borderRadius: 20, padding: 14, borderWidth: 1.5, borderColor: b.gold, marginBottom: 18 },
   top: { flexDirection: 'row', gap: 10 },
   who: { width: 64, alignItems: 'center', gap: 5 },
@@ -212,4 +217,5 @@ const st = StyleSheet.create({
   muted: { fontFamily: F.body, fontSize: 12, color: b.muted },
   book: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10, padding: 10, borderRadius: 12, backgroundColor: b.background, borderWidth: 1, borderColor: b.gold },
   bookTitle: { fontFamily: F.serifBold, fontSize: 15, color: b.text },
+  });
 });

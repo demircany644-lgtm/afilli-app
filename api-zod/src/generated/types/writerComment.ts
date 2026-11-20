@@ -6,8 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CommunityPerson } from './communityPerson';
+import type { WriterCommentReactionsItem } from './writerCommentReactionsItem';
 
 export interface WriterComment {
+  bookId: string;
+  /** @nullable */
+  parentId: string | null;
+  deleted: boolean;
+  replyCount: number;
+  reactions: WriterCommentReactionsItem[];
   id: string;
   author: CommunityPerson;
   body: string;

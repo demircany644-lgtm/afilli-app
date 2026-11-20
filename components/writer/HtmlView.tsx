@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, StyleSheet, Text, View, type TextStyle } from 'react-native';
+import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useGetWriterImageAccess, getGetWriterImageAccessQueryKey } from '@workspace/api-client-react';
 import { F } from '@/components/ui';
 import { scoped, actorRequest } from '@/components/profile/hooks';
 import { useCommunity } from '@/context/CommunityContext';
 import { decodeEntities, writerMediaId } from '@/lib/writer-text';
-import { W, Confirm } from '@/components/writer/parts';
+import { CopyGuard, CopyProtectionHint } from './CopyGuard';
+import { useWriterPalette, writerPalette, Confirm } from '@/components/writer/parts';
 import { mediaUrl } from '@/components/bulletins/common';
 
 /**
@@ -67,6 +69,8 @@ const hasImg = (n: Node): boolean => typeof n !== 'string' && (n.tag === 'img' |
 const isBlock = (n: Node) => typeof n !== 'string' && (BLOCK.has(n.tag) || hasImg(n));
 
 export function HtmlView({ html, night, owner, privatePreview = false, fontSize = 17 }: { html: string; night?: boolean; owner: string | null; privatePreview?: boolean; fontSize?: number }) {
+  const W = useWriterPalette();
+  const rs = useRsStyles();
   const [link, setLink] = useState<string | null>(null);
   const ink = night ? '#EADBC4' : W.ink;
   const base: TextStyle = { fontFamily: F.body, fontSize, lineHeight: Math.round(fontSize * 1.65), color: ink };
@@ -99,7 +103,7 @@ export function HtmlView({ html, night, owner, privatePreview = false, fontSize 
   const flowText = (nodes: Node[], k: string, style: TextStyle[], align?: string) => {
     const parts = nodes.map((c, i) => inline(c, k + '.' + i));
     const txt = nodes.length === 0 ? '' : null;
-    return <Text key={k} selectable style={[base, ...style.map(scaleStyle), align ? { textAlign: align as TextStyle['textAlign'] } : null]}>{txt ?? parts}</Text>;
+    return <Text key={k} selectable={false} style={[base, ...style.map(scaleStyle), align ? { textAlign: align as TextStyle['textAlign'] } : null]}>{txt ?? parts}</Text>;
   };
   const blocks = (nodes: Node[], k: string): React.ReactNode[] => {
     const out: React.ReactNode[] = []; let run: Node[] = [];
@@ -143,16 +147,19 @@ export function HtmlView({ html, night, owner, privatePreview = false, fontSize 
 
   const tree = parseHtml(html);
   return (
-    <View>
+    <CopyGuard>
       {blocks(tree.kids, 'b')}
+      <CopyProtectionHint />
       <Confirm visible={!!link} title="Dış bağlantı" confirm="Aç" onCancel={() => setLink(null)}
         onConfirm={() => { const u = link; setLink(null); if (u) void Linking.openURL(u).catch(() => undefined); }}
         text={'Bu bağlantı Afilli dışına çıkıyor:\n' + (link ?? '') + '\nAçmak istiyor musun?'} />
-    </View>
+    </CopyGuard>
   );
 }
 
 function ReaderImage({ src, owner, privatePreview }: { src: string; owner: string | null; privatePreview: boolean }) {
+  const W = useWriterPalette();
+  const rs = useRsStyles();
   const { ready } = useCommunity();
   const mid = writerMediaId(src);
   const [failed, setFailed] = useState(false);
@@ -177,7 +184,9 @@ function ReaderImage({ src, owner, privatePreview }: { src: string; owner: strin
     style={[rs.img, { aspectRatio: ratio }]} resizeMode="contain" />;
 }
 
-const rs = StyleSheet.create({
+const useRsStyles = makeStyles((t) => {
+  const W = writerPalette(t);
+  return StyleSheet.create({
   p: { marginBottom: 14 },
   h1: { fontFamily: F.serifBold, fontSize: 26, lineHeight: 33, marginTop: 10, marginBottom: 10 },
   h2: { fontFamily: F.serifBold, fontSize: 22, lineHeight: 29, marginTop: 8, marginBottom: 8 },
@@ -190,4 +199,5 @@ const rs = StyleSheet.create({
   img: { width: '100%', borderRadius: 12, marginVertical: 10 },
   imgBox: { height: 160, backgroundColor: W.input, alignItems: 'center', justifyContent: 'center', gap: 6 },
   imgText: { fontFamily: F.body, fontSize: 12, color: W.muted },
+  });
 });

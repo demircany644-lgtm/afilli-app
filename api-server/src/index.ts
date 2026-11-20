@@ -3,9 +3,16 @@ import { logger } from "./lib/logger";
 import { bootstrapAdministrator } from './lib/admin-bootstrap';
 import { getWriterCleanupHealth } from './lib/writer-cleanup-health';
 import { assertAuthReleaseReady } from './lib/auth-release';
+import { cleanDeletedAccountMedia } from './lib/admin-account-delete';
+import { assertBookCommunitySchema } from './lib/book-community-schema';
+import { assertDirectMessageSchema } from './lib/direct-messages';
 
 // Do not accept production traffic with an incomplete legacy-account transition.
 await assertAuthReleaseReady();
+if (process.env.NODE_ENV === 'production') {
+  await assertBookCommunitySchema();
+  await assertDirectMessageSchema();
+}
 
 const rawPort = process.env["PORT"];
 
@@ -28,6 +35,16 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  let cleaningAccountMedia = false;
+  const cleanAccountMedia = async () => {
+    if (cleaningAccountMedia) return;
+    cleaningAccountMedia = true;
+    try { await cleanDeletedAccountMedia(); }
+    catch { logger.warn({ warning: 'account_media_cleanup_unavailable' }, 'Hesap görsel temizliği çalıştırılamadı'); }
+    finally { cleaningAccountMedia = false; }
+  };
+  void cleanAccountMedia();
+  setInterval(() => { void cleanAccountMedia(); }, 60_000).unref();
   // Read-only warning, not a cleanup job or a scheduler.
   void getWriterCleanupHealth().then(health => {
     if (health.warnings.length) logger.warn({ writerCleanup: health }, 'Yazar temizliği işletmen denetimi gerektiriyor');

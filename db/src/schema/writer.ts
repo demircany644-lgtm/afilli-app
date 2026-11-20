@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, text, uuid, integer, boolean, timestamp, date, primaryKey, uniqueIndex, check } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, integer, boolean, timestamp, date, primaryKey, uniqueIndex, index, check, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { authoredBooks, communityUsers } from './community';
 
 export const writerUploads = pgTable('writer_uploads', {
@@ -28,15 +28,41 @@ export const writerLikes = pgTable('writer_likes', {
   bookId: uuid('book_id').notNull().references(() => authoredBooks.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => communityUsers.id),
 }, t => [primaryKey({ columns: [t.bookId, t.userId] })]);
+// Thread structure survives content/account deletion, without keeping author,
+// body or client id. A deleted parent must not delete another reader's replies.
+export const writerCommentNodes = pgTable('writer_comment_nodes', {
+  id: uuid('id').primaryKey(),
+  bookId: uuid('book_id').notNull().references(() => authoredBooks.id, { onDelete: 'cascade' }),
+  parentId: uuid('parent_id').references((): AnyPgColumn => writerCommentNodes.id, { onDelete: 'cascade' }),
+  chapterId: uuid('chapter_id'),
+  moderationHidden: boolean('moderation_hidden').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [index('writer_comment_nodes_page').on(t.bookId, t.parentId, t.createdAt, t.id)]);
 export const writerComments = pgTable('writer_comments', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: uuid('id').primaryKey().defaultRandom().references(() => writerCommentNodes.id, { onDelete: 'cascade' }),
   bookId: uuid('book_id').notNull().references(() => authoredBooks.id, { onDelete: 'cascade' }),
   authorId: text('author_id').notNull().references(() => communityUsers.id),
   clientId: uuid('client_id').notNull(), chapterId: uuid('chapter_id'),
+  parentId: uuid('parent_id').references(() => writerCommentNodes.id),
   body: text('body').notNull(),
   moderationHidden: boolean('moderation_hidden').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [uniqueIndex('writer_comment_idempotency').on(t.bookId, t.authorId, t.clientId)]);
+export const writerCommentReactions = pgTable('writer_comment_reactions', {
+  commentId: uuid('comment_id').notNull().references(() => writerComments.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => communityUsers.id, { onDelete: 'cascade' }),
+  reaction: text('reaction').notNull(),
+}, t => [primaryKey({ columns: [t.commentId, t.userId] }),
+  check('writer_comment_reaction_kind', sql`${t.reaction} IN ('like','love')`)]);
+export const bookSubscriptions = pgTable('book_subscriptions', {
+  bookId: uuid('book_id').notNull().references(() => authoredBooks.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => communityUsers.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.bookId, t.userId] })]);
+export const notifiedBookChapters = pgTable('notified_book_chapters', {
+  bookId: uuid('book_id').notNull().references(() => authoredBooks.id, { onDelete: 'cascade' }),
+  chapterId: uuid('chapter_id').notNull(),
+}, t => [primaryKey({ columns: [t.bookId, t.chapterId] })]);
 export const writerVoiceUsage = pgTable('writer_voice_usage', {
   userId: text('user_id').notNull().references(() => communityUsers.id),
   day: date('day').notNull().default(sql`CURRENT_DATE`),

@@ -14,7 +14,7 @@ const objectStorageClient = new Storage({
   },
   projectId: '',
 });
-type ImageFolder = 'bulletins' | 'profiles' | 'writer';
+type ImageFolder = 'bulletins' | 'profiles' | 'writer' | 'direct-messages';
 function imageObject(id: string, folder: ImageFolder) {
   const directory = process.env.PRIVATE_OBJECT_DIR;
   if (!directory) throw new Error('Fotoğraf depolaması yapılandırılmadı.');
@@ -24,6 +24,8 @@ function imageObject(id: string, folder: ImageFolder) {
 export const bulletinObject = (id: string) => imageObject(id, 'bulletins');
 export const profileObject = (id: string) => imageObject(id, 'profiles');
 export const writerObject = (id: string) => imageObject(id, 'writer');
+export const directPhotoObject = (id: string) => imageObject(id, 'direct-messages');
+export const directPhotoUploadUrl = (id: string, expiresAt: number) => signedImageUrl(`${id}/source`, 'direct-messages', 'PUT', 900_000, expiresAt);
 export const bulletinUploadUrl = (id: string) => imageUploadUrl(id, 'bulletins');
 export const profileUploadUrl = (id: string) => imageUploadUrl(id, 'profiles');
 export const writerUploadUrl = (id: string) => imageUploadUrl(`${id}/source`, 'writer');
@@ -31,13 +33,13 @@ export const writerImageAccessUrl = (id: string) => signedImageUrl(`${id}/image`
 async function imageUploadUrl(id: string, folder: ImageFolder) {
   return signedImageUrl(id, folder, 'PUT', 900_000);
 }
-async function signedImageUrl(id: string, folder: ImageFolder, method: 'GET' | 'PUT', lifetime: number) {
+async function signedImageUrl(id: string, folder: ImageFolder, method: 'GET' | 'PUT', lifetime: number, expiresAt?: number) {
   const file = imageObject(id, folder);
   const response = await fetch(`${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       bucket_name: file.bucket.name, object_name: file.name, method,
-      expires_at: new Date(Date.now() + lifetime).toISOString(),
+      expires_at: new Date(expiresAt ?? Date.now() + lifetime).toISOString(),
     }),
     signal: AbortSignal.timeout(30_000),
   });

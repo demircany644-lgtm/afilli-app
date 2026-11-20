@@ -5,8 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SocialNotificationKind } from './socialNotificationKind';
 
 export interface SocialNotification {
+  kind: SocialNotificationKind;
+  /** @nullable */
+  commentId: string | null;
+  /** @nullable */
+  chapterId: string | null;
   id: string;
   body: string;
   read: boolean;
