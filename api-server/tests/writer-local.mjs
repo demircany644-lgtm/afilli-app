@@ -21,7 +21,7 @@ const locks = { request(name, callback) {
 } };
 const crypto = { randomUUID, CryptoDigestAlgorithm: { SHA256: 'SHA-256' }, digestStringAsync: async (_, text) => createHash('sha256').update(text).digest('hex') };
 async function load(file, dependencies) {
-  const source = await readFile(new URL('../../afilli/' + file, import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../' + file, import.meta.url), 'utf8');
   const code = (await transform(source, { loader: 'ts', format: 'cjs' })).code;
   const module = { exports: {} };
   vm.runInNewContext(code, { module, exports: module.exports, navigator: { locks }, require: name => {
@@ -247,7 +247,7 @@ assert.ok(![...memory.entries()].some(([k, v]) => k.startsWith(key(deletedOwner,
 console.log(`PASS chapter deltas: ${fullBytes} → ${deltaBytes} request bytes (${(100 * (1 - deltaBytes / fullBytes)).toFixed(1)}% less), durable replay, structural edits, account switch, storage failure, delete race, v1 migration and deleted owner cleanup`);
 
 // Exercise the native adapter against real files, including File.move's URI mutation.
-const tempRoot = await mkdtemp(fileURLToPath(new URL('../../../generated-artifacts/writer-storage-', import.meta.url)));
+const tempRoot = await mkdtemp(fileURLToPath(new URL('../../generated-artifacts/writer-storage-', import.meta.url)));
 let failMove = false;
 class Entry {
   constructor(...parts) { this.uri = path.join(...parts.map(part => typeof part === 'string' ? part : part.uri)); }

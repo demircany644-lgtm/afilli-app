@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { transform } from 'esbuild';
-const source=await readFile(new URL('../../afilli/lib/klipy.ts',import.meta.url),'utf8');
+const source=await readFile(new URL('../../lib/klipy.ts',import.meta.url),'utf8');
 // A test-only literal, never the real environment value. No provider requests run in Node.
 const code=(await transform(source,{loader:'ts',format:'cjs',define:{'process.env.EXPO_PUBLIC_KLIPY_APP_KEY':'"test-only-app-key"'}})).code;
 const calls=[],item={type:'gif',slug:'hello',title:'Hello',file:{sm:{gif:{url:'https://static.klipy.com/content.gif?tracking=preserve',width:220,height:180}}}};

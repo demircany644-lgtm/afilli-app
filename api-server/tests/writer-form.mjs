@@ -34,7 +34,7 @@ async function harness(file, initialProps, overrides = {}) {
     '@/components/bulletins/common': { Sheet: 'Sheet', SheetRow: 'SheetRow', Btn: 'Btn' },
     ...overrides,
   };
-  const source = await readFile(new URL('../../afilli/components/writer/' + file + '.tsx', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../components/writer/' + file + '.tsx', import.meta.url), 'utf8');
   const code = (await transform(source, { loader: 'tsx', format: 'cjs' })).code;
   const module = { exports: {} };
   vm.runInNewContext(code, { module, exports: module.exports, require(name) {

@@ -31,10 +31,12 @@ function validAttachments(v: Attachments): boolean {
   if (v.replyToId != null && (typeof v.replyToId !== 'string' || !/^[0-9a-f-]{36}$/i.test(v.replyToId))) return false;
   if (v.gif == null) return true;
   const g = v.gif;
-  if (typeof g !== 'object' || g.provider !== 'klipy' || typeof g.id !== 'string' || !g.id || g.id.length > 250
+  if (typeof g !== 'object' || !['klipy', 'afilli'].includes(g.provider) || typeof g.id !== 'string' || !g.id || g.id.length > 250
     || typeof g.title !== 'string' || g.title.length > 250 || typeof g.attribution !== 'string'
     || !Number.isInteger(g.width) || !Number.isInteger(g.height) || g.width < 1 || g.height < 1 || g.width > 4000 || g.height > 4000) return false;
   try {
+    if (g.provider === 'afilli') return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(g.id)
+      && g.url === `afilli://gif-library/${g.id}` && g.sourceUrl === g.url;
     const url = new URL(g.url), source = new URL(g.sourceUrl);
     return url.protocol === 'https:' && !url.username && !url.password && !url.port
       && ['static.klipy.com', 'static1.klipy.com', 'static2.klipy.com'].includes(url.hostname)

@@ -15,10 +15,11 @@ import { useCommunity } from '@/context/CommunityContext';
 import { F, tap } from '@/components/ui';
 import { apiError, timeAgo } from '@/components/bulletins/common';
 import { FoilButton, MarbleBackground, Notice, PillTabs, Skeleton, StateCard, TopBar , useKitStyles } from '@/components/profile/kit';
+import { AdminGifLibrary } from '@/components/profile/AdminGifLibrary';
 import { actorRequest, go, scoped, useFocusedForeground, useOwnerGuard, withIdentity } from '@/components/profile/hooks';
 
 const PAGE = 25;
-type Tab = 'overview' | 'accounts' | 'content' | 'reports' | 'history';
+type Tab = 'overview' | 'accounts' | 'content' | 'reports' | 'history' | 'gifs';
 const ROLE_LABEL: Record<AdminRole, string> = { user: 'Okur', admin: 'Yönetici', superadmin: 'Süper yönetici' };
 const KINDS: { key: AdminContentKind; label: string }[] = [
   { key: 'book', label: 'Kitaplar' }, { key: 'bulletin', label: 'Bültenler' },
@@ -111,6 +112,7 @@ function Overview({ o, onTab }: { o: { role: AdminRole; users: number; disabledU
       </View>
       <View style={k.card}>
         {o.role === 'superadmin' ? <NavRow icon="users" label="Hesap yönetimi" sub="Rol, askı ve takma ad" testID="admin-go-accounts" onPress={() => onTab('accounts')} /> : null}
+        {o.role === 'superadmin' ? <NavRow icon="film" label="GIF kitaplığı" sub="Sohbetlerde kullanılacak GIF'leri yükle" testID="admin-go-gifs" onPress={() => onTab('gifs')} /> : null}
         <NavRow icon="shield" label="İçerik denetimi" sub="Kitap, bülten ve yorumları gizle ya da geri getir" testID="admin-go-content" onPress={() => onTab('content')} />
         <NavRow icon="flag" label="Yorum şikâyetleri" sub="Şikâyet edilen yorumları incele, kapat ya da gizle" testID="admin-go-reports" onPress={() => onTab('reports')} />
         <NavRow icon="clock" label="İşlem geçmişi" sub="Tüm yönetici işlemleri ve gerekçeleri" testID="admin-go-history" onPress={() => onTab('history')} />
@@ -469,7 +471,7 @@ function AdminPanel() {
   else if (o.role === 'user') body = <StateCard testID="admin-forbidden" icon="lock" title="Bu sayfa yöneticilere özel" text="Hesabının yönetim yetkisi yok." action={{ label: 'Profile dön', testID: 'admin-back', onPress: () => go('/profile') }} />;
   else {
     const tabs: { key: Tab; label: string }[] = [{ key: 'overview', label: 'Genel' }, ...(superadmin ? [{ key: 'accounts' as Tab, label: 'Hesaplar' }] : []), { key: 'content', label: 'İçerik' }, { key: 'reports', label: 'Şikâyetler' }, { key: 'history', label: 'Geçmiş' }];
-    const t = tab === 'accounts' && !superadmin ? 'overview' : tab;
+    const t = (tab === 'accounts' || tab === 'gifs') && !superadmin ? 'overview' : tab;
     body = (
       <View style={{ gap: 14 }}>
         <View style={st.roleLine}>
@@ -479,10 +481,11 @@ function AdminPanel() {
             <Text style={st.refreshText}>Yenile</Text>
           </Pressable>
         </View>
-        <PillTabs tabs={tabs} value={t} onChange={setTab} />
+        <PillTabs tabs={tabs} value={t === 'gifs' ? 'overview' : t} onChange={setTab} />
         {msg ? <Notice text={msg} testID="admin-message" /> : null}
         {t === 'overview' ? <View style={{ paddingHorizontal: 18 }}><Overview o={o} onTab={setTab} /></View>
           : t === 'accounts' ? <Accounts userId={userId} live={live} onAct={act} />
+          : t === 'gifs' ? <AdminGifLibrary userId={userId} />
           : t === 'content' ? <Content userId={userId} live={live} onAct={act} />
           : t === 'reports' ? <Reports userId={userId} live={live} onAct={act} />
           : <History userId={userId} live={live} />}

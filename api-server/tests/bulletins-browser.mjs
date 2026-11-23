@@ -120,7 +120,7 @@ try {
   });
   await click('photo-gallery');
   const picker = await pickerEvent;
-  const photo = fileURLToPath(new URL('../../afilli/assets/images/magazine/autumn-cover.webp', import.meta.url));
+  const photo = fileURLToPath(new URL('../../assets/images/magazine/autumn-cover.webp', import.meta.url));
   await call('DOM.setFileInputFiles', { backendNodeId: picker.backendNodeId, files: [photo] });
   await wait(exists('remove-photo-0'));
   await wait(`(()=>{const image=document.querySelector('[aria-label="Seçilen fotoğraf 1"] img');return image?.complete&&image.naturalWidth>0})()`);

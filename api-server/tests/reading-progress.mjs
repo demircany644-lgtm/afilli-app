@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { transform } from 'esbuild';
 async function load(file, deps) {
-  const src = await readFile(new URL('../../afilli/lib/' + file, import.meta.url), 'utf8');
+  const src = await readFile(new URL('../../lib/' + file, import.meta.url), 'utf8');
   const code = (await transform(src, { loader: 'ts', format: 'cjs' })).code, module = { exports: {} };
   new Function('require', 'module', 'exports', code)(name => {
     if (!(name in deps)) throw new Error('Unexpected import ' + name);

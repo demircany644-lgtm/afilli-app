@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { transform } from 'esbuild';
 import { cleanHtml } from '../src/lib/writer-document.ts';
 
-const engineSource = await readFile(new URL('../../afilli/lib/writer-editor-html.ts', import.meta.url), 'utf8');
+const engineSource = await readFile(new URL('../../lib/writer-editor-html.ts', import.meta.url), 'utf8');
 new vm.Script(engineSource.match(/const ENGINE = String\.raw`([\s\S]*?)`;/)[1]);
 const commands = [], weights = [];
 const commandSource = engineSource.match(/function cmd\(n,v\)\{[\s\S]*?changed\(\);snap\(\);emitNow\(\);state\(\);\}/)[0];
@@ -105,7 +105,7 @@ const dependencies = {
   '@/components/bulletins/common': {},
 };
 async function loadComponent(name, extras = {}) {
-  const source = await readFile(new URL('../../afilli/components/writer/' + name + '.tsx', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../components/writer/' + name + '.tsx', import.meta.url), 'utf8');
   const code = (await transform(source + (name === 'HtmlView' ? '\nexport const styleForTest=styleOf;' : ''), { loader: 'tsx', format: 'cjs' })).code;
   const module = { exports: {} };
   vm.runInNewContext(code, { module, exports: module.exports, require(key) {

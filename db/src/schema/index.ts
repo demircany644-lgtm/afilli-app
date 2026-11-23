@@ -22,6 +22,7 @@ export * from './reading';
 export * from './community';
 export * from './writer';
 export * from './reader-interactions';
+export * from './gif-library';
 export * from './writer-cleanup';
 export * from './auth';
 export * from './admin';

@@ -99,7 +99,7 @@ try {
   assert.equal((await api(null, `/authored-books/${ownBook.id}`)).title, ownBook.title);
   console.log('PASS: only own books can be listed/shared and the real book detail becomes readable after sharing');
 
-  const photo = await readFile(new URL('../../afilli/assets/images/magazine/autumn-cover.webp', import.meta.url));
+  const photo = await readFile(new URL('../../assets/images/magazine/autumn-cover.webp', import.meta.url));
   const upload = await api(a, '/bulletin-uploads', 'POST', { contentType: 'image/webp', size: photo.length });
   uploads.push(upload.id);
   const put = await fetch(upload.uploadURL, { method: 'PUT', headers: { 'Content-Type': 'image/webp' }, body: photo });

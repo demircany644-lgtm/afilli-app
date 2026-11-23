@@ -292,6 +292,7 @@ export type MessageGifProvider = typeof MessageGifProvider[keyof typeof MessageG
 
 export const MessageGifProvider = {
   klipy: 'klipy',
+  afilli: 'afilli',
 } as const;
 
 export interface MessageGif {
@@ -362,6 +363,33 @@ export interface MessagePhoto {
 export interface MediaCleanupResult {
   hasMore: boolean;
   retryNeeded: boolean;
+}
+
+export interface LibraryGifInput {
+  clientId: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  title: string;
+  /**
+     * @minimum 1
+     * @maximum 5242880
+     */
+  size: number;
+}
+
+export interface LibraryGifUpload {
+  id: string;
+  ready: boolean;
+  /** @nullable */
+  uploadUrl: string | null;
+}
+
+export interface GifLibraryPage {
+  items: MessageGif[];
+  /** @nullable */
+  nextOffset: number | null;
 }
 
 export interface MessageQuote {
@@ -1230,6 +1258,14 @@ export interface AccountRegistration {
   nickname: string;
   acceptedRules: true;
 }
+
+export type GetGifLibraryParams = {
+/**
+ * @minimum 0
+ * @maximum 100000
+ */
+offset?: number;
+};
 
 export type GetDiscoveryBooksParams = {
 sort?: GetDiscoveryBooksSort;

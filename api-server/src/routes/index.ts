@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import gifLibraryRouter from './gif-library';
 import healthRouter from "./health";
 import bulletinRouter from './bulletins';
 import profileRouter from './profiles';
@@ -13,6 +14,7 @@ import authRouter from './auth';
 import adminRouter from './admin';
 
 const router: IRouter = Router();
+router.use(gifLibraryRouter);
 
 router.use(authRouter);
 router.use(adminRouter);

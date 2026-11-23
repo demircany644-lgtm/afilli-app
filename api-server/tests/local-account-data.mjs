@@ -8,7 +8,7 @@ const storage = {
   getItem: async (key) => memory.get(key) ?? null,
   setItem: async (key, value) => { if (rejectWrites) throw new Error('Device storage unavailable'); memory.set(key, value); },
 };
-const source = await readFile(new URL('../../afilli/lib/local-account-data.ts', import.meta.url), 'utf8');
+const source = await readFile(new URL('../../lib/local-account-data.ts', import.meta.url), 'utf8');
 const code = (await transform(source, { loader: 'ts', format: 'cjs' })).code;
 const module = { exports: {} };
 new Function('require', 'module', 'exports', code)((name) => {

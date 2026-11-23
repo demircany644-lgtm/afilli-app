@@ -6,12 +6,14 @@ import { assertAuthReleaseReady } from './lib/auth-release';
 import { cleanDeletedAccountMedia } from './lib/admin-account-delete';
 import { assertBookCommunitySchema } from './lib/book-community-schema';
 import { assertDirectMessageSchema } from './lib/direct-messages';
+import { assertGifLibrarySchema } from './lib/gif-library';
 
 // Do not accept production traffic with an incomplete legacy-account transition.
 await assertAuthReleaseReady();
 if (process.env.NODE_ENV === 'production') {
   await assertBookCommunitySchema();
   await assertDirectMessageSchema();
+  await assertGifLibrarySchema();
 }
 
 const rawPort = process.env["PORT"];

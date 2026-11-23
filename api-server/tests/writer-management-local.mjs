@@ -15,7 +15,7 @@ const storage = {
 const crypto = { randomUUID: () => forcedId ?? randomUUID(), CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
   digestStringAsync: async (_, text) => createHash('sha256').update(text).digest('hex') };
 async function load(file, dependencies) {
-  const source = await readFile(new URL('../../afilli/lib/' + file, import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../lib/' + file, import.meta.url), 'utf8');
   const code = (await transform(source, { loader: 'ts', format: 'cjs' })).code;
   const module = { exports: {} };
   vm.runInNewContext(code, { module, exports: module.exports, Error, require: name => {

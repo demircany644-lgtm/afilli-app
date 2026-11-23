@@ -11,6 +11,33 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /gif-library:
+    get:
+      operationId: getGifLibrary
+      parameters:
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, maximum: 100000, default: 0 } }
+      responses:
+        "200": { description: Shared Afilli GIF collection for signed-in accounts, content: { application/json: { schema: { $ref: "#/components/schemas/GifLibraryPage" } } } }
+  /admin/gif-uploads:
+    post:
+      operationId: requestLibraryGifUpload
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LibraryGifInput" } } }
+      responses:
+        "200": { description: Owner-bound idempotent source upload for superadmin only, content: { application/json: { schema: { $ref: "#/components/schemas/LibraryGifUpload" } } } }
+  /admin/gif-uploads/{id}/complete:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: completeLibraryGifUpload
+      responses:
+        "200": { description: Validated immutable animated GIF, content: { application/json: { schema: { $ref: "#/components/schemas/MessageGif" } } } }
+  /gif-library/{id}/media:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      operationId: getLibraryGifMedia
+      responses:
+        "200": { description: Ready GIF bytes for authenticated users; never a mutable source upload, content: { image/gif: { schema: { type: string, format: binary } } } }
   /discovery/books:
     get:
       operationId: getDiscoveryBooks
@@ -1005,7 +1032,7 @@ components:
       type: object
       required: [provider, id, title, url, width, height, sourceUrl, attribution, license]
       properties:
-        provider: { type: string, enum: [klipy] }
+        provider: { type: string, enum: [klipy, afilli] }
         id: { type: string, minLength: 1, maxLength: 250 }
         title: { type: string, maxLength: 250 }
         url: { type: string, format: uri, maxLength: 2048 }
@@ -1014,6 +1041,26 @@ components:
         sourceUrl: { type: string, format: uri, maxLength: 2048 }
         attribution: { type: string, maxLength: 500 }
         license: { type: string, maxLength: 100, nullable: true }
+    LibraryGifInput:
+      type: object
+      required: [clientId, title, size]
+      properties:
+        clientId: { type: string, format: uuid }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        size: { type: integer, minimum: 1, maximum: 5242880 }
+    LibraryGifUpload:
+      type: object
+      required: [id, ready, uploadUrl]
+      properties:
+        id: { type: string, format: uuid }
+        ready: { type: boolean }
+        uploadUrl: { type: [string, "null"] }
+    GifLibraryPage:
+      type: object
+      required: [items, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/MessageGif" } }
+        nextOffset: { type: [integer, "null"] }
     MessageQuote:
       type: object
       required: [id, available, sender, body, gif]

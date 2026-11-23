@@ -11,4 +11,5 @@ export type MessageGifProvider = typeof MessageGifProvider[keyof typeof MessageG
 
 export const MessageGifProvider = {
   klipy: 'klipy',
+  afilli: 'afilli',
 } as const;

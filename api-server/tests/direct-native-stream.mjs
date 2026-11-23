@@ -26,7 +26,7 @@ const previousFetch=globalThis.fetch;
 globalThis.__afilliNativeBridgeForTest={NativeResponse,NativeRequest};
 try {
   const bundled=await build({
-    entryPoints:[fileURLToPath(new URL('../../afilli/node_modules/expo/src/winter/fetch/fetch.ts',import.meta.url))],
+    entryPoints:[fileURLToPath(new URL('../../node_modules/expo/src/winter/fetch/fetch.ts',import.meta.url))],
     bundle:true,write:false,format:'cjs',platform:'node',external:['react-native','react-native/*'],
     plugins:[{name:'controlled-native-bridge',setup(builder){
       builder.onResolve({filter:/^\.\/ExpoFetchModule$/},()=>({path:'bridge',namespace:'test-bridge'}));

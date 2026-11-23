@@ -2,7 +2,7 @@ import { Storage } from '@google-cloud/storage';
 
 const REPLIT_SIDECAR_ENDPOINT = 'http://127.0.0.1:1106';
 // Canonical Replit sidecar authentication; never put account keys in the app.
-const objectStorageClient = new Storage({
+export const objectStorageClient = new Storage({
   credentials: {
     audience: 'replit', subject_token_type: 'access_token',
     token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`, type: 'external_account',

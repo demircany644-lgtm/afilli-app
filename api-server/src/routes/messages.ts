@@ -8,6 +8,7 @@ import { bookNotifications, readBookNotification } from '../lib/book-notificatio
 import { member, threads, messageData, sequence, validateGif } from '../lib/direct-messages';
 import { directEvent, openDirectEvents } from '../lib/direct-events';
 import { purgeDirectPhotoQueue } from '../lib/direct-media';
+import { resolveLibraryGif } from '../lib/gif-library';
 
 const router: IRouter = Router();
 router.get('/message-events', route(async (req, res) => {
@@ -104,7 +105,7 @@ router.post('/conversations/:id/messages', route(async (req, res) => {
       if (!photo) return fail(422, 'Fotoğraf hazır değil veya bu gönderime ait değil.', 'PHOTO_UNAVAILABLE');
       await client.query('UPDATE direct_message_uploads SET attached_at=clock_timestamp() WHERE id=$1', [input.photoId]);
     }
-    const gif = validateGif(input.gif);
+    const gif = input.gif?.provider === 'afilli' ? await resolveLibraryGif(input.gif, client) : validateGif(input.gif);
     const recent = (await client.query<{ count: number }>("SELECT count(*)::int AS count FROM direct_messages WHERE sender_id=$1 AND created_at>now()-interval '1 minute'", [actor.id])).rows[0];
     if (recent.count >= 60) return fail(429, 'Çok hızlı mesaj gönderiyorsun. Biraz bekleyip tekrar dene.');
     const row = (await client.query<{ id: string }>(`INSERT INTO direct_messages(thread_id,sender_id,client_id,body,payload_hash,reply_to_id,has_reply,gif,photo_id)

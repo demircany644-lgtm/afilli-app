@@ -66,6 +66,7 @@ export function sequence(value: unknown) {
 /** Never let arbitrary remote URLs become executable links or tracking attachments. */
 export function validateGif(gif: MessageGif | null | undefined): MessageGif | null {
   if (!gif) return null;
+  if (gif.provider !== 'klipy') return fail(400, 'GIF sağlayıcısı geçersiz.');
   const validUrl = (raw: string, hosts: string[]) => {
     try {
       const u = new URL(raw);
