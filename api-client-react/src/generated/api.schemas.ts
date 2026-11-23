@@ -577,7 +577,6 @@ export interface WriterDocument {
   completion: WriterDocumentCompletion;
   /** @nullable */
   cover: string | null;
-  /** @maxItems 200 */
   chapters: WriterChapter[];
 }
 
@@ -710,14 +709,9 @@ export interface WriterDeltaInput {
   expectedRevision: number;
   saveId: string;
   metadata?: WriterMetadata;
-  /** @maxItems 200 */
   upserts: WriterChapter[];
-  /** @maxItems 200 */
   deletedChapterIds: string[];
-  /**
-     * Required for additions, deletions or reorder; exact final permutation of chapter IDs.
-     * @maxItems 200
-     */
+  /** Required for additions, deletions or reorder; exact final permutation of chapter IDs. */
   chapterOrder?: string[];
 }
 
@@ -804,6 +798,102 @@ export interface WriterLikeInput {
   liked: boolean;
 }
 
+export interface ReaderLikeInput {
+  liked: boolean;
+  /** @nullable */
+  paragraphId?: string | null;
+}
+
+export interface ReaderParagraph {
+  id: string;
+  path: string;
+  quote: string;
+  likeCount: number;
+  liked: boolean;
+  commentCount: number;
+  archived: boolean;
+}
+
+export interface ReaderChapter {
+  bookId: string;
+  chapterId: string;
+  contentHash: string;
+  likeCount: number;
+  liked: boolean;
+  commentCount: number;
+  chapterCommentCount: number;
+  paragraphs: ReaderParagraph[];
+  archived: ReaderParagraph[];
+}
+
+export type ReaderReportInputReason = typeof ReaderReportInputReason[keyof typeof ReaderReportInputReason];
+
+
+export const ReaderReportInputReason = {
+  spam: 'spam',
+  abuse: 'abuse',
+  other: 'other',
+} as const;
+
+export interface ReaderReportInput {
+  reason: ReaderReportInputReason;
+  /** @maxLength 1000 */
+  details?: string;
+}
+
+export type ReaderReportDecisionAction = typeof ReaderReportDecisionAction[keyof typeof ReaderReportDecisionAction];
+
+
+export const ReaderReportDecisionAction = {
+  dismiss: 'dismiss',
+  hide: 'hide',
+} as const;
+
+export interface ReaderReportDecision {
+  action: ReaderReportDecisionAction;
+}
+
+export type ReaderReportReason = typeof ReaderReportReason[keyof typeof ReaderReportReason];
+
+
+export const ReaderReportReason = {
+  spam: 'spam',
+  abuse: 'abuse',
+  other: 'other',
+} as const;
+
+export type ReaderReportStatus = typeof ReaderReportStatus[keyof typeof ReaderReportStatus];
+
+
+export const ReaderReportStatus = {
+  pending: 'pending',
+  dismissed: 'dismissed',
+  hidden: 'hidden',
+} as const;
+
+export interface ReaderReport {
+  id: string;
+  commentId: string;
+  bookId: string;
+  /** @nullable */
+  chapterId: string | null;
+  /** @nullable */
+  paragraphId: string | null;
+  author: CommunityPerson;
+  reporter: CommunityPerson;
+  body: string;
+  reason: ReaderReportReason;
+  details: string;
+  status: ReaderReportStatus;
+  createdAt: string;
+}
+
+export interface ReaderReportPage {
+  items: ReaderReport[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
 export interface WriterCommentInput {
   clientId: string;
   /**
@@ -811,6 +901,8 @@ export interface WriterCommentInput {
      * @maxLength 3000
      */
   body: string;
+  /** @nullable */
+  paragraphId?: string | null;
   /** @nullable */
   chapterId?: string | null;
   /** @nullable */
@@ -857,6 +949,8 @@ export type WriterCommentReactionsItem = {
 };
 
 export interface WriterComment {
+  /** @nullable */
+  paragraphId?: string | null;
   bookId: string;
   /** @nullable */
   parentId: string | null;
@@ -882,6 +976,14 @@ export interface BookNotificationPage {
   /** @nullable */
   nextCursor: string | null;
   unreadCount: number;
+}
+
+export interface WriterCommentEditInput {
+  /**
+     * @minLength 1
+     * @maxLength 3000
+     */
+  body: string;
 }
 
 export interface BulletinReactionPerson {
@@ -1270,9 +1372,35 @@ cursor?: string;
 
 export type GetBookCommentThreadsParams = {
 cursor?: string;
+chapterId?: string;
+paragraphId?: string;
+scope?: GetBookCommentThreadsScope;
 };
+
+export type GetBookCommentThreadsScope = typeof GetBookCommentThreadsScope[keyof typeof GetBookCommentThreadsScope];
+
+
+export const GetBookCommentThreadsScope = {
+  book: 'book',
+  chapter: 'chapter',
+  paragraph: 'paragraph',
+} as const;
 
 export type GetWriterCommentRepliesParams = {
 cursor?: string;
 };
+
+export type GetReaderReportsParams = {
+cursor?: string;
+status?: GetReaderReportsStatus;
+};
+
+export type GetReaderReportsStatus = typeof GetReaderReportsStatus[keyof typeof GetReaderReportsStatus];
+
+
+export const GetReaderReportsStatus = {
+  pending: 'pending',
+  dismissed: 'dismissed',
+  hidden: 'hidden',
+} as const;
 

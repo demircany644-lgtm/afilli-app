@@ -40,7 +40,8 @@ function prepImgs(root){var need=[];root.querySelectorAll('img').forEach(functio
 function restoreSel(){ed.focus();if(lastRange){var s=window.getSelection();s.removeAllRanges();s.addRange(lastRange);}}
 function block(){var s=window.getSelection();if(!s.rangeCount)return '';var n=s.anchorNode;while(n&&n!==ed){if(n.nodeType===1&&/^(H1|H2|H3|BLOCKQUOTE|P|LI)$/.test(n.nodeName))return n.nodeName.toLowerCase();n=n.parentNode;}return '';}
 function state(){var q=function(c){try{return document.queryCommandState(c);}catch(e){return false;}};
-  post({t:'sel',s:{bold:q('bold'),italic:q('italic'),underline:q('underline'),strike:q('strikeThrough'),ul:q('insertUnorderedList'),ol:q('insertOrderedList'),center:q('justifyCenter'),right:q('justifyRight'),block:block()}});}
+  var a=window.getSelection().anchorNode,n=a&&(a.nodeType===1?a:a.parentElement),w=n&&ed.contains(n)?window.getComputedStyle(n).fontWeight:'400';
+  post({t:'sel',s:{bold:q('bold'),weight:w==='bold'||parseInt(w,10)>=600?'bold':parseInt(w,10)<400?'thin':'normal',italic:q('italic'),underline:q('underline'),strike:q('strikeThrough'),ul:q('insertUnorderedList'),ol:q('insertOrderedList'),center:q('justifyCenter'),right:q('justifyRight'),block:block()}});}
 document.addEventListener('selectionchange',function(){var s=window.getSelection();if(s.rangeCount&&ed.contains(s.anchorNode)){lastRange=s.getRangeAt(0).cloneRange();clearTimeout(selT);selT=setTimeout(state,120);}});
 ed.addEventListener('input',function(e){var s=window.getSelection();if(s.anchorNode){var n=s.anchorNode.nodeType===1?s.anchorNode:s.anchorNode.parentNode;var sp=n&&n.closest&&n.closest('span.sp');if(sp){var p=sp.parentNode;while(sp.firstChild)p.insertBefore(sp.firstChild,sp);p.removeChild(sp);}}changed();});
 // Keep selection, paste, undo, formatting and recovery intact. Clipboard export
@@ -49,10 +50,13 @@ document.addEventListener('copy',function(e){e.preventDefault();},true);
 document.addEventListener('cut',function(e){e.preventDefault();},true);
 document.addEventListener('contextmenu',function(e){if(!window.ReactNativeWebView)e.preventDefault();},true);
 ed.addEventListener('beforeinput',function(e){if(e.inputType==='deleteByCut'){e.preventDefault();return;}if(e.inputType==='historyUndo'){e.preventDefault();undo();}else if(e.inputType==='historyRedo'){e.preventDefault();redo();}});
-ed.addEventListener('keydown',function(e){var k=(e.key||'').toLowerCase();if((e.ctrlKey||e.metaKey)&&(k==='c'||k==='x')){e.preventDefault();return;}if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();}else if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();}});
+ed.addEventListener('keydown',function(e){var k=(e.key||'').toLowerCase();if(k==='escape'){e.preventDefault();post({t:'deactivate'});return;}if((e.ctrlKey||e.metaKey)&&(k==='c'||k==='x')){e.preventDefault();return;}if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();}else if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();}});
 ed.addEventListener('paste',function(e){e.preventDefault();var t=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,t);});
 ed.addEventListener('drop',function(e){e.preventDefault();});
 ed.addEventListener('blur',function(){emitNow();});
+// Resize the existing editor on interaction; never reload it to enter writing mode.
+ed.addEventListener('pointerdown',function(){if(ed.getAttribute('contenteditable')!=='false')post({t:'activate'});});
+ed.addEventListener('focus',function(){if(ed.getAttribute('contenteditable')!=='false')post({t:'activate'});});
 window.addEventListener('blur',function(){emitNow();});window.addEventListener('pagehide',function(){emitNow();});document.addEventListener('visibilitychange',function(){emitNow();});
 ed.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a');if(a)e.preventDefault();var sp=e.target.closest&&e.target.closest('span.sp');if(sp){var i=sp.getAttribute('data-i');post({t:'spell',i:i,word:sp.textContent,suggestions:spellSug[i]||[]});}});
 function undo(){snap();var s=st();if(s.u.length<2)return;s.r.push(s.u.pop());ed.innerHTML=s.u[s.u.length-1];prepImgs(ed);gen++;ph();emitNow();}
@@ -71,9 +75,29 @@ function spellApply(i,v){var sp=ed.querySelector('span.sp[data-i="'+i+'"]');if(!
 function marker(id){restoreSel();var s=window.getSelection();var sp=document.createElement('span');sp.setAttribute('data-voice',id);sp.textContent='\u200b';if(s.rangeCount&&ed.contains(s.anchorNode)){var r=s.getRangeAt(0);r.collapse(false);r.insertNode(sp);}else{var p=ed.lastElementChild||ed;p.appendChild(sp);}}
 function voiceInsert(id,text){var sp=ed.querySelector('[data-voice="'+id+'"]');snap();var tn=document.createTextNode(text);if(sp){sp.parentNode.replaceChild(tn,sp);}else{var p=document.createElement('p');p.appendChild(tn);ed.appendChild(p);}ed.normalize();changed();snap();emitNow();}
 function voiceCancel(id){var sp=ed.querySelector('[data-voice="'+id+'"]');if(sp)sp.parentNode.removeChild(sp);}
-function cmd(n,v){restoreSel();snap();
+// Wrap selected text nodes separately so formatting never nests paragraphs inside
+// inline spans, drops images, or changes text outside the actual selection.
+function weight(value,reset){
+  var s=window.getSelection();if(!s.rangeCount||!ed.contains(s.anchorNode))return;
+  var r=s.getRangeAt(0).cloneRange(),spans=[];
+  function span(){var e=document.createElement('span');e.style.fontWeight=value;if(reset){e.style.fontStyle='normal';e.style.fontSize='16px';}return e;}
+  if(r.collapsed){var e=span(),t=document.createTextNode('\u200b');e.appendChild(t);r.insertNode(e);r.setStart(t,1);r.collapse(true);s.removeAllRanges();s.addRange(r);lastRange=r.cloneRange();return;}
+  var nodes=[],walk=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT,null),node;
+  while((node=walk.nextNode()))if(r.intersectsNode(node))nodes.push(node);
+  for(var i=nodes.length-1;i>=0;i--){
+    var p=document.createRange();p.selectNodeContents(nodes[i]);
+    if(r.compareBoundaryPoints(0,p)>0)p.setStart(r.startContainer,r.startOffset);
+    if(r.compareBoundaryPoints(2,p)<0)p.setEnd(r.endContainer,r.endOffset);
+    if(p.collapsed)continue;var e=span();p.surroundContents(e);spans.unshift(e);
+  }
+  if(spans.length){var first=spans[0].firstChild,last=spans[spans.length-1].lastChild,nr=document.createRange();nr.setStart(first,0);nr.setEnd(last,last.textContent.length);s.removeAllRanges();s.addRange(nr);lastRange=nr.cloneRange();}
+}
+function cmd(n,v){if(ed.getAttribute('contenteditable')==='false')return;restoreSel();snap();
   switch(n){case 'bold':case 'italic':case 'underline':case 'strikeThrough':case 'insertUnorderedList':case 'insertOrderedList':case 'justifyLeft':case 'justifyCenter':case 'justifyRight':document.execCommand(n,false,null);break;
   case 'h1':case 'h2':case 'h3':case 'blockquote':fmtBlock(n);break;
+  case 'paragraph':document.execCommand('formatBlock',false,'<p>');break;
+  case 'normal':document.execCommand('removeFormat',false,null);weight('400',true);break;
+  case 'thin':weight('300',false);break;
   case 'size':document.execCommand('fontSize',false,v==='small'?'2':v==='large'?'5':'3');break;
   case 'color':document.execCommand('foreColor',false,v);break;
   case 'link':var s=window.getSelection();if(s.isCollapsed){var a=document.createElement('a');a.href=v.url;a.textContent=v.text||v.url;var r=s.getRangeAt(0);r.insertNode(a);r.setStartAfter(a);s.removeAllRanges();s.addRange(r);}else document.execCommand('createLink',false,v.url);break;
@@ -87,7 +111,7 @@ function recv(raw){var m=typeof raw==='string'?JSON.parse(raw):raw;
   case 'imgUrl':ed.querySelectorAll('img').forEach(function(i){if(i.getAttribute('data-canon')===m.canon)i.setAttribute('src',m.url);});break;
   case 'flush':emitNow();post({t:'flushed',req:m.req});break;case 'spellReq':spellReq();break;case 'spellMarks':spellMarks(m.gen,m.issues);break;case 'spellClear':unmark();break;
   case 'spellApply':spellApply(m.i,m.value);break;case 'voiceMark':marker(m.id);break;case 'voiceInsert':voiceInsert(m.id,m.text);break;case 'voiceCancel':voiceCancel(m.id);break;
-  case 'focus':restoreSel();break;case 'readonly':ed.setAttribute('contenteditable',m.on?'false':'true');break;}}
+  case 'focus':restoreSel();break;case 'blur':ed.blur();emitNow();break;case 'readonly':ed.setAttribute('contenteditable',m.on?'false':'true');break;}}
 window.__recv=function(s){try{recv(s);}catch(e){post({t:'err',m:String(e)});}};
 window.addEventListener('message',function(e){if(e.source===window.parent&&typeof e.data==='string'){window.__recv(e.data);}});
 post({t:'ready'});
@@ -104,6 +128,7 @@ body.night{background:#211810;color:#EADBC4}
 #ed{min-height:100%;box-sizing:border-box;padding:18px 18px 80px;outline:none;font-size:18px;line-height:1.7;word-wrap:break-word;caret-color:#C9A24B}
 #ed.empty:before{content:${JSON.stringify(placeholder)};color:#A08C76;font-style:italic;position:absolute;pointer-events:none}
 #ed p{margin:0 0 .7em}#ed h1{font-size:1.6em;margin:.6em 0 .4em;line-height:1.25}#ed h2{font-size:1.35em;margin:.6em 0 .4em}#ed h3{font-size:1.15em;margin:.6em 0 .4em}
+#ed [style*="font-weight:300"],#ed [style*="font-weight: 300"]{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 #ed blockquote{margin:.8em 0;padding:.2em 0 .2em 1em;border-left:3px solid #C9A24B;font-style:italic;color:inherit;opacity:.88}
 #ed a{color:#9A7430;text-decoration:underline}body.night #ed a{color:#E3C47A}
 #ed img{max-width:100%;border-radius:10px;display:block;margin:.6em auto;min-height:40px;background:rgba(201,162,75,.15)}
@@ -113,9 +138,9 @@ body.night{background:#211810;color:#EADBC4}
 </style></head><body><div id="ed" contenteditable="true" spellcheck="false" autocapitalize="sentences" role="textbox" aria-multiline="true" aria-label="Bölüm metni"></div><script nonce="${nonce}">${ENGINE}</script></body></html>`;
 }
 
-export type EditorSel = { bold: boolean; italic: boolean; underline: boolean; strike: boolean; ul: boolean; ol: boolean; center: boolean; right: boolean; block: string };
+export type EditorSel = { bold: boolean; weight?: 'normal' | 'thin' | 'bold'; italic: boolean; underline: boolean; strike: boolean; ul: boolean; ol: boolean; center: boolean; right: boolean; block: string };
 export type EditorEvent =
-  | { t: 'ready' } | { t: 'change'; id: string; html: string } | { t: 'sel'; s: EditorSel }
+  | { t: 'ready' } | { t: 'activate' | 'deactivate' } | { t: 'change'; id: string; html: string } | { t: 'sel'; s: EditorSel }
   | { t: 'needImgs'; list: string[] } | { t: 'spell'; i: string; word: string; suggestions: string[] }
   | { t: 'spellText'; gen: number; chunks: { start: number; text: string }[] } | { t: 'spellStale' } | { t: 'spellDone'; count: number } | { t: 'err'; m: string } | { t: 'flushed'; req: string };
 

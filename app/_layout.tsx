@@ -23,6 +23,7 @@ import { CommunityProvider } from '@/context/CommunityContext';
 import { DirectMessagesProvider } from '@/context/DirectMessagesContext';
 import { AppearanceProvider, useAppearance } from '@/context/AppearanceContext';
 import { useTheme } from '@/hooks/useTheme';
+import { isFullscreenChatPath } from '@/lib/fullscreen-chat';
 
 const apiDomain = process.env.EXPO_PUBLIC_DOMAIN;
 if (apiDomain) setBaseUrl(`https://${apiDomain}`);
@@ -36,6 +37,7 @@ function StartupErrorFallback(props: ErrorFallbackProps) {
 
 function RootLayoutNav() {
   const pathname = usePathname();
+  const fullscreenChat = isFullscreenChatPath(pathname);
   const { isLava } = useAppearance();
   const t = useTheme();
   const bg = isLava ? colors.lava.bg : t.light.background;
@@ -48,9 +50,9 @@ function RootLayoutNav() {
           <Stack.Screen name="search" options={{ animation: 'fade' }} />
         </Stack>
       </View>
-      {/* The user's full-screen chat is the sole exception; other screens keep all five tabs. */}
+      {/* Full-screen chats (writer chat and private /chat/[id]) hide the five tabs; other screens keep them. */}
       <SavedBookSync />
-      {pathname !== '/writer-chat' ? <BottomNavigation /> : null}
+      {!fullscreenChat ? <BottomNavigation /> : null}
     </View>
   );
 }

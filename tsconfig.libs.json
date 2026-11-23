@@ -12,6 +12,9 @@
     },
     {
       "path": "./integrations-openai-ai-server"
+    },
+    {
+      "path": "./reader-core"
     }
   ]
 }

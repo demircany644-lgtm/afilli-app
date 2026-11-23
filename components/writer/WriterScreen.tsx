@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, BackHandler, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -7,15 +7,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getGetWriterLibraryQueryKey, getGetPublishedBooksQueryKey, getGetAuthoredBookQueryKey, getGetAuthoredBooksQueryKey, type WriterChapter } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { Btn, apiError, goSignIn } from '@/components/bulletins/common';
-import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
+import { KeyboardAwareScrollViewCompat, type ScrollViewHandle } from '@/components/KeyboardAwareScrollViewCompat';
 import { useCommunity } from '@/context/CommunityContext';
 import { useWriterBook } from '@/components/writer/useWriterBook';
 import { CoverCard } from '@/components/writer/CoverCard';
 import { BookInfo } from '@/components/writer/BookInfo';
+import { WriterChapterFields } from '@/components/writer/WriterChapterFields';
 import { ChapterList } from '@/components/writer/ChapterList';
 import { EditorPanel } from '@/components/writer/EditorPanel';
 import { useWriterPalette, writerPalette, Toast, Banner, Confirm, Skeleton, FadeIn, type ToastMsg } from '@/components/writer/parts';
-import { publishProblems, type Problem } from '@/lib/writer-text';
+import { newChapter, publishProblems, type Problem } from '@/lib/writer-text';
 import { isDirty } from '@/lib/writer-store';
 
 export function WriterScreen({ owner, id, offline }: { owner: string; id: string; offline: boolean }) {
@@ -30,9 +31,28 @@ export function WriterScreen({ owner, id, offline }: { owner: string; id: string
   const [active, setActive] = useState<string | null>(null);
   const [focus, setFocus] = useState(false);
   const [night, setNight] = useState(false);
+  const [areaH, setAreaH] = useState(0);
+  const [statusH, setStatusH] = useState(0);
+  const [editorChromeH, setEditorChromeH] = useState(150);
+  const focusRef = useRef(focus); focusRef.current = focus;
+  const scrollRef = useRef<ScrollViewHandle | null>(null);
+  const receiveScroll = useCallback((handle: ScrollViewHandle | null) => { scrollRef.current = handle; }, []);
+  useEffect(() => { if (focus) scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [focus]);
+  // Escape / Android back leave the expanded writing view only; nothing is discarded and no navigation happens.
+  useEffect(() => {
+    if (!focus) return;
+    const sub = Platform.OS === 'android' ? BackHandler.addEventListener('hardwareBackPress', () => { if (focusRef.current) { setFocus(false); return true; } return false; }) : null;
+    let off: (() => void) | undefined;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && focusRef.current) setFocus(false); };
+      document.addEventListener('keydown', k); off = () => document.removeEventListener('keydown', k);
+    }
+    return () => { sub?.remove(); off?.(); };
+  }, [focus]);
   const [busy, setBusy] = useState<null | 'save' | 'publish' | 'unpublish' | 'delete' | 'resolve' | 'chapter'>(null);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [confirm, setConfirm] = useState<null | 'delete' | 'unpublish'>(null);
+  const [management, setManagement] = useState<'info' | 'chapters'>('info');
   const rec = api.rec;
   const chapters = rec?.doc.chapters ?? [];
   const activeIdx = Math.max(0, chapters.findIndex((c) => c.id === active));
@@ -72,12 +92,26 @@ export function WriterScreen({ owner, id, offline }: { owner: string; id: string
     );
   }
   const published = rec.publication === 'published';
+  const addChapter = (showList = true) => {
+    const ch = newChapter(chapters.length + 1);
+    let accepted = false;
+    api.edit(d => { accepted = true; return { ...d, chapters: [...d.chapters, ch] }; });
+    if (!accepted) {
+      toast({ text: 'Yeni bölüm eklemeden önce kayıt veya hesap sorununu çöz.', tone: 'warn', at: Date.now() });
+      return;
+    }
+    setActive(ch.id);
+    setManagement(showList ? 'chapters' : 'info');
+    toast({ text: ch.title + ' eklendi.', tone: 'ok', at: Date.now() });
+  };
   const locked = !api.signed ? 'Yayın işlemleri için giriş yapmalısın.' : offline ? 'Bağlantı yok. Yayın işlemleri internet gerektirir.'
     : api.localConflict ? 'Önce yerel çakışmayı çöz.' : rec.conflict ? 'Önce sürüm çakışmasını çöz.' : api.coverBusy ? 'Kapak yüklenirken bekle.' : busy ? 'Bir işlem sürüyor.' : null;
 
   const saveDraft = async () => {
     setBusy('save');
     try {
+      // Receive the editor's latest text before reporting a manual save.
+      await api.flushRef.current?.();
       if (!(await api.persistNow())) { toast({ text: 'Bu kitap başka bir sekmede değişti. Metnin ayrı bir kopya olarak kaydedildi.', tone: 'err', at: Date.now() }); return; }
       if (!api.signed) { toast({ text: 'Taslak kaydedildi (yalnızca bu cihazda).', tone: 'ok', at: Date.now() }); return; }
       if (offline) { toast({ text: 'Taslak cihaza kaydedildi. Bağlantı gelince buluta gönderilecek.', tone: 'warn', at: Date.now() }); return; }
@@ -124,21 +158,29 @@ export function WriterScreen({ owner, id, offline }: { owner: string; id: string
 
   const v = api.view;
   const vIcon = v.kind === 'saved' ? 'check' : v.kind === 'saving' ? 'loader' : v.kind === 'offline' ? 'cloud-off' : v.kind === 'local' ? 'smartphone' : v.kind === 'dirty' ? 'clock' : 'alert-triangle';
-  const editorH = focus ? Math.max(360, height - 300) : Math.max(380, Math.round(height * 0.6));
+  // Focus: body takes the measured area above the bottom nav (shrinks with keyboard), minus status bar and toolbar/counter chrome.
+  const measured = areaH > 0 ? areaH - statusH - editorChromeH - 18 : height - 300;
+  const editorH = focus ? Math.max(120, Math.floor(measured)) : Math.max(380, Math.round(height * 0.6));
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={ws.status} testID="writer-status">
+    <View style={{ flex: 1 }} onLayout={(e) => setAreaH(e.nativeEvent.layout.height)}>
+      <View style={ws.status} testID="writer-status" onLayout={(e) => setStatusH(e.nativeEvent.layout.height)}>
         <Feather name={vIcon} size={14} color={v.kind === 'saved' ? W.ok : ['error', 'conflict', 'storage'].includes(v.kind) ? W.danger : W.muted} />
         <Text style={ws.statusText} numberOfLines={1}>{v.text}</Text>
         <View style={{ flex: 1 }} />
         <View style={[ws.pubPill, published && { backgroundColor: W.ok }]}><Text style={[ws.pubText, published && { color: W.paper }]}>{published ? 'Yayında' : 'Taslak'}</Text></View>
-        <Pressable testID="writer-open-shelf" accessibilityRole="button" accessibilityLabel="Tüm kitaplarım ve taslaklarım" hitSlop={8} onPress={() => { tap(); router.push({ pathname: '/write', params: { shelf: '1' } }); }} style={ws.shelfBtn}>
+        {!focus ? <Pressable testID="writer-open-shelf" accessibilityRole="button" accessibilityLabel="Tüm kitaplarım ve taslaklarım" hitSlop={8} onPress={() => { tap(); router.push({ pathname: '/write', params: { shelf: '1' } }); }} style={ws.shelfBtn}>
           <Feather name="layers" size={14} color={W.ink} /><Text style={ws.pubText}>Kitaplarım</Text>
-        </Pressable>
-        {focus ? <Pressable onPress={() => { tap(); setFocus(false); }} accessibilityRole="button" accessibilityLabel="Tam ekrandan çık" hitSlop={8}><Feather name="minimize-2" size={18} color={W.ink} /></Pressable> : null}
+        </Pressable> : null}
+        {focus ? <Pressable testID="writer-focus-save" onPress={() => { tap(); if (!busy && !api.frozen) void saveDraft(); }} disabled={!!busy || api.frozen || !!api.localConflict}
+          accessibilityRole="button" accessibilityLabel="Taslağı kaydet" accessibilityState={{ busy: busy === 'save', disabled: !!busy || api.frozen || !!api.localConflict }}
+          style={({ pressed }) => [ws.focusBtn, ws.focusSave, { opacity: (busy && busy !== 'save') || api.frozen || api.localConflict ? 0.45 : pressed ? 0.7 : 1 }]}>
+          {busy === 'save' ? <ActivityIndicator size="small" color={W.ink} /> : <Feather name="save" size={16} color={W.ink} />}<Text style={ws.focusText}>Kaydet</Text>
+        </Pressable> : null}
+        {focus ? <Pressable testID="writer-focus-exit" onPress={() => { tap(); setFocus(false); }} accessibilityRole="button" accessibilityLabel="Tam ekrandan çık" hitSlop={4} style={ws.focusBtn}><Feather name="minimize-2" size={18} color={W.ink} /></Pressable> : null}
       </View>
-      <KeyboardAwareScrollViewCompat contentContainerStyle={{ paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollViewCompat contentContainerStyle={{ paddingBottom: focus ? 12 : 60 }} bottomOffset={20} keyboardShouldPersistTaps="handled"
+        onScrollReady={receiveScroll} onContentSizeChange={() => { if (focus) scrollRef.current?.scrollTo({ y: 0, animated: false }); }}>
         {api.storageError ? <Banner icon="hard-drive" tone="err" title="Cihaza kaydedilemedi" text={api.storageError}><Btn label="Yeniden dene" ghost onPress={() => void api.persistNow().catch(() => undefined)} /></Banner> : null}
         {api.localConflict ? (
           <Banner icon="copy" tone="err" title="Başka bir sekmede değişti" testID="writer-local-conflict"
@@ -157,19 +199,38 @@ export function WriterScreen({ owner, id, offline }: { owner: string; id: string
             }} />
           </Banner>
         ) : null}
-        {!api.signed ? <Banner icon="smartphone" tone="info" title="Misafir taslağı" text="Bu kitap yalnızca bu cihazda saklanıyor. Buluta kaydetmek ve yayınlamak için giriş yap; giriş yapınca bu taslağı Kitap Yaz sayfasından hesabına açıkça aktarabilirsin."><Btn label="Giriş yap" ghost onPress={goSignIn} /></Banner> : null}
-        {offline && api.signed ? <Banner icon="cloud-off" tone="warn" title="Çevrimdışısın" text="Yazmaya devam et; her şey bu cihaza kaydediliyor. Bağlantı gelince aynı kayıt buluta gönderilir." /> : null}
+        {!focus && !api.signed ? <Banner icon="smartphone" tone="info" title="Misafir taslağı" text="Bu kitap yalnızca bu cihazda saklanıyor. Buluta kaydetmek ve yayınlamak için giriş yap; giriş yapınca bu taslağı Kitap Yaz sayfasından hesabına açıkça aktarabilirsin."><Btn label="Giriş yap" ghost onPress={goSignIn} /></Banner> : null}
+        {!focus && offline && api.signed ? <Banner icon="cloud-off" tone="warn" title="Çevrimdışısın" text="Yazmaya devam et; her şey bu cihaza kaydediliyor. Bağlantı gelince aynı kayıt buluta gönderilir." /> : null}
 
         {!focus ? (
           <FadeIn>
-            <CoverCard api={api} author={author} offline={offline} toast={toast} />
-            <BookInfo api={api} />
-            <ChapterList api={api} activeId={chapter.id} onSelect={(cid) => setActive(cid)} onPublication={(ch, a) => void chapterAction(ch, a)} actionsLocked={locked} toast={toast} />
+            <View style={ws.management} testID="writer-management">
+              <Text style={ws.h} accessibilityRole="header">Kitap yönetimi</Text>
+              <Text style={ws.bookName}>{rec.doc.title || 'Adsız kitap'} · {chapters.length} bölüm</Text>
+              <Btn label="Kitabı düzenle" icon="edit-3" ghost={management !== 'info'} testID="writer-manage-edit"
+                onPress={() => setManagement('info')} />
+              <Btn label="Mevcut bölümleri görüntüle" icon="list" ghost={management !== 'chapters'} testID="writer-manage-chapters"
+                onPress={() => setManagement('chapters')} />
+              <Btn label="Yeni bölüm ekle" icon="plus" ghost testID="writer-manage-add"
+                disabled={!!busy || !!api.localConflict} onPress={addChapter} />
+              <Btn label="Kitabı sil" icon="trash-2" ghost testID="writer-delete"
+                disabled={!!busy || (api.signed && offline)} onPress={() => setConfirm('delete')} />
+            </View>
+            {management === 'info' ? <>
+              <CoverCard api={api} author={author} offline={offline} toast={toast} />
+              <BookInfo api={api} />
+            </> : <ChapterList api={api} activeId={chapter.id} onSelect={setActive} onAdd={addChapter}
+              onPublication={(ch, a) => void chapterAction(ch, a)} actionsLocked={locked} toast={toast} />}
           </FadeIn>
         ) : null}
 
+        {!focus ? <WriterChapterFields key={chapter.id} chapter={chapter} count={chapters.length}
+          onTitleChange={title => api.edit(doc => ({ ...doc, chapters: doc.chapters.map(ch => ch.id === chapter.id ? { ...ch, title } : ch) }))}
+          onAdd={() => addChapter(false)} onSave={() => void saveDraft()} busy={busy === 'save'}
+          disabled={!!busy || api.frozen || !!api.localConflict} /> : null}
+
         <EditorPanel api={api} chapter={chapter} index={activeIdx} owner={owner} offline={offline} height={editorH}
-          night={night} setNight={setNight} focus={focus} setFocus={setFocus} toast={toast} />
+          night={night} setNight={setNight} focus={focus} setFocus={setFocus} toast={toast} onChromeHeight={setEditorChromeH} />
 
         {!focus ? (
           <View style={ws.actions}>
@@ -189,7 +250,6 @@ export function WriterScreen({ owner, id, offline }: { owner: string; id: string
             <View style={ws.row}>
               {published ? <Btn label="Oku" icon="book-open" ghost onPress={() => router.push({ pathname: '/authored-book/[id]', params: { id } })} style={{ flex: 1 }} /> : null}
               {published ? <Btn label="Yayından Kaldır" icon="eye-off" ghost testID="writer-unpublish" disabled={!!locked} onPress={() => setConfirm('unpublish')} style={{ flex: 1 }} /> : null}
-              <Btn label="Sil" icon="trash-2" ghost testID="writer-delete" disabled={!!busy || (api.signed && offline)} onPress={() => setConfirm('delete')} style={{ flex: 1 }} />
             </View>
           </View>
         ) : null}
@@ -210,6 +270,8 @@ const useWsStyles = makeStyles((t) => {
   center: { alignItems: 'center', gap: 12, padding: 28, margin: 16, backgroundColor: W.paper, borderRadius: 20 },
   h: { fontFamily: F.serifBold, fontSize: 20, color: W.ink },
   p: { fontFamily: F.body, fontSize: 13, lineHeight: 19, color: W.ink, textAlign: 'center' },
+  management: { marginHorizontal: 16, marginTop: 14, padding: 14, gap: 10, backgroundColor: W.paper, borderRadius: 20, borderWidth: 1, borderColor: W.line },
+  bookName: { fontFamily: F.body, fontSize: 13, color: W.muted },
   status: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: W.cream, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: W.border },
   statusText: { fontFamily: F.med, fontSize: 12.5, color: W.ink, flexShrink: 1 },
   shelfBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, height: 26, borderRadius: 8, borderWidth: 1, borderColor: W.line, backgroundColor: W.paper },
@@ -223,5 +285,8 @@ const useWsStyles = makeStyles((t) => {
   publishText: { fontFamily: F.serifBold, fontSize: 19, color: W.ink },
   hint: { fontFamily: F.body, fontSize: 12, lineHeight: 17, color: W.muted, textAlign: 'center' },
   row: { flexDirection: 'row', gap: 8 },
+  focusBtn: { minWidth: 44, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+  focusSave: { paddingHorizontal: 12, backgroundColor: W.gold },
+  focusText: { fontFamily: F.semi, fontSize: 13, color: W.ink },
   });
 });

@@ -17,6 +17,7 @@ import Animated, { useAnimatedRef, useAnimatedScrollHandler, useSharedValue } fr
 import { useAppearance } from '@/context/AppearanceContext';
 import { LavaBackdrop, CoverGlow } from '@/components/theme/LavaBackdrop';
 import { makeStyles, useTheme } from '@/hooks/useTheme';
+import { homeCoverLayout } from '@/lib/home-cover-layout';
 
 const LV = colors.lava;
 
@@ -76,6 +77,7 @@ function Shelf({ sec, w, h, pad, lava, ink, link }: { sec: (typeof SHELVES)[numb
   const q = useGetDiscoveryBooks(params, { query: { enabled: ready, queryKey: scoped(getGetDiscoveryBooksQueryKey(params), userId), staleTime: 60_000 }, request: actorRequest(userId) });
   const items = q.data?.items ?? [];
   const muted = lava ? LV.headline : H.muted;
+  const cover = homeCoverLayout(h);
   return (
     <View testID={'home-section-' + sec.id} style={st.section}>
       <View style={[st.secRow, { paddingHorizontal: pad }]}>
@@ -103,10 +105,13 @@ function Shelf({ sec, w, h, pad, lava, ink, link }: { sec: (typeof SHELVES)[numb
           <Text style={[st.shelfNoteText, { color: muted }]}>Bu raf, yazarlar ilk kitaplarını yayımladığında dolacak.</Text>
         </View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} decelerationRate="fast" snapToInterval={w + 12} snapToAlignment="start"
-          testID={'home-shelf-' + sec.id} contentContainerStyle={{ paddingHorizontal: pad, gap: 12, paddingBottom: 14, paddingTop: 2 }}>
-          {items.map((b) => <ShelfCover key={b.id} b={b} w={w} h={h} lava={lava} />)}
-        </ScrollView>
+        <View style={{ height: cover.frameHeight, marginTop: cover.marginTop, overflow: 'visible' }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} decelerationRate="fast" snapToInterval={w + 12} snapToAlignment="start"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: cover.scrollHeight }}
+            testID={'home-shelf-' + sec.id} contentContainerStyle={{ paddingHorizontal: pad, gap: 12, paddingBottom: 14, paddingTop: 2 }}>
+            {items.map((b) => <ShelfCover key={b.id} b={b} w={w} h={cover.height} lava={lava} />)}
+          </ScrollView>
+        </View>
       )}
     </View>
   );

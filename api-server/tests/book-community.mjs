@@ -85,13 +85,42 @@ try {
   await api(`/writer-comments/${nested.id}/path`, r, 'GET', undefined, 404);
   await comment(o, 'Hidden parent', reply.id, chapter, randomUUID(), 404);
   await react(o, 'like', 404, nested.id);
+  await api(`/writer-comments/${nested.id}`, a, 'PATCH', { body: 'Hidden ancestor edit' }, 404);
+  await api(`/writer-comments/${reply.id}`, o, 'DELETE', undefined, 404);
   assert.equal((await inbox(r)).unreadCount, 0); assert.equal((await inbox(a)).items.length, 0);
   assert.equal((await api(`/authored-books/${book}`, r)).commentCount, 0);
   assert.equal((await api('/discovery/book-cards?' + new URLSearchParams({ ids: book }), r))[0].commentCount, 0);
   await pool.query('UPDATE writer_comments SET moderation_hidden=false WHERE id=$1', [root.id]);
 
-  // Physical removal of parent content leaves anonymous structure and others' text.
-  await pool.query('DELETE FROM writer_comments WHERE id=$1', [root.id]);
+  // Author-only editing preserves the thread, chapter, reactions and chronology.
+  await api(`/writer-comments/${root.id}`, null, 'PATCH', { body: 'No' }, 401);
+  await api(`/writer-comments/${root.id}`, null, 'DELETE', undefined, 401);
+  for (const token of [a, o]) {
+    await api(`/writer-comments/${root.id}`, token, 'PATCH', { body: 'Not mine' }, 403);
+    await api(`/writer-comments/${root.id}`, token, 'DELETE', undefined, 403);
+  }
+  for (const body of ['', '   ', 'x'.repeat(3001)]) await api(`/writer-comments/${root.id}`, r, 'PATCH', { body }, 400);
+  await api(`/writer-comments/${elsewhere}`, r, 'PATCH', { body: 'Hidden book edit' }, 404);
+  await api(`/writer-comments/${root.id}`, r, 'PATCH', { body: 'Spoofed' }, 401, { 'X-Afilli-Actor': other });
+  const edited = await api(`/writer-comments/${root.id}`, r, 'PATCH', { body: '  Düzenlenen yorum  ', authorId: other, parentId: nested.id });
+  assert.equal(edited.body, 'Düzenlenen yorum');
+  assert.equal(edited.author.id, reader); assert.equal(edited.createdAt, root.createdAt);
+  assert.equal(edited.chapterId, chapter); assert.equal(edited.parentId, null); assert.equal(edited.replyCount, 2);
+  assert.equal(edited.reactions.find(x => x.reaction === 'like').count, 1);
+  assert.equal((await api(`/writer-comments/${nested.id}/path`, r))[0].body, 'Düzenlenen yorum');
+
+  // A leaf disappears entirely; deleting a parent preserves anonymous structure and others' text.
+  const leaf = await comment(r, 'Çocuksuz yorum');
+  assert.equal((await api(`/writer-comments/${leaf.id}`, r, 'DELETE')).replyCount, 0);
+  assert.ok(!(await api(`/authored-books/${book}/comment-threads`, r)).items.some(c => c.id === leaf.id));
+  await api(`/writer-comments/${leaf.id}/path`, r, 'GET', undefined, 404);
+  const removed = await api(`/writer-comments/${root.id}`, r, 'DELETE');
+  assert.equal(removed.deleted, true); assert.equal(removed.body, ''); assert.equal(removed.replyCount, 2);
+  assert.deepEqual(removed.author, { id: 'deleted', nickname: '', avatar: null });
+  assert.ok(removed.reactions.every(reaction => reaction.count === 0 && !reaction.selected));
+  assert.equal((await pool.query('SELECT id FROM writer_comments WHERE id=$1', [root.id])).rowCount, 0);
+  assert.equal((await pool.query('SELECT id FROM writer_comment_nodes WHERE id=$1', [root.id])).rowCount, 1);
+  assert.equal((await pool.query('SELECT id FROM writer_comments WHERE id=ANY($1::uuid[])', [[reply.id, nested.id, self.id]])).rowCount, 3);
   const ghost = (await api(`/authored-books/${book}/comment-threads`, r)).items[0];
   assert.equal(ghost.id, root.id); assert.equal(ghost.deleted, true); assert.equal(ghost.replyCount, 2);
   assert.ok(!JSON.stringify(ghost).includes('Kök yorum')); assert.equal(ghost.author.id, 'deleted');

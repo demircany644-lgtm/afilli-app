@@ -13,6 +13,7 @@ import { useApp, type Draft } from '@/context/AppContext';
 import { claimGuestRecord, listRecords, newRecord, updateRecord, isDirty, type WriterRecord } from '@/lib/writer-store';
 import { emptyDocument, legacyTextToChapters, clockTR, TITLE_MAX } from '@/lib/writer-text';
 import { useWriterPalette, writerPalette, WriterCover, useCoverUri, Banner, Confirm, Skeleton, FadeIn, Toast, type ToastMsg } from '@/components/writer/parts';
+import { useNewWriterBook } from '@/components/writer/useNewWriterBook';
 
 const open = (id: string) => router.push({ pathname: '/write', params: { book: id } });
 
@@ -30,6 +31,7 @@ export function WriterShelf({ owner, offline }: { owner: string; offline: boolea
   const [busy, setBusy] = useState<string | null>(null);
   const [delDraft, setDelDraft] = useState<Draft | null>(null);
   const [toastMsg, setToast] = useState<ToastMsg>(null);
+  const creation = useNewWriterBook(owner, open);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -42,15 +44,6 @@ export function WriterShelf({ owner, offline }: { owner: string; offline: boolea
   useFocusEffect(useCallback(() => { void load(); if (signed) void lib.refetch(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, signed]));
 
-  const create = async () => {
-    setBusy('new');
-    try {
-      const id = randomUUID();
-      await updateRecord(owner, id, () => newRecord(owner, id, randomUUID(), emptyDocument()));
-      open(id);
-    } catch (e) { setToast({ text: 'Yeni kitap cihaza kaydedilemedi: ' + ((e as Error)?.message ?? ''), tone: 'err', at: Date.now() }); }
-    finally { setBusy(null); }
-  };
   const remote = lib.data ?? [];
   const byId = new Map<string, { rec?: WriterRecord; sum?: WriterSummary }>();
   (local ?? []).forEach((r) => byId.set(r.id, { rec: r }));
@@ -82,17 +75,18 @@ export function WriterShelf({ owner, offline }: { owner: string; offline: boolea
     <View style={{ flex: 1 }}>
       <KeyboardAwareScrollViewCompat contentContainerStyle={{ paddingBottom: 60 }}>
         <FadeIn>
-          <Pressable testID="writer-new" accessibilityRole="button" accessibilityLabel="Yeni kitap başlat" disabled={busy === 'new'} onPress={() => { tap(); void create(); }}
+          <Pressable testID="writer-new" accessibilityRole="button" accessibilityLabel="Yeni Kitap Yaz" disabled={creation.busy || !!busy} onPress={() => { tap(); void creation.create(); }}
             style={({ pressed }) => [sh.hero, pressed && { transform: [{ scale: 0.99 }], opacity: 0.92 }]}>
             <View style={sh.heroIcon}><Feather name="feather" size={26} color={W.gold} /></View>
             <View style={{ flex: 1 }}>
-              <Text style={sh.heroTitle}>Yeni bir kitap başlat</Text>
+              <Text style={sh.heroTitle}>{creation.busy ? 'Kitap hazırlanıyor…' : 'Yeni Kitap Yaz'}</Text>
               <Text style={sh.heroSub}>Kapak, bölümler ve zengin metin. Yazdığın her şey önce bu cihaza kaydedilir.</Text>
             </View>
             <Feather name="arrow-right" size={22} color={W.paper} />
           </Pressable>
         </FadeIn>
         {!signed ? <Banner icon="smartphone" tone="info" title="Misafir olarak yazıyorsun" text="Taslakların yalnızca bu cihazda kalır. Giriş yaptığında onları hesabına kendin aktarırsın; otomatik aktarılmaz."><Btn label="Giriş yap" ghost onPress={goSignIn} /></Banner> : null}
+        {creation.error ? <Banner icon="hard-drive" tone="err" title="Yeni kitap açılamadı" text={creation.error} /> : null}
         {err ? <Banner icon="alert-triangle" tone="err" title="Cihazdaki kitaplar okunamadı" text={err + ' Kayıtlar silinmedi.'}><Btn label="Tekrar dene" ghost onPress={() => void load()} /></Banner> : null}
         {broken.length ? <Banner icon="alert-octagon" tone="err" title={broken.length + ' kayıt açılamadı'} text="Bu kayıtların verisi bozuk görünüyor. Üzerine yazılmadı ve silinmedi." /> : null}
         {signed && lib.isError ? <Banner icon="cloud-off" tone="warn" title="Bulut kitapların alınamadı" text={offline ? 'Bağlantı yok. Cihazdaki kitapların aşağıda.' : apiError(lib.error, 'Sunucuya ulaşılamadı.')}><Btn label="Tekrar dene" ghost onPress={() => void lib.refetch()} /></Banner> : null}

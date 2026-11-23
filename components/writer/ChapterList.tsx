@@ -1,18 +1,19 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import type { WriterChapter } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { Sheet, SheetRow, Btn } from '@/components/bulletins/common';
-import { chapterStats, newChapter, MAX_CHAPTERS, CHAPTER_TITLE_MAX, MAX_CHAPTER_CHARS } from '@/lib/writer-text';
+import { chapterStats, newChapter, CHAPTER_TITLE_MAX, MAX_CHAPTER_CHARS } from '@/lib/writer-text';
+import { chapterWindow, CHAPTER_PAGE_SIZE } from '@/lib/writer-chapter-pages';
 import { useWriterPalette, writerPalette, Confirm, type ToastMsg } from '@/components/writer/parts';
 import type { WriterBookApi } from '@/components/writer/useWriterBook';
 
 const ROW = 70;
-type Props = { api: WriterBookApi; activeId: string; onSelect: (id: string) => void; onPublication: (ch: WriterChapter, action: 'publishChapter' | 'draftChapter') => void; actionsLocked: string | null; toast: (m: ToastMsg) => void };
+type Props = { api: WriterBookApi; activeId: string; onSelect: (id: string) => void; onAdd: () => void; onPublication: (ch: WriterChapter, action: 'publishChapter' | 'draftChapter') => void; actionsLocked: string | null; toast: (m: ToastMsg) => void };
 
-export function ChapterList({ api, activeId, onSelect, onPublication, actionsLocked, toast }: Props) {
+export function ChapterList({ api, activeId, onSelect, onAdd, onPublication, actionsLocked, toast }: Props) {
   const W = useWriterPalette();
   const cl = useClStyles();
   const rec = api.rec!;
@@ -22,53 +23,70 @@ export function ChapterList({ api, activeId, onSelect, onPublication, actionsLoc
   const [rename, setRename] = useState<{ id: string; title: string } | null>(null);
   const [del, setDel] = useState<WriterChapter | null>(null);
   const [drag, setDrag] = useState<{ from: number; dy: number } | null>(null);
+  const [requestedPage, setPage] = useState(0);
+  const activePage = Math.floor(Math.max(0, chapters.findIndex(ch => ch.id === activeId)) / CHAPTER_PAGE_SIZE);
+  const window = chapterWindow(chapters.length, requestedPage);
+  useEffect(() => { setPage(activePage); }, [activeId, activePage]);
 
   const move = (from: number, to: number) => {
     if (to < 0 || to >= chapters.length || from === to) return;
     api.edit((d) => { const list = [...d.chapters]; const [x] = list.splice(from, 1); list.splice(to, 0, x); return { ...d, chapters: list }; });
     toast({ text: 'Bölüm ' + (to + 1) + '. sıraya taşındı.', tone: 'ok', at: Date.now() });
   };
-  const add = () => {
-    if (chapters.length >= MAX_CHAPTERS) { toast({ text: 'En fazla 200 bölüm eklenebilir.', tone: 'err', at: Date.now() }); return; }
-    const ch = newChapter(chapters.length + 1);
-    api.edit((d) => ({ ...d, chapters: [...d.chapters, ch] }));
-    onSelect(ch.id);
-    toast({ text: ch.title + ' eklendi.', tone: 'ok', at: Date.now() });
-  };
   const remove = (ch: WriterChapter) => {
-    const idx = chapters.findIndex((c) => c.id === ch.id);
-    let next: WriterChapter | null = null;
+    let nextId: string | null = null;
+    let accepted = false;
     api.edit((d) => {
+      const idx = d.chapters.findIndex(c => c.id === ch.id);
+      if (idx < 0) return d;
       let list = d.chapters.filter((c) => c.id !== ch.id);
-      if (!list.length) { next = newChapter(1); list = [next]; }
+      if (!list.length) list = [newChapter(1)];
+      nextId = list[Math.min(idx, list.length - 1)].id;
+      accepted = true;
       return { ...d, chapters: list };
     });
-    if (ch.id === activeId) onSelect(next ? (next as WriterChapter).id : (chapters[idx + 1] ?? chapters[idx - 1]).id);
     setDel(null);
+    if (!accepted) {
+      toast({ text: 'Bölüm silinemedi. Önce kayıt veya hesap sorununu çöz.', tone: 'warn', at: Date.now() });
+      return;
+    }
+    if (ch.id === activeId && nextId) onSelect(nextId);
     toast({ text: 'Bölüm silindi. Kaydedene kadar bulutta duruyor.', tone: 'ok', at: Date.now() });
   };
-  const target = drag ? Math.max(0, Math.min(chapters.length - 1, drag.from + Math.round(drag.dy / ROW))) : -1;
+  const target = drag ? Math.max(window.start, Math.min(window.end - 1, drag.from + Math.round(drag.dy / ROW))) : -1;
+  const pager = (position: string) => window.pages > 1 ? (
+    <View style={cl.pager}>
+      <Btn label="Önceki" ghost disabled={window.page === 0 || !!drag} testID={'chapter-page-' + position + '-previous'}
+        onPress={() => setPage(window.page - 1)} style={{ flex: 1 }} />
+      <Text style={cl.pageText} accessibilityLiveRegion="polite">{window.page + 1} / {window.pages}</Text>
+      <Btn label="Sonraki" ghost disabled={window.page === window.pages - 1 || !!drag} testID={'chapter-page-' + position + '-next'}
+        onPress={() => setPage(window.page + 1)} style={{ flex: 1 }} />
+    </View>
+  ) : null;
 
   return (
     <View style={cl.card}>
       <View style={cl.head}>
         <Text style={cl.title} accessibilityRole="header">Bölümler <Text style={cl.count}>- {chapters.length} bölüm</Text></Text>
       </View>
-      <Text style={cl.hint}>Sıralamak için tutamaçtan sürükle veya menüden taşı.</Text>
-      <View style={{ height: chapters.length * ROW }}>
-        {chapters.map((ch, i) => {
+      <Text style={cl.hint}>Bölümü açmak için adına dokun. Ad değiştirmek, taşımak veya silmek için yanındaki menüyü aç.</Text>
+      {pager('top')}
+      <View style={{ height: (window.end - window.start) * ROW }}>
+        {chapters.slice(window.start, window.end).map((ch, rowIndex) => {
+          const i = window.start + rowIndex;
           let shift = 0;
           if (drag && i !== drag.from) { if (drag.from < i && i <= target) shift = -ROW; if (target <= i && i < drag.from) shift = ROW; }
           return (
-            <ChapterRow key={ch.id} ch={ch} index={i} active={ch.id === activeId} bookPublic={bookPublic}
+            <ChapterRow key={ch.id} ch={ch} index={i} rowIndex={rowIndex} active={ch.id === activeId} bookPublic={bookPublic}
               offset={drag?.from === i ? drag.dy : shift} dragging={drag?.from === i}
               onPress={() => onSelect(ch.id)} onMenu={() => setMenu(ch)}
-              onDrag={(dy) => setDrag({ from: i, dy })} onDrop={(dy) => { setDrag(null); move(i, Math.max(0, Math.min(chapters.length - 1, i + Math.round(dy / ROW)))); }}
+              onDrag={(dy) => setDrag({ from: i, dy })} onDrop={(dy) => { setDrag(null); move(i, Math.max(window.start, Math.min(window.end - 1, i + Math.round(dy / ROW)))); }}
               onMove={(d) => move(i, i + d)} total={chapters.length} />
           );
         })}
       </View>
-      <Pressable testID="chapter-add" accessibilityRole="button" accessibilityLabel="Yeni bölüm ekle" onPress={() => { tap(); add(); }}
+      {pager('bottom')}
+      <Pressable testID="chapter-add" accessibilityRole="button" accessibilityLabel="Yeni bölüm ekle" onPress={() => { tap(); onAdd(); }}
         style={({ pressed }) => [cl.add, pressed && { opacity: 0.7 }]}>
         <Feather name="plus" size={18} color={W.ink} /><Text style={cl.addText}>Yeni Bölüm Ekle</Text>
       </Pressable>
@@ -85,7 +103,7 @@ export function ChapterList({ api, activeId, onSelect, onPublication, actionsLoc
               {actionsLocked ? <Text style={cl.lock}>{actionsLocked}</Text> : null}
               <SheetRow icon="arrow-up" label="Yukarı taşı" testID="chapter-up" disabled={i <= 0} onPress={() => { move(i, i - 1); setMenu(null); }} />
               <SheetRow icon="arrow-down" label="Aşağı taşı" testID="chapter-down" disabled={i >= chapters.length - 1} onPress={() => { move(i, i + 1); setMenu(null); }} />
-              <SheetRow icon="trash-2" label="Sil" danger testID="chapter-delete" onPress={() => { setDel(menu); setMenu(null); }} />
+              <SheetRow icon="trash-2" label="Bölüm sil" danger testID="chapter-delete" onPress={() => { setDel(menu); setMenu(null); }} />
             </>
           );
         })() : null}
@@ -110,8 +128,8 @@ export function ChapterList({ api, activeId, onSelect, onPublication, actionsLoc
   );
 }
 
-function ChapterRow({ ch, index, active, bookPublic, offset, dragging, onPress, onMenu, onDrag, onDrop, onMove, total }: {
-  ch: WriterChapter; index: number; active: boolean; bookPublic: boolean; offset: number; dragging: boolean; total: number;
+function ChapterRow({ ch, index, rowIndex, active, bookPublic, offset, dragging, onPress, onMenu, onDrag, onDrop, onMove, total }: {
+  ch: WriterChapter; index: number; rowIndex: number; active: boolean; bookPublic: boolean; offset: number; dragging: boolean; total: number;
   onPress: () => void; onMenu: () => void; onDrag: (dy: number) => void; onDrop: (dy: number) => void; onMove: (d: -1 | 1) => void;
 }) {
   const W = useWriterPalette();
@@ -129,7 +147,7 @@ function ChapterRow({ ch, index, active, bookPublic, offset, dragging, onPress, 
   const label = ch.status === 'published' ? (bookPublic ? 'Yayınlandı' : 'Yayınlanacak') : 'Taslak';
   const over = stats.chars > MAX_CHAPTER_CHARS;
   return (
-    <View style={[cl.row, { top: index * ROW, transform: [{ translateY: offset }] }, active && cl.rowOn, dragging && cl.rowDrag]}
+    <View style={[cl.row, { top: rowIndex * ROW, transform: [{ translateY: offset }] }, active && cl.rowOn, dragging && cl.rowDrag]}
       accessible accessibilityLabel={'Bölüm ' + (index + 1) + ', ' + ch.title + ', ' + label + ', ' + stats.chars + ' karakter'}
       accessibilityActions={[{ name: 'activate' }, { name: 'moveUp', label: 'Yukarı taşı' }, { name: 'moveDown', label: 'Aşağı taşı' }, { name: 'menu', label: 'Seçenekler' }]}
       onAccessibilityAction={(e) => { const n = e.nativeEvent.actionName; if (n === 'activate') onPress(); if (n === 'moveUp' && index > 0) onMove(-1); if (n === 'moveDown' && index < total - 1) onMove(1); if (n === 'menu') onMenu(); }}>
@@ -159,6 +177,8 @@ const useClStyles = makeStyles((t) => {
   title: { fontFamily: F.serifBold, fontSize: 19, color: W.ink },
   count: { fontFamily: F.body, fontSize: 14, color: W.muted },
   hint: { fontFamily: F.body, fontSize: 11.5, color: W.muted, marginTop: 2, marginBottom: 8 },
+  pager: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 8 },
+  pageText: { fontFamily: F.med, fontSize: 12, color: W.ink },
   row: { position: 'absolute', left: 0, right: 0, height: ROW - 6, flexDirection: 'row', alignItems: 'center', borderRadius: 14, backgroundColor: W.cream, borderWidth: 1, borderColor: 'transparent' },
   rowOn: { borderColor: W.gold, backgroundColor: W.input },
   rowDrag: { zIndex: 10, elevation: 6, shadowColor: W.deep, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, backgroundColor: W.paper },

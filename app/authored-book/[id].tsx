@@ -6,23 +6,26 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetAuthoredBook, getGetAuthoredBookQueryKey, useGetWriterBook, getGetWriterBookQueryKey, setAuthoredBookLike,
-  useGetReadingPosition, getGetReadingPositionQueryKey,
+  useGetReadingPosition, getGetReadingPositionQueryKey, useGetWriterCommentPath, getGetWriterCommentPathQueryKey,
   type AuthoredBook, type WriterChapter,
 } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { MagazineScrollView, type MagazineScrollHandle } from '@/components/MagazineUI';
 import { TopBar } from '@/components/bulletins/TopBar';
 import { Avatar, Btn, apiError, goSignIn, OFFLINE } from '@/components/bulletins/common';
-import { scoped, actorRequest, useOwnerGuard, compactCount } from '@/components/profile/hooks';
+import { scoped, actorRequest, useOwnerGuard, compactCount, useFocusedForeground } from '@/components/profile/hooks';
 import { useCommunity } from '@/context/CommunityContext';
 import { useApp } from '@/context/AppContext';
 import { useWriterPalette, writerPalette, WriterCover, useCoverUri, Banner, Skeleton, FadeIn } from '@/components/writer/parts';
 import { HtmlView } from '@/components/writer/HtmlView';
-import { BookComments } from '@/components/writer/BookComments';
+import { BookComments, DiscussionLive } from '@/components/writer/BookComments';
+import { useChapterDiscussion, useReaderLike, ParagraphBar, ParagraphThread, ChapterEnd, StaleChapterBanner, HashErrorBanner } from '@/components/writer/ReaderDiscussion';
 import { CopyGuard, CopyProtectionHint } from '@/components/writer/CopyGuard';
 import { chapterStats, escapeHtml, AGE_LABEL } from '@/lib/writer-text';
 import { progressStore, useProgress } from '@/lib/reading-progress';
 import { useSavedBookSetter } from '@/lib/book-subscriptions';
+import { ReaderControls } from '@/components/writer/ReaderControls';
+import { useReaderSwipe } from '@/hooks/useReaderSwipe';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -53,6 +56,7 @@ function Reader({ bookId, preview, focusComment, notifChapter }: { bookId: strin
   const book = q.data;
   const [night, setNight] = useState(false);
   const [fontSize, setFontSize] = useState(17);
+  const [reading, setReading] = useState(false);
   const likeLock = useRef(false);
   const [likeBusy, setLikeBusy] = useState(false);
   const [likeErr, setLikeErr] = useState<string | null>(null);
@@ -130,15 +134,34 @@ function Reader({ bookId, preview, focusComment, notifChapter }: { bookId: strin
     persist(id);
     if (scroll) requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: Math.max(0, pageY.current - 12), animated: true }));
   };
-  const startReading = () => { tap(); if (cur) select(cur.id); };
+  const canSelect = !(progressOn && !hydrated && !pos.isError && !hydrateError);
+  const navigateChapter = (id: string) => {
+    if (!canSelect || !ready || (userId && !guard()) || !chapters.some(chapter => chapter.id === id)) return false;
+    select(id, false);
+    setReading(true);
+    // Also handle picking the already-current chapter without changing its saved position.
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
+    return true;
+  };
+  const startReading = () => { tap(); if (cur) navigateChapter(cur.id); };
+  useEffect(() => {
+    if (!reading) return;
+    const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
+    return () => cancelAnimationFrame(frame);
+  }, [reading, chId]);
 
   const meta = draft ? { title: draft.document.title, description: draft.document.description, genres: draft.document.genres as string[], age: draft.document.ageRating, completion: draft.document.completion, lang: draft.document.language }
     : book ? { title: book.title, description: book.description ?? '', genres: book.genres ?? [], age: book.ageRating ?? 'all', completion: book.completion ?? 'ongoing', lang: book.language ?? 'Türkçe' } : null;
   const cover = useCoverUri(draft ? draft.document.cover : book?.coverUrl ?? null, null, draft ? 'private' : 'published');
   const perChapter = useMemo(() => chapters.map((c) => chapterStats(c.html)), [chapters]);
   const stats = perChapter.reduce((a, s) => ({ words: a.words + s.words, minutes: a.minutes + s.minutes }), { words: 0, minutes: 0 });
-  const [listOpen, setListOpen] = useState(false);
-  const showList = listOpen || chapters.length <= 8;
+  const swipeHandlers = useReaderSwipe({
+    index: curIdx, count: chapters.length, disabled: !canSelect || !cur || !ready,
+    onSelectIndex: index => { const chapter = chapters[index]; if (chapter) { tap(); navigateChapter(chapter.id); } },
+  });
+  const chapterOptions = useMemo(() => chapters.map((chapter, index) => ({
+    id: chapter.id, title: chapter.title, status: chapter.status, minutes: perChapter[index]?.minutes,
+  })), [chapters, perChapter]);
 
   const like = async () => {
     if (!book || !userId) { goSignIn(); return; }
@@ -167,9 +190,58 @@ function Reader({ bookId, preview, focusComment, notifChapter }: { bookId: strin
   const resumeLabel = progressOn && hydrated && lastKnownChapter && curIdx > 0 ? 'Okumaya devam et' : 'Oku';
   const nightInk = night ? { color: '#EADBC4' } : null;
 
+  // Public snapshots only; older books also receive stable released chapter IDs.
+  const focused = useFocusedForeground();
+  const discussable = !!book?.published && !draft && !!cur && cur.id !== 'legacy' && !positionPending;
+  const live = focused && discussable;
+  const disc = useChapterDiscussion({
+    bookId, chapterId: discussable && cur ? cur.id : null, html: discussable && cur ? cur.html : null, enabled: discussable, live,
+    onStale: () => { void q.refetch(); },
+  });
+  const likes = useReaderLike(bookId, discussable && cur ? cur.id : null, disc.key);
+  const [openPara, setOpenPara] = useState<string | null>(null);
+  const [chapterOpen, setChapterOpen] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  const [openArchived, setOpenArchived] = useState<string | null>(null);
+  useEffect(() => { setOpenPara(null); setChapterOpen(false); setArchivedOpen(false); setOpenArchived(null); }, [chId]);
+  const refreshCounts = () => { void qc.invalidateQueries({ queryKey: key }); void disc.q.refetch(); };
+  // Notification target opens its paragraph/chapter area only when the current chapter already is its chapter.
+  const focusPath = useGetWriterCommentPath(focusComment ?? '', { query: { enabled: ready && !!focusComment, queryKey: scoped(getGetWriterCommentPathQueryKey(focusComment ?? ''), userId) }, request: actorRequest(userId) });
+  const focusTarget = focusPath.data?.find(c => c.id === focusComment) ?? null;
+  const focusHandled = useRef(false);
+  useEffect(() => {
+    if (focusHandled.current || !focusTarget || !cur || !disc.matched || !disc.meta) return;
+    if (focusTarget.bookId !== bookId || focusTarget.chapterId !== cur.id) return;
+    focusHandled.current = true;
+    const pid = focusTarget.paragraphId;
+    if (!pid) { setChapterOpen(true); return; }
+    if (disc.meta.paragraphs.some(p => p.id === pid && !p.archived)) setOpenPara(pid);
+    else if (disc.meta.archived.some(p => p.id === pid)) { setArchivedOpen(true); setOpenArchived(pid); }
+  }, [focusTarget, cur, disc.matched, disc.meta, bookId]);
+  const annotate = disc.matched && cur ? (path: string, el: React.ReactNode) => {
+    const p = disc.byPath.get(path);
+    if (!p) return el;
+    const open = openPara === p.id;
+    return (
+      <View>
+        {el}
+        <ParagraphBar p={p} open={open} night={night} busy={likes.busy.has(p.id)} error={likes.err?.id === p.id ? likes.err.text : null}
+          onToggle={() => setOpenPara(open ? null : p.id)} onLike={() => { void likes.like(p.id, !p.liked); }} />
+        {open ? <ParagraphThread bookId={bookId} chapterId={cur.id} p={p} night={night} onClose={() => setOpenPara(null)} onCount={refreshCounts} focusId={focusComment} /> : null}
+      </View>
+    );
+  } : undefined;
+
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      <TopBar title={draft ? 'Taslak önizleme' : 'Kitap'} backTo="/library" icons={false} />
+      {!reading || !meta || chapters.length === 0 ? <TopBar title={draft ? 'Taslak önizleme' : 'Kitap'} backTo="/library" icons={false} /> : null}
+      {meta && chapters.length > 0 ? <ReaderControls
+        chapters={chapterOptions} currentId={chId} disabled={!canSelect} fontSize={fontSize}
+        night={night} reading={reading} bookTitle={meta.title || 'Adsız kitap'} onSelect={navigateChapter}
+        onFontChange={delta => setFontSize(size => Math.max(14, Math.min(28, size + delta)))}
+        onNightToggle={() => setNight(value => !value)}
+        onDetails={() => { setReading(false); requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false })); }}
+      /> : null}
       <MagazineScrollView ref={scrollRef} contentContainerStyle={st.wrap}>
         {loading ? <View style={{ gap: 12 }}><Skeleton h={260} /><Skeleton h={400} /></View>
           : !meta ? (
@@ -182,7 +254,7 @@ function Reader({ bookId, preview, focusComment, notifChapter }: { bookId: strin
             <FadeIn>
               {draft ? <Banner icon="eye-off" tone="info" title="Taslak önizleme" text="Bunu yalnızca sen görüyorsun. Okuma konumu kaydedilmez. Okurlar yalnızca yayımladığın bölümleri görür.">
                 <Btn label="Düzenle" icon="edit-3" ghost onPress={() => router.push({ pathname: '/write', params: { book: bookId } })} /></Banner> : null}
-              <View style={st.hero}>
+              <View style={[st.hero, reading && { display: 'none' }]}>
                 <WriterCover uri={cover} title={meta.title} author={draft ? undefined : book?.author.nickname} w={150} adult={meta.age === '18'} completed={meta.completion === 'completed'} />
                 <Text style={[st.title, nightInk]} accessibilityRole="header">{meta.title || 'Adsız kitap'}</Text>
                 {book && !draft ? <Pressable accessibilityRole="link" accessibilityLabel={book.author.nickname + ' profilini aç'} onPress={() => router.push(('/people/' + book.author.id) as never)} style={st.byline}><Avatar person={book.author} size={26} /><Text style={[st.author, nightInk]}>{book.author.nickname}</Text></Pressable> : null}
@@ -233,61 +305,37 @@ function Reader({ bookId, preview, focusComment, notifChapter }: { bookId: strin
 
               {notifTarget && notifTarget.id !== chId ? (
                 <Banner testID="notification-chapter" icon="bell" tone="info" title="Bildirimdeki bölüm" text={(chapters.indexOf(notifTarget) + 1) + '. ' + (notifTarget.title || 'Adsız bölüm')}>
-                  <Btn label="Bildirimin bölümüne git" testID="notification-chapter-go" icon="book-open" onPress={() => { tap(); setChapterDismissed(true); select(notifTarget.id); }} />
+                  <Btn label="Bildirimin bölümüne git" testID="notification-chapter-go" icon="book-open" onPress={() => { tap(); if (navigateChapter(notifTarget.id)) setChapterDismissed(true); }} />
                   <Btn label="Burada kal" ghost onPress={() => setChapterDismissed(true)} />
                 </Banner>
               ) : null}
-              {chapters.length > 1 ? (
-                <View style={[st.toc, night && st.nightCard]} testID="chapter-list">
-                  <Pressable accessibilityRole="button" accessibilityState={{ expanded: showList }} disabled={chapters.length <= 8} onPress={() => { tap(); setListOpen(!listOpen); }} style={st.tocHead}>
-                    <Text style={[st.tocTitle, nightInk]} accessibilityRole="header">Bölümler</Text>
-                    <Text style={st.meta}>{chapters.length} bölüm</Text>
-                    {chapters.length > 8 ? <Feather name={showList ? 'chevron-up' : 'chevron-down'} size={18} color={W.muted} /> : null}
-                  </Pressable>
-                  {(showList ? chapters : cur ? [cur] : []).map((c) => {
-                    const i = chapters.indexOf(c);
-                    const on = c.id === chId;
-                    const here = progressOn && c.id === lastKnownChapter;
-                    return (
-                      <Pressable key={c.id} testID={'read-chapter-' + i} accessibilityRole="button" accessibilityState={{ selected: on }}
-                        accessibilityLabel={`${i + 1}. bölüm, ${c.title}${on ? ', açık' : ''}${here ? ', kaldığın yer' : ''}`}
-                        onPress={() => { tap(); select(c.id); }} style={({ pressed }) => [st.tocRow, on && st.tocOn, pressed && { opacity: 0.7 }]}>
-                        <Text style={[st.tocNum, on && { color: W.paper }]}>{String(i + 1).padStart(2, '0')}</Text>
-                        <Text style={[st.tocName, nightInk, on && { color: W.paper }]} numberOfLines={2}>{c.title || 'Adsız bölüm'}{draft && c.status === 'draft' ? ' (taslak)' : ''}</Text>
-                        {here ? <Feather name="bookmark" size={13} color={on ? W.paper : W.gold} /> : null}
-                        <Text style={[st.tocMin, on && { color: W.paper }]}>{perChapter[i]?.minutes ?? 0} dk</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ) : null}
-
-              <View style={st.actions} accessibilityLabel="Okuma ayarları">
-                <Btn label="A−" testID="authored-font-smaller" ghost disabled={fontSize <= 14} onPress={() => setFontSize(s => Math.max(14, s - 2))} />
-                <Text style={st.meta}>{fontSize} punto</Text>
-                <Btn label="A+" testID="authored-font-larger" ghost disabled={fontSize >= 28} onPress={() => setFontSize(s => Math.min(28, s + 2))} />
-              </View>
               <View onLayout={(e) => { pageY.current = e.nativeEvent.layout.y; }} style={[st.page, night && st.nightCard]}>
                 <View style={st.pageHead}>
                   <Text style={[st.chTitle, nightInk]}>{cur?.title ?? ''}</Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel={night ? 'Gündüz modu' : 'Gece modu'} hitSlop={8} onPress={() => setNight(!night)}>
-                    <Feather name={night ? 'sun' : 'moon'} size={18} color={night ? '#EADBC4' : W.ink} />
-                  </Pressable>
                 </View>
               {progressOn ? <SaveLine state={saveState} err={saveErr} onRetry={() => { if (userId && guard()) progressStore.retry(userId, bookId); }} /> : null}
+                {discussable && disc.hashError ? <HashErrorBanner text={disc.hashError} onRetry={disc.retryHash} /> : null}
+                {discussable && disc.mismatch ? <StaleChapterBanner busy={q.isFetching} onReload={() => { void q.refetch(); void disc.q.refetch(); }} /> : null}
+                <View testID="reader-chapter-body" {...swipeHandlers}>
                 {positionPending || !cur ? <View style={{ gap: 10 }} accessibilityLabel="Kaldığın yer yükleniyor"><Skeleton h={18} /><Skeleton h={18} /><Skeleton h={18} /></View>
-                  : !perChapter[curIdx]?.empty || /<img\b/i.test(cur.html) ? <HtmlView html={cur.html} night={night} fontSize={fontSize} owner={userId} privatePreview={!!draft} />
+                  : !perChapter[curIdx]?.empty || /<img\b/i.test(cur.html) ? <HtmlView html={cur.html} night={night} fontSize={fontSize} owner={userId} privatePreview={!!draft} annotate={annotate} />
                   : <Text style={st.meta}>Bu bölümde henüz metin yok.</Text>}
+                </View>
+                {chapters.length > 1 ? <Text style={st.meta}>Sonraki bölüm için sağa, önceki bölüm için sola kaydır.</Text> : null}
                 {chapters.length > 1 && cur ? (
                   <View style={st.nav}>
-                    <Btn label="Önceki" testID="authored-prev" icon="chevron-left" ghost disabled={curIdx <= 0} onPress={() => select(chapters[curIdx - 1].id)} style={{ flex: 1 }} />
-                    <Btn label="Sonraki" testID="authored-next" icon="chevron-right" ghost disabled={curIdx >= chapters.length - 1} onPress={() => select(chapters[curIdx + 1].id)} style={{ flex: 1 }} />
+                    <Btn label="Önceki" testID="authored-prev" icon="chevron-left" ghost disabled={!canSelect || curIdx <= 0} onPress={() => navigateChapter(chapters[curIdx - 1].id)} style={{ flex: 1 }} />
+                    <Btn label="Sonraki" testID="authored-next" icon="chevron-right" ghost disabled={!canSelect || curIdx >= chapters.length - 1} onPress={() => navigateChapter(chapters[curIdx + 1].id)} style={{ flex: 1 }} />
                   </View>
                 ) : null}
                 <CopyProtectionHint />
               </View>
-              {book && !draft ? <BookComments key={bookId} bookId={bookId} focusId={focusComment} chapterId={cur && cur.id !== 'legacy' ? cur.id : null} chapterTitle={cur?.title ?? null}
-                onCount={() => { void qc.invalidateQueries({ queryKey: key }); }} /> : null}
+              <DiscussionLive value={live}>
+                {discussable && cur ? <ChapterEnd bookId={bookId} chapterId={cur.id} chapterTitle={cur.title} disc={disc} likes={likes} onCount={refreshCounts} night={night} focusId={focusComment}
+                  chapterOpen={chapterOpen} setChapterOpen={setChapterOpen} archivedOpen={archivedOpen} setArchivedOpen={setArchivedOpen}
+                  openArchived={openArchived} setOpenArchived={setOpenArchived} /> : null}
+                {book && !draft ? <BookComments key={bookId} bookId={bookId} focusId={focusComment} onCount={refreshCounts} /> : null}
+              </DiscussionLive>
             </FadeIn>
           )}
       </MagazineScrollView>

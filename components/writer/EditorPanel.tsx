@@ -17,9 +17,9 @@ import { pickImage, prepareInlineImage, uploadImage } from '@/lib/writer-media';
 import type { WriterBookApi } from '@/components/writer/useWriterBook';
 
 type Props = { api: WriterBookApi; chapter: WriterChapter; index: number; owner: string; offline: boolean; height: number;
-  night: boolean; setNight: (v: boolean) => void; focus: boolean; setFocus: (v: boolean) => void; toast: (m: ToastMsg) => void };
+  night: boolean; setNight: (v: boolean) => void; focus: boolean; setFocus: (v: boolean) => void; toast: (m: ToastMsg) => void; onChromeHeight?: (height: number) => void };
 
-export function EditorPanel({ api, chapter, index, owner, offline, height, night, setNight, focus, setFocus, toast }: Props) {
+export function EditorPanel({ api, chapter, index, owner, offline, height, night, setNight, focus, setFocus, toast, onChromeHeight }: Props) {
   const W = useWriterPalette();
   const ep = useEpStyles();
   const ed = useRef<EditorHandle>(null);
@@ -45,7 +45,16 @@ export function EditorPanel({ api, chapter, index, owner, offline, height, night
   const stats = useMemo(() => chapterStats(chapter.html), [chapter.html]);
   const hdr = owner !== 'guest' ? { headers: { 'X-Afilli-Actor': owner } } : undefined;
 
+  const setFocusRef = useRef(setFocus); setFocusRef.current = setFocus;
+  const focusRef = useRef(focus); focusRef.current = focus;
+  useEffect(() => { if (!focus) ed.current?.send({ t: 'blur' }); }, [focus]);
   const onEvent = useCallback((e: EditorEvent) => {
+    // 'activate' = user pointer/focus inside the editor: expand in place (no remount, selection kept).
+    if (e.t === 'activate' || e.t === 'deactivate') {
+      const next = e.t === 'activate';
+      if (focusRef.current !== next) setFocusRef.current(next);
+      return;
+    }
     switch (e.t) {
       case 'change':
         editRef.current((d) => {
@@ -112,11 +121,12 @@ export function EditorPanel({ api, chapter, index, owner, offline, height, night
 
   const over = stats.chars > MAX_CHAPTER_CHARS;
   return (
-    <View style={[ep.wrap, focus && { marginTop: 6 }]}>
-      <View style={ep.chHead}>
+    <View style={[ep.wrap, focus && { marginTop: 6 }]}
+      onLayout={event => onChromeHeight?.(Math.max(0, Math.ceil(event.nativeEvent.layout.height - height)))}>
+      {!focus ? <View style={ep.chHead}>
         <Text style={ep.chNum}>Bölüm {index + 1}</Text>
         <Text style={ep.chTitle} numberOfLines={1}>{chapter.title}</Text>
-      </View>
+      </View> : null}
       <Toolbar sel={sel} cmd={cmd} x={{
         onLink: () => setLink({ text: '', url: 'https://' }), onImage: () => void insertImage(), imageBusy,
         onSpell: () => { if (owner === 'guest') { toast({ text: 'Yazım denetimi için giriş yapmalısın. Metnin denetlenmedi.', tone: 'warn', at: Date.now() }); return; } if (offline) { toast({ text: 'Yazım denetimi bağlantı gerektirir.', tone: 'warn', at: Date.now() }); return; } setSpellInfo(null); setSpellBusy(true); send({ t: 'spellReq' }); },

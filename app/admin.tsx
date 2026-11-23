@@ -7,7 +7,8 @@ import {
   useGetAdminOverview, getGetAdminOverviewQueryKey, useGetAdminAccounts, getGetAdminAccountsQueryKey,
   useUpdateAdminAccount, useGetAdminContent, getGetAdminContentQueryKey, useUpdateAdminContent,
   useDeleteAdminAccount, useGetAdminAccountDeletion, getGetAdminAccountDeletionQueryKey,
-  useGetAdminHistory, getGetAdminHistoryQueryKey,
+  useGetAdminHistory, getGetAdminHistoryQueryKey, useGetReaderReports, getGetReaderReportsQueryKey, resolveReaderReport,
+  type ReaderReport, type GetReaderReportsStatus,
   type AdminAccount, type AdminContent, type AdminContentKind, type AdminRole,
 } from '@workspace/api-client-react';
 import { useCommunity } from '@/context/CommunityContext';
@@ -17,7 +18,7 @@ import { FoilButton, MarbleBackground, Notice, PillTabs, Skeleton, StateCard, To
 import { actorRequest, go, scoped, useFocusedForeground, useOwnerGuard, withIdentity } from '@/components/profile/hooks';
 
 const PAGE = 25;
-type Tab = 'overview' | 'accounts' | 'content' | 'history';
+type Tab = 'overview' | 'accounts' | 'content' | 'reports' | 'history';
 const ROLE_LABEL: Record<AdminRole, string> = { user: 'Okur', admin: 'Yönetici', superadmin: 'Süper yönetici' };
 const KINDS: { key: AdminContentKind; label: string }[] = [
   { key: 'book', label: 'Kitaplar' }, { key: 'bulletin', label: 'Bültenler' },
@@ -30,7 +31,8 @@ type Pending =
   | { type: 'disable'; account: AdminAccount; disabled: boolean }
   | { type: 'nickname'; account: AdminAccount }
   | { type: 'delete'; account: AdminAccount }
-  | { type: 'content'; item: AdminContent; hidden: boolean };
+  | { type: 'content'; item: AdminContent; hidden: boolean }
+  | { type: 'report'; report: ReaderReport; action: 'dismiss' | 'hide' };
 
 function useQ(userId: string | null, live: boolean) {
   return { staleTime: 15_000, refetchOnMount: 'always' as const, refetchInterval: live ? 30_000 : (false as const) , enabled: !!userId };
@@ -110,6 +112,7 @@ function Overview({ o, onTab }: { o: { role: AdminRole; users: number; disabledU
       <View style={k.card}>
         {o.role === 'superadmin' ? <NavRow icon="users" label="Hesap yönetimi" sub="Rol, askı ve takma ad" testID="admin-go-accounts" onPress={() => onTab('accounts')} /> : null}
         <NavRow icon="shield" label="İçerik denetimi" sub="Kitap, bülten ve yorumları gizle ya da geri getir" testID="admin-go-content" onPress={() => onTab('content')} />
+        <NavRow icon="flag" label="Yorum şikâyetleri" sub="Şikâyet edilen yorumları incele, kapat ya da gizle" testID="admin-go-reports" onPress={() => onTab('reports')} />
         <NavRow icon="clock" label="İşlem geçmişi" sub="Tüm yönetici işlemleri ve gerekçeleri" testID="admin-go-history" onPress={() => onTab('history')} />
         <NavRow icon="instagram" label="Instagram Linki" sub="Tüm profillerde görünen ortak hesap" testID="admin-go-settings" onPress={() => go('/social-admin')} />
       </View>
@@ -253,6 +256,75 @@ function Content({ userId, live, onAct }: { userId: string; live: boolean; onAct
   );
 }
 
+const REASON_LABEL: Record<ReaderReport['reason'], string> = { spam: 'Spam', abuse: 'Hakaret / taciz', other: 'Diğer' };
+const STATUS_LABEL: Record<ReaderReport['status'], string> = { pending: 'Bekliyor', dismissed: 'Kapatıldı', hidden: 'Gizlendi' };
+const REPORT_FILTERS: { key: GetReaderReportsStatus; label: string }[] = [
+  { key: 'pending', label: 'Bekleyenler' }, { key: 'dismissed', label: 'Kapatılanlar' }, { key: 'hidden', label: 'Gizlenenler' },
+];
+
+function Reports({ userId, live, onAct }: { userId: string; live: boolean; onAct: (p: Pending) => void }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
+  const [status, setStatus] = useState<GetReaderReportsStatus>('pending');
+  const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
+  useEffect(() => setCursors([undefined]), [status]);
+  const cursor = cursors[cursors.length - 1];
+  const params = cursor ? { status, cursor } : { status };
+  const list = useGetReaderReports(params, { request: actorRequest(userId), query: { ...useQ(userId, live), queryKey: scoped(getGetReaderReportsQueryKey(params), userId) } });
+  return (
+    <View style={{ gap: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, gap: 8 }}>
+        {REPORT_FILTERS.map((x) => {
+          const on = x.key === status;
+          return (
+            <Pressable key={x.key} testID={'admin-reports-' + x.key} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => { tap(); setStatus(x.key); }}
+              style={[st.kind, on && { backgroundColor: P.text, borderColor: P.text }]}>
+              <Text style={[st.kindText, on && { color: P.card }]}>{x.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      {list.isLoading && !list.data ? <ListSkeleton /> : list.isError && !list.data ? (
+        <StateCard icon="wifi-off" title="Şikâyetler yüklenemedi" text={apiError(list.error, 'Bağlantı yok, tekrar dene.')} action={{ label: 'Tekrar dene', testID: 'admin-reports-retry', onPress: () => list.refetch() }} />
+      ) : list.data && list.data.items.length === 0 ? (
+        <StateCard icon="flag" title={status === 'pending' ? 'Bekleyen şikâyet yok' : 'Burada kayıt yok'} text="Okurların şikâyet ettiği yorumlar burada incelenir." testID="admin-reports-empty" />
+      ) : list.data ? (<>
+        <View style={k.card}>
+          {list.data.items.map((r) => (
+            <View key={r.id} style={st.item} testID={'admin-report-' + r.id}>
+              <View style={st.itemHead}>
+                <Text style={[st.rowTitle, { flex: 1 }]} numberOfLines={1}>{r.author.nickname} yorumu</Text>
+                <Chip text={STATUS_LABEL[r.status]} tone={r.status === 'pending' ? 'gold' : r.status === 'hidden' ? 'danger' : 'plain'} />
+              </View>
+              <Text style={st.body} numberOfLines={5}>"{r.body}"</Text>
+              <View style={st.chips}>
+                <Chip text={REASON_LABEL[r.reason]} tone="danger" />
+                <Chip text={r.paragraphId ? 'Paragraf yorumu' : r.chapterId ? 'Bölüm yorumu' : 'Genel kitap yorumu'} />
+                <Text style={st.meta}>{timeAgo(r.createdAt)}</Text>
+              </View>
+              <Text style={st.rowSub}>Şikâyet eden: {r.reporter.nickname}{r.details ? ' · ' + r.details : ''}</Text>
+              <View style={st.actions}>
+                <SmallBtn icon="book-open" label="Kitapta aç" testID={'admin-report-open-' + r.id}
+                  onPress={() => go(('/authored-book/' + r.bookId + '?focusComment=' + r.commentId + (r.chapterId ? '&chapter=' + r.chapterId : '')) as string)} />
+                {r.status === 'pending' ? <>
+                  <SmallBtn icon="check" label="Şikâyeti kapat" testID={'admin-report-dismiss-' + r.id} onPress={() => onAct({ type: 'report', report: r, action: 'dismiss' })} />
+                  <SmallBtn icon="eye-off" label="Yorumu gizle" danger testID={'admin-report-hide-' + r.id} onPress={() => onAct({ type: 'report', report: r, action: 'hide' })} />
+                </> : null}
+              </View>
+            </View>
+          ))}
+        </View>
+        <View style={st.pager}>
+          <PagerBtn icon="chevron-left" label="Önceki sayfa" disabled={cursors.length <= 1 || list.isFetching} onPress={() => setCursors(c => c.slice(0, -1))} testID="admin-reports-prev" />
+          <Text style={st.pagerText}>Sayfa {cursors.length}</Text>
+          <PagerBtn icon="chevron-right" label="Sonraki sayfa" disabled={!list.data.nextCursor || list.isFetching} onPress={() => { const n = list.data?.nextCursor; if (n) setCursors(c => [...c, n]); }} testID="admin-reports-next" />
+        </View>
+      </>) : null}
+    </View>
+  );
+}
+
 function History({ userId, live }: { userId: string; live: boolean }) {
   const st = useStStyles();
   const k = useKitStyles();
@@ -302,13 +374,17 @@ function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending |
   useEffect(() => { setReason(''); setErr(null); setNick(pending?.type === 'nickname' ? pending.account.nickname : ''); }, [pending]);
   if (!pending) return null;
   const r = reason.trim(); const n = nick.trim();
-  const reasonBad = r.length < 3 || r.length > 300;
+  const isReport = pending.type === 'report';
+  const reasonBad = !isReport && (r.length < 3 || r.length > 300);
   const nickBad = pending.type === 'nickname' && (n.length < 3 || n.length > 15 || n === pending.account.nickname);
-  const self = pending.type !== 'content' && pending.account.id === userId;
+  const self = pending.type !== 'content' && pending.type !== 'report' && pending.account.id === userId;
   const deleteBad = pending.type === 'delete' && (!deletion.data || deletion.isError || deletion.isFetching || nick !== deletion.data.nickname);
   const blocked = (pending.type === 'role' && (self || (pending.account.disabled && pending.role !== 'user'))) || ((pending.type === 'disable' || pending.type === 'delete') && self);
-  const title = pending.type === 'delete' ? 'Hesabı kalıcı sil' : pending.type === 'role' ? 'Rolü değiştir' : pending.type === 'disable' ? (pending.disabled ? 'Hesabı askıya al' : 'Askıyı kaldır') : pending.type === 'nickname' ? 'Takma adı değiştir' : pending.hidden ? 'İçeriği gizle' : 'İçeriği geri getir';
-  const desc = pending.type === 'role' ? `${pending.account.nickname} hesabının rolü "${ROLE_LABEL[pending.account.role]}" yerine "${ROLE_LABEL[pending.role]}" olacak.`
+  const title = pending.type === 'report' ? (pending.action === 'hide' ? 'Yorumu gizle' : 'Şikâyeti kapat') : pending.type === 'delete' ? 'Hesabı kalıcı sil' : pending.type === 'role' ? 'Rolü değiştir' : pending.type === 'disable' ? (pending.disabled ? 'Hesabı askıya al' : 'Askıyı kaldır') : pending.type === 'nickname' ? 'Takma adı değiştir' : pending.hidden ? 'İçeriği gizle' : 'İçeriği geri getir';
+  const desc = pending.type === 'report' ? (pending.action === 'hide'
+      ? `${pending.report.author.nickname} kişisinin yorumu ve altındaki konuşma dalı herkesten gizlenecek. Bu bir denetim gizlemesidir: kimsenin yanıtı silinmez, gizleme İçerik sekmesinden geri alınabilir.`
+      : 'Şikâyet kapatılacak. Yorum olduğu gibi yayında kalır.')
+    : pending.type === 'role' ? `${pending.account.nickname} hesabının rolü "${ROLE_LABEL[pending.account.role]}" yerine "${ROLE_LABEL[pending.role]}" olacak.`
     : pending.type === 'disable' ? (pending.disabled ? `${pending.account.nickname} giriş yapamayacak ve paylaşım yapamayacak. Bu işlem geri alınabilir.` : `${pending.account.nickname} yeniden giriş yapabilecek.`)
     : pending.type === 'nickname' ? `${pending.account.nickname} için yeni takma ad gir (3-15 karakter).`
     : pending.type === 'delete' ? `${pending.account.nickname} hesabı, kitapları, taslakları, yorumları, bültenleri, beğenileri ve özel sohbetleri kalıcı silinecek. Bu içeriklere bağlı yanıtlar da kaldırılabilir. Oturumları kapanacak. Bu işlem geri alınamaz.`
@@ -318,11 +394,12 @@ function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending |
     if (lock.current || reasonBad || nickBad || deleteBad || blocked) return;
     lock.current = true; setBusy(true); setErr(null);
     try {
-      if (pending.type === 'content') await mod.mutateAsync({ kind: pending.item.kind, id: pending.item.id, data: { hidden: pending.hidden, reason: r } });
+      if (pending.type === 'report') await resolveReaderReport(pending.report.id, { action: pending.action }, actorRequest(userId));
+      else if (pending.type === 'content') await mod.mutateAsync({ kind: pending.item.kind, id: pending.item.id, data: { hidden: pending.hidden, reason: r } });
       else if (pending.type === 'delete') await del.mutateAsync({ id: pending.account.id, data: { confirmation: nick, reason: r } });
       else await acc.mutateAsync({ id: pending.account.id, data: pending.type === 'role' ? { role: pending.role, reason: r } : pending.type === 'disable' ? { disabled: pending.disabled, reason: r } : { nickname: n, reason: r } });
       await qc.invalidateQueries();
-      if (alive()) onDone(pending.type === 'delete' ? 'Hesap ve içerikleri silindi. Görsel dosyaları temizlik sırasına alındı.' : pending.type === 'content' ? (pending.hidden ? 'İçerik gizlendi.' : 'İçerik geri getirildi.') : 'Hesap güncellendi.');
+      if (alive()) onDone(pending.type === 'report' ? (pending.action === 'hide' ? 'Yorum gizlendi, şikâyet kapatıldı.' : 'Şikâyet kapatıldı.') : pending.type === 'delete' ? 'Hesap ve içerikleri silindi. Görsel dosyaları temizlik sırasına alındı.' : pending.type === 'content' ? (pending.hidden ? 'İçerik gizlendi.' : 'İçerik geri getirildi.') : 'Hesap güncellendi.');
     } catch (e) { if (alive()) setErr(apiError(e, 'İşlem tamamlanamadı. Tekrar dene.')); }
     finally { lock.current = false; if (alive()) setBusy(false); }
   };
@@ -353,12 +430,12 @@ function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending |
                   <TextInput testID="admin-confirm-nickname" accessibilityLabel="Yeni takma ad" value={nick} onChangeText={setNick} maxLength={15} autoCorrect={false} style={k.input} />
                 </View>
               ) : null}
-              <View>
+              {isReport ? null : <View>
                 <Text style={k.label}>Gerekçe</Text>
                 <TextInput testID="admin-confirm-reason" accessibilityLabel="Gerekçe" value={reason} onChangeText={(v) => { setReason(v); setErr(null); }} multiline maxLength={300}
                   placeholder="Bu işlemi neden yaptığını kısaca yaz" placeholderTextColor={P.muted} style={[k.input, { minHeight: 90, textAlignVertical: 'top' }]} />
                 <Text style={reason && reasonBad ? k.err : k.hint}>{r.length}/300 · en az 3 karakter. İşlem geçmişine kaydedilir.</Text>
-              </View>
+              </View>}
               {err ? <Notice tone="error" text={err} testID="admin-confirm-error" /> : null}
               <FoilButton label={pending.type === 'delete' ? 'Kalıcı olarak sil' : 'Onayla'} icon={pending.type === 'delete' ? 'trash-2' : 'check'} testID="admin-confirm-submit" busy={busy} disabled={reasonBad || nickBad || deleteBad || blocked} onPress={submit} style={{ flex: 0, minHeight: 48, flexShrink: 0 }} />
               <FoilButton variant="outline" label="Vazgeç" testID="admin-confirm-cancel" disabled={busy} onPress={close} style={{ flex: 0, minHeight: 48, flexShrink: 0 }} />
@@ -391,7 +468,7 @@ function AdminPanel() {
   else if (!o) body = <StateCard testID="admin-error" icon="wifi-off" title="Panel yüklenemedi" text={apiError(ov.error, 'Bağlantı yok, tekrar dene.')} action={{ label: 'Tekrar dene', testID: 'admin-retry', onPress: () => ov.refetch() }} />;
   else if (o.role === 'user') body = <StateCard testID="admin-forbidden" icon="lock" title="Bu sayfa yöneticilere özel" text="Hesabının yönetim yetkisi yok." action={{ label: 'Profile dön', testID: 'admin-back', onPress: () => go('/profile') }} />;
   else {
-    const tabs: { key: Tab; label: string }[] = [{ key: 'overview', label: 'Genel' }, ...(superadmin ? [{ key: 'accounts' as Tab, label: 'Hesaplar' }] : []), { key: 'content', label: 'İçerik' }, { key: 'history', label: 'Geçmiş' }];
+    const tabs: { key: Tab; label: string }[] = [{ key: 'overview', label: 'Genel' }, ...(superadmin ? [{ key: 'accounts' as Tab, label: 'Hesaplar' }] : []), { key: 'content', label: 'İçerik' }, { key: 'reports', label: 'Şikâyetler' }, { key: 'history', label: 'Geçmiş' }];
     const t = tab === 'accounts' && !superadmin ? 'overview' : tab;
     body = (
       <View style={{ gap: 14 }}>
@@ -407,6 +484,7 @@ function AdminPanel() {
         {t === 'overview' ? <View style={{ paddingHorizontal: 18 }}><Overview o={o} onTab={setTab} /></View>
           : t === 'accounts' ? <Accounts userId={userId} live={live} onAct={act} />
           : t === 'content' ? <Content userId={userId} live={live} onAct={act} />
+          : t === 'reports' ? <Reports userId={userId} live={live} onAct={act} />
           : <History userId={userId} live={live} />}
       </View>
     );

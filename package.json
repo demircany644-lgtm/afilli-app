@@ -64,6 +64,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
+    "@workspace/reader-core": "workspace:*",
     "expo-asset": "~58.0.20",
     "expo-audio": "~58.0.12",
     "expo-battery": "~58.0.4",

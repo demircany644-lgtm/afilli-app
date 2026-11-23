@@ -27,28 +27,39 @@ const React = {
   useState(initial) { const i=cursor++; if (!(i in state)) state[i] = typeof initial === 'function' ? initial() : initial;
     return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
   useRef(initial) { const i=cursor++; if (!(i in state)) state[i]={current:initial}; return state[i]; },
-  useEffect() {},
+  useEffect(fn, deps) {
+    const i = cursor++, before = state[i];
+    if (!before || deps.some((dep, j) => dep !== before.deps[j])) {
+      before?.cleanup?.();
+      state[i] = { effect: true, deps, cleanup: fn() };
+    }
+  },
   useSyncExternalStore: (_subscribe, snapshot) => snapshot(),
+  createContext: value => ({ Provider: 'Provider', value }), useContext: ctx => ctx.value,
 };
 const actorRequest = id => ({ headers: { 'X-Afilli-Actor': id } });
 const common = { apiError: e => e.message, goSignIn() {}, Btn: 'Btn', Avatar: 'Avatar' };
 const modules = {
-  react: React, 'react-native': { View:'View',Text:'Text',TextInput:'TextInput',Pressable:'Pressable',StyleSheet:{create:x=>x} },
+  react: React, 'react-native': { View:'View',Text:'Text',TextInput:'TextInput',Pressable:'Pressable',StyleSheet:{create:x=>x},
+    KeyboardAvoidingView:'KeyboardAvoidingView',Modal:'Modal',Platform:{OS:'ios'},ScrollView:'ScrollView' },
   '@expo/vector-icons': { Feather:'Feather' }, '@/hooks/useTheme': { makeStyles: () => () => ({}) },
+  'react-native-keyboard-controller': { KeyboardAvoidingView: 'KeyboardAvoidingView' },
   '@tanstack/react-query': { useInfiniteQuery(){},useQueryClient:()=>({invalidateQueries:()=>{invalidations++;return Promise.resolve();}}) },
   'expo-crypto': { randomUUID },
   '@workspace/api-client-react': {
     addAuthoredBookComment: (book,input,opts) => { const d=deferred();calls.push({book,input:structuredClone(input),opts,...d});return d.promise; },
     getGetBookCommentThreadsQueryKey:id=>['/api/authored-books/'+id+'/comment-threads'],
+    reportWriterComment: async () => ({}),
   },
   '@/components/ui': { F:{},tap(){} }, '@/components/bulletins/common': common,
   '@/components/profile/hooks': { actorRequest, scoped:(key,id)=>[...key,{as:id??'guest'}], useOwnerGuard:id=>()=>owner===id },
   '@/context/CommunityContext': { useCommunity:()=>({userId:owner,ready:true}) },
   '@/components/writer/parts': { useWriterPalette:()=>({}),writerPalette:()=>({}),Skeleton:'Skeleton' },
+  './CommentOwnerActions': { CommentOwnerActions: 'CommentOwnerActions' },
 };
 const { Composer } = await compile('../../afilli/components/writer/BookComments.tsx','export {Composer};',modules);
 const parent = { id:randomUUID(),chapterId:randomUUID(),author:{id:'other',nickname:'Other'} };
-function render() { cursor=0;return Composer({bookId:'book',parent,chapterId:'wrong-reader-chapter',onCount(){},
+function render() { cursor=0;return Composer({bookId:'book',parent,context:{scope:'chapter',chapterId:'wrong-reader-chapter'},onCount(){},
   placeholder:'Reply',testID:'reply',onPosted:keep=>posted.push(keep)}); }
 function find(node,id) {
   if (!node || typeof node!=='object') return null;
@@ -61,7 +72,7 @@ function send() { find(render(),'reply-send').props.onPress(); }
 // Failed response keeps the same immutable payload/id, even when a new draft
 // is typed. Acknowledging the old payload must not close/discard that new draft.
 type('İlk yanıt');send();assert.equal(calls.length,1);
-assert.equal(calls[0].input.chapterId,parent.chapterId);assert.equal(calls[0].input.parentId,parent.id);
+assert.equal(calls[0].input.chapterId,parent.chapterId);assert.equal(calls[0].input.paragraphId,null);assert.equal(calls[0].input.parentId,parent.id);
 calls[0].reject(new Error('offline'));await tick();assert.equal(find(render(),'reply-input').props.value,'İlk yanıt');
 type('Sonraki metin');send();assert.equal(calls.length,2);
 assert.deepEqual(calls[0].input,calls[1].input);
@@ -79,6 +90,25 @@ const before=invalidations, postsBefore=posted.length;send();owner='another-acco
 assert.equal(invalidations,before);assert.equal(posted.length,postsBefore);
 assert.equal(calls.at(-1).opts.headers['X-Afilli-Actor'],'reader');
 console.log('PASS actual reply composer: immutable retry, correct parent/chapter, double-tap lock, in-flight text and account isolation.');
+
+function unmount() { for (const slot of state) if (slot?.effect) slot.cleanup?.(); state = []; }
+owner = 'reader'; unmount(); parent.id = randomUUID();
+type('Kapanmadan önce gönderilen'); send(); const closedRequest = calls.at(-1), oldPosts = posted.length;
+unmount(); render(); type('Tekrar açılınca yazılan yeni taslak');
+closedRequest.resolve({}); await tick();
+assert.equal(find(render(), 'reply-input').props.value, 'Tekrar açılınca yazılan yeni taslak');
+assert.equal(posted.length, oldPosts, 'closed instance cannot close its replacement');
+unmount(); render();
+assert.equal(find(render(), 'reply-input').props.value, 'Tekrar açılınca yazılan yeni taslak', 'late acknowledgement cannot overwrite saved replacement draft');
+send(); assert.deepEqual(calls.at(-1).input, closedRequest.input);
+calls.at(-1).resolve({}); await tick();
+assert.equal(find(render(), 'reply-input').props.value, 'Tekrar açılınca yazılan yeni taslak');
+send(); calls.at(-1).resolve({}); await tick();
+assert.equal(find(render(), 'reply-input').props.value, '');
+type('Kapalı alanda tamamlanan'); send(); const closedOnly = calls.at(-1);
+unmount(); closedOnly.resolve({}); await tick(); render();
+assert.equal(find(render(), 'reply-input').props.value, '', 'acknowledged closed draft clears safely when no replacement exists');
+console.log('PASS collapsed/remounted composer: late acknowledgements preserve replacement drafts, exact retry and closed-only completion.');
 
 const queueCalls=[], gate=deferred(), ids=Array.from({length:102},()=>randomUUID());
 let fail=true;

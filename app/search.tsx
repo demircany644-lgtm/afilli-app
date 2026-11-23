@@ -10,28 +10,28 @@ import { F, tap, webBottom } from '@/components/ui';
 import { useCommunity } from '@/context/CommunityContext';
 import { actorRequest, scoped } from '@/components/profile/hooks';
 import { Skeleton, StateCard } from '@/components/profile/kit';
-import { BookResultRow, LoadMore, PersonRow, SHELVES, SORT_LABEL, useDebouncedValue, type Sort } from '@/components/discovery/parts';
+import { BookResultRow, LoadMore, PersonRow, useDebouncedValue } from '@/components/discovery/parts';
+import { resolveDiscoveryShelf, SORTS, SORT_LABEL, type DiscoveryShelf, type Sort } from '@/lib/discovery-shelves';
 
 type Tab = 'books' | 'people';
-const SORTS: Sort[] = ['new', 'read', 'popular'];
 
 export default function Search() {
   const p = useLocalSearchParams<{ section?: string; sort?: string; tab?: string }>();
-  const shelf = SHELVES.find((s) => s.id === p.section);
-  const initialSort: Sort = shelf?.sort ?? (SORTS.includes(p.sort as Sort) ? (p.sort as Sort) : 'new');
+  const shelf = resolveDiscoveryShelf(p.section, p.sort);
   const initialTab: Tab = p.tab === 'people' ? 'people' : 'books';
-  return <Discovery key={initialTab + ':' + initialSort} initialSort={initialSort} initialTab={initialTab} />;
+  return <Discovery key={initialTab + ':' + shelf.id} initialShelf={shelf} initialTab={initialTab} />;
 }
 
-function Discovery({ initialSort, initialTab }: { initialSort: Sort; initialTab: Tab }) {
+function Discovery({ initialShelf, initialTab }: { initialShelf: DiscoveryShelf; initialTab: Tab }) {
   const { magazine: P } = useTheme();
   const st = useStyles();
   const ins = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [sort, setSort] = useState<Sort>(initialSort);
+  const [shelf, setShelf] = useState<DiscoveryShelf>(initialShelf);
+  const sort = shelf.sort;
   const [q, setQ] = useState('');
   const search = useDebouncedValue(q);
-  const shelfTitle = SHELVES.find((s) => s.sort === sort)?.title ?? 'Keşfet';
+  const shelfTitle = shelf.title;
 
   return (
     <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={0} style={{ flex: 1, backgroundColor: P.background }}>
@@ -62,7 +62,7 @@ function Discovery({ initialSort, initialTab }: { initialSort: Sort; initialTab:
           <>
             <View style={st.sorts}>
               {SORTS.map((s) => (
-                <Pressable key={s} testID={'discovery-sort-' + s} accessibilityRole="button" accessibilityState={{ selected: sort === s }} onPress={() => { tap(); setSort(s); }}
+                <Pressable key={s} testID={'discovery-sort-' + s} accessibilityRole="button" accessibilityState={{ selected: sort === s }} onPress={() => { tap(); setShelf(resolveDiscoveryShelf(undefined, s)); }}
                   style={[st.sort, sort === s && st.sortOn]}>
                   <Text style={[st.sortText, sort === s && { color: P.text, fontFamily: F.semi }]}>{SORT_LABEL[s]}</Text>
                 </Pressable>

@@ -2,22 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import type { CommunityPerson, DiscoveryBookCard, GetDiscoveryBooksSort } from '@workspace/api-client-react';
+import type { CommunityPerson, DiscoveryBookCard } from '@workspace/api-client-react';
 import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { F, tap } from '@/components/ui';
 import { Avatar } from '@/components/bulletins/common';
 import { useCoverUri } from '@/components/writer/parts';
 import { compactCount } from '@/components/profile/hooks';
 
-export type Sort = GetDiscoveryBooksSort;
-
-/** Home shelves and their Keşfet counterparts; ids match the legacy ?section= links. */
-export const SHELVES: { id: string; title: string; sort: Sort }[] = [
-  { id: 'oneriler', title: 'Afilli Önerileri', sort: 'new' },
-  { id: 'cok-okunan', title: 'Çok Okunanlar', sort: 'read' },
-  { id: 'populer', title: 'Popüler Kitaplar', sort: 'popular' },
-];
-export const SORT_LABEL: Record<Sort, string> = { new: 'Yeni', read: 'Çok okunan', popular: 'Popüler' };
+export { SHELVES, SORT_LABEL, type Sort } from '@/lib/discovery-shelves';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isUuid = (v: string) => UUID.test(v);

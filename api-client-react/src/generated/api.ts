@@ -81,6 +81,7 @@ import type {
   GetPeopleParams,
   GetProfileConnectionsParams,
   GetProfileContentParams,
+  GetReaderReportsParams,
   GetWriterCommentRepliesParams,
   HealthStatus,
   MediaCleanupResult,
@@ -98,7 +99,13 @@ import type {
   ProfileEditInput,
   ProfileUpload,
   ProfileUploadInput,
+  ReaderChapter,
+  ReaderLikeInput,
   ReaderProfile,
+  ReaderReport,
+  ReaderReportDecision,
+  ReaderReportInput,
+  ReaderReportPage,
   ReadingPosition,
   ReadingPositionInput,
   RequestBulletinUpload200,
@@ -112,6 +119,7 @@ import type {
   VisibilityInput,
   WriterBook,
   WriterComment,
+  WriterCommentEditInput,
   WriterCommentInput,
   WriterCommentPage,
   WriterDeltaInput,
@@ -8622,6 +8630,157 @@ export function useGetBookCommentThreads<TData = Awaited<ReturnType<typeof getBo
 
 
 
+export const getEditWriterCommentUrl = (id: string,) => {
+
+
+
+
+  return `/api/writer-comments/${id}`
+}
+
+export const editWriterComment = async (id: string,
+    writerCommentEditInput: WriterCommentEditInput, options?: Parameters<typeof customFetch>[1]): Promise<WriterComment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WriterComment>(getEditWriterCommentUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(writerCommentEditInput)
+  }
+);}
+
+
+
+
+
+export const getEditWriterCommentMutationKey = () => ['editWriterComment'] as const;
+
+export const getEditWriterCommentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof editWriterComment>>, TError,EditWriterCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof editWriterComment>>, TError,EditWriterCommentMutationVariables, TContext> => {
+
+const mutationKey = getEditWriterCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof editWriterComment>>, EditWriterCommentMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  editWriterComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EditWriterCommentMutationResult = NonNullable<Awaited<ReturnType<typeof editWriterComment>>>
+    export type EditWriterCommentMutationBody = BodyType<WriterCommentEditInput>
+    export type EditWriterCommentMutationError = ErrorType<void>
+    export type EditWriterCommentMutationVariables = {id: string;data: BodyType<WriterCommentEditInput>}
+
+    export const useEditWriterComment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof editWriterComment>>, TError,EditWriterCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof editWriterComment>>,
+        TError,
+        EditWriterCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getEditWriterCommentMutationOptions(options), queryClient);
+    }
+
+export const getDeleteWriterCommentUrl = (id: string,) => {
+
+
+
+
+  return `/api/writer-comments/${id}`
+}
+
+export const deleteWriterComment = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<WriterComment> => {
+
+  return customFetch<WriterComment>(getDeleteWriterCommentUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteWriterCommentMutationKey = () => ['deleteWriterComment'] as const;
+
+export const getDeleteWriterCommentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWriterComment>>, TError,DeleteWriterCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteWriterComment>>, TError,DeleteWriterCommentMutationVariables, TContext> => {
+
+const mutationKey = getDeleteWriterCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWriterComment>>, DeleteWriterCommentMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteWriterComment(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteWriterCommentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWriterComment>>>
+
+    export type DeleteWriterCommentMutationError = ErrorType<void>
+    export type DeleteWriterCommentMutationVariables = {id: string}
+
+    export const useDeleteWriterComment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWriterComment>>, TError,DeleteWriterCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteWriterComment>>,
+        TError,
+        DeleteWriterCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteWriterCommentMutationOptions(options), queryClient);
+    }
+
 export const getGetWriterCommentPathUrl = (id: string,) => {
 
 
@@ -8908,6 +9067,462 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getSetWriterCommentReactionMutationOptions(options), queryClient);
+    }
+
+export const getGetReaderChapterUrl = (id: string,
+    chapterId: string,) => {
+
+
+
+
+  return `/api/authored-books/${id}/chapters/${chapterId}/interactions`
+}
+
+export const getReaderChapter = async (id: string,
+    chapterId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReaderChapter> => {
+
+  return customFetch<ReaderChapter>(getGetReaderChapterUrl(id,chapterId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReaderChapterQueryKey = (id: string,
+    chapterId: string,) => {
+    return [
+    `/api/authored-books/${id}/chapters/${chapterId}/interactions`
+    ] as const;
+    }
+
+
+export const getGetReaderChapterQueryOptions = <TData = Awaited<ReturnType<typeof getReaderChapter>>, TError = ErrorType<unknown>>(id: string,
+    chapterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderChapter>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReaderChapterQueryKey(id,chapterId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReaderChapter>>> = ({ signal }) => getReaderChapter(id,chapterId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && chapterId !== null && chapterId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReaderChapter>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReaderChapterQueryResult = NonNullable<Awaited<ReturnType<typeof getReaderChapter>>>
+export type GetReaderChapterQueryError = ErrorType<unknown>
+
+
+export function useGetReaderChapter<TData = Awaited<ReturnType<typeof getReaderChapter>>, TError = ErrorType<unknown>>(
+ id: string,
+    chapterId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderChapter>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReaderChapter>>,
+          TError,
+          Awaited<ReturnType<typeof getReaderChapter>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReaderChapter<TData = Awaited<ReturnType<typeof getReaderChapter>>, TError = ErrorType<unknown>>(
+ id: string,
+    chapterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderChapter>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReaderChapter>>,
+          TError,
+          Awaited<ReturnType<typeof getReaderChapter>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReaderChapter<TData = Awaited<ReturnType<typeof getReaderChapter>>, TError = ErrorType<unknown>>(
+ id: string,
+    chapterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderChapter>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetReaderChapter<TData = Awaited<ReturnType<typeof getReaderChapter>>, TError = ErrorType<unknown>>(
+ id: string,
+    chapterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderChapter>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReaderChapterQueryOptions(id,chapterId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetReaderLikeUrl = (id: string,
+    chapterId: string,) => {
+
+
+
+
+  return `/api/authored-books/${id}/chapters/${chapterId}/interactions`
+}
+
+export const setReaderLike = async (id: string,
+    chapterId: string,
+    readerLikeInput: ReaderLikeInput, options?: Parameters<typeof customFetch>[1]): Promise<ReaderChapter> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ReaderChapter>(getSetReaderLikeUrl(id,chapterId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(readerLikeInput)
+  }
+);}
+
+
+
+
+
+export const getSetReaderLikeMutationKey = () => ['setReaderLike'] as const;
+
+export const getSetReaderLikeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setReaderLike>>, TError,SetReaderLikeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setReaderLike>>, TError,SetReaderLikeMutationVariables, TContext> => {
+
+const mutationKey = getSetReaderLikeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setReaderLike>>, SetReaderLikeMutationVariables> = (props) => {
+          const {id,chapterId,data} = props ?? {};
+
+          return  setReaderLike(id,chapterId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetReaderLikeMutationResult = NonNullable<Awaited<ReturnType<typeof setReaderLike>>>
+    export type SetReaderLikeMutationBody = BodyType<ReaderLikeInput>
+    export type SetReaderLikeMutationError = ErrorType<unknown>
+    export type SetReaderLikeMutationVariables = {id: string;chapterId: string;data: BodyType<ReaderLikeInput>}
+
+    export const useSetReaderLike = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setReaderLike>>, TError,SetReaderLikeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setReaderLike>>,
+        TError,
+        SetReaderLikeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetReaderLikeMutationOptions(options), queryClient);
+    }
+
+export const getReportWriterCommentUrl = (id: string,) => {
+
+
+
+
+  return `/api/writer-comments/${id}/reports`
+}
+
+export const reportWriterComment = async (id: string,
+    readerReportInput: ReaderReportInput, options?: Parameters<typeof customFetch>[1]): Promise<ReaderReport> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ReaderReport>(getReportWriterCommentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(readerReportInput)
+  }
+);}
+
+
+
+
+
+export const getReportWriterCommentMutationKey = () => ['reportWriterComment'] as const;
+
+export const getReportWriterCommentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportWriterComment>>, TError,ReportWriterCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportWriterComment>>, TError,ReportWriterCommentMutationVariables, TContext> => {
+
+const mutationKey = getReportWriterCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportWriterComment>>, ReportWriterCommentMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reportWriterComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportWriterCommentMutationResult = NonNullable<Awaited<ReturnType<typeof reportWriterComment>>>
+    export type ReportWriterCommentMutationBody = BodyType<ReaderReportInput>
+    export type ReportWriterCommentMutationError = ErrorType<void>
+    export type ReportWriterCommentMutationVariables = {id: string;data: BodyType<ReaderReportInput>}
+
+    export const useReportWriterComment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportWriterComment>>, TError,ReportWriterCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reportWriterComment>>,
+        TError,
+        ReportWriterCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReportWriterCommentMutationOptions(options), queryClient);
+    }
+
+export const getGetReaderReportsUrl = (params?: GetReaderReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/reader-reports?${stringifiedParams}` : `/api/admin/reader-reports`
+}
+
+export const getReaderReports = async (params?: GetReaderReportsParams, options?: Parameters<typeof customFetch>[1]): Promise<ReaderReportPage> => {
+
+  return customFetch<ReaderReportPage>(getGetReaderReportsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReaderReportsQueryKey = (params?: GetReaderReportsParams,) => {
+    return [
+    `/api/admin/reader-reports`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetReaderReportsQueryOptions = <TData = Awaited<ReturnType<typeof getReaderReports>>, TError = ErrorType<unknown>>(params?: GetReaderReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReaderReportsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReaderReports>>> = ({ signal }) => getReaderReports(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReaderReports>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReaderReportsQueryResult = NonNullable<Awaited<ReturnType<typeof getReaderReports>>>
+export type GetReaderReportsQueryError = ErrorType<unknown>
+
+
+export function useGetReaderReports<TData = Awaited<ReturnType<typeof getReaderReports>>, TError = ErrorType<unknown>>(
+ params: undefined |  GetReaderReportsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderReports>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReaderReports>>,
+          TError,
+          Awaited<ReturnType<typeof getReaderReports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReaderReports<TData = Awaited<ReturnType<typeof getReaderReports>>, TError = ErrorType<unknown>>(
+ params?: GetReaderReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderReports>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReaderReports>>,
+          TError,
+          Awaited<ReturnType<typeof getReaderReports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReaderReports<TData = Awaited<ReturnType<typeof getReaderReports>>, TError = ErrorType<unknown>>(
+ params?: GetReaderReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetReaderReports<TData = Awaited<ReturnType<typeof getReaderReports>>, TError = ErrorType<unknown>>(
+ params?: GetReaderReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReaderReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReaderReportsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getResolveReaderReportUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/reader-reports/${id}`
+}
+
+export const resolveReaderReport = async (id: string,
+    readerReportDecision: ReaderReportDecision, options?: Parameters<typeof customFetch>[1]): Promise<ReaderReport> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ReaderReport>(getResolveReaderReportUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(readerReportDecision)
+  }
+);}
+
+
+
+
+
+export const getResolveReaderReportMutationKey = () => ['resolveReaderReport'] as const;
+
+export const getResolveReaderReportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveReaderReport>>, TError,ResolveReaderReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveReaderReport>>, TError,ResolveReaderReportMutationVariables, TContext> => {
+
+const mutationKey = getResolveReaderReportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveReaderReport>>, ResolveReaderReportMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  resolveReaderReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveReaderReportMutationResult = NonNullable<Awaited<ReturnType<typeof resolveReaderReport>>>
+    export type ResolveReaderReportMutationBody = BodyType<ReaderReportDecision>
+    export type ResolveReaderReportMutationError = ErrorType<unknown>
+    export type ResolveReaderReportMutationVariables = {id: string;data: BodyType<ReaderReportDecision>}
+
+    export const useResolveReaderReport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveReaderReport>>, TError,ResolveReaderReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof resolveReaderReport>>,
+        TError,
+        ResolveReaderReportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResolveReaderReportMutationOptions(options), queryClient);
     }
 
 export const getGetAuthoredBookCommentsUrl = (id: string,) => {

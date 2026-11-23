@@ -4,7 +4,6 @@ import type { WriterChapter, WriterDocument, WriterDocumentGenresItem } from '@w
 export const GENRES: WriterDocumentGenresItem[] = ['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'];
 export const LANGUAGES = ['Türkçe', 'English', 'Deutsch', 'Français', 'Español', 'Kurmancî', 'العربية'];
 export const MAX_CHAPTER_CHARS = 50_000;
-export const MAX_CHAPTERS = 200;
 export const TITLE_MAX = 100;
 export const DESC_MAX = 500;
 export const CHAPTER_TITLE_MAX = 150;
