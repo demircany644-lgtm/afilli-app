@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { randomUUID } from 'expo-crypto';
@@ -16,13 +16,6 @@ import { actorRequest } from './hooks';
 
 export const MAX_BODY = 4000;
 
-const EMOJI: { label: string; items: string[] }[] = [
-  { label: 'Yüzler', items: ['😀', '😁', '😂', '🤣', '😊', '😇', '🙂', '😉', '😍', '🥰', '😘', '😋', '😎', '🤓', '🧐', '🤔', '🤗', '🤭', '😏', '😌', '😴', '😮', '😢', '😭', '😤', '😡', '🥺', '😳', '🙄', '😅'] },
-  { label: 'Kalpler', items: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🤎', '🖤', '🤍', '💔', '💕', '💖', '💗', '💌'] },
-  { label: 'Okur', items: ['📚', '📖', '📕', '📗', '📘', '📙', '✍️', '🖋️', '✒️', '📝', '🔖', '☕', '🍵', '🕯️', '🌙', '⭐', '✨', '🌹', '🌸', '🍂'] },
-  { label: 'Eller', items: ['👍', '👎', '👏', '🙌', '🙏', '🤝', '👋', '✌️', '🤞', '👌', '💪', '🫶'] },
-];
-
 type Props = {
   userId: string; threadId: string; onQueued: (e: OutboxEntry) => void; disabled?: boolean;
   /** Message chosen via the bubble reply action (null = none chosen this tick). */
@@ -31,13 +24,15 @@ type Props = {
   /** Resolve a restored replyToId against the loaded transcript (may be undefined if not loaded/deleted). */
   findMessage: (id: string) => DirectMessage | undefined;
   peerName?: string;
+  /** Safe-area bottom padding for the full-screen chat composer. */
+  bottomInset?: number;
 };
 
 /**
  * Identity-bound composer. Text, reply target and chosen GIF autosave per owner+thread after strict hydration.
  * Send durably enqueues BEFORE clearing or calling the network.
  */
-export function ChatComposer({ userId, threadId, onQueued, disabled, replyTo, onCancelReply, findMessage, peerName }: Props) {
+export function ChatComposer({ userId, threadId, onQueued, disabled, replyTo, onCancelReply, findMessage, peerName, bottomInset = 0 }: Props) {
   const { magazine: P, social: S } = useTheme();
   const st = useStStyles();
   const owner = userId;
@@ -63,7 +58,7 @@ export function ChatComposer({ userId, threadId, onQueued, disabled, replyTo, on
   const [queueing, setQueueing] = useState(false);
   const sendingRef = useRef(false);
   const queuePromise = useRef<Promise<unknown> | null>(null);
-  const [panel, setPanel] = useState<'none' | 'emoji' | 'gif'>('none');
+  const [panel, setPanel] = useState<'none' | 'gif'>('none');
   const [attempt, setAttempt] = useState(0);
   const input = useRef<React.ComponentRef<typeof TextInput>>(null);
   const typing = useSetConversationTyping({ request: actorRequest(userId) });
@@ -152,7 +147,6 @@ export function ChatComposer({ userId, threadId, onQueued, disabled, replyTo, on
       typingRef.current({ id: threadId, data: { typing: true } });
     } else if (!next.trim()) stopTyping();
   };
-  const addEmoji = (e: string) => { tap(); change(bodyRef.current + e); };
   const cancelReply = () => { setReplyId(null); replyRef.current = null; schedule(); onCancelRef.current(); };
   const pickGif = (g: MessageGif, q: string) => {
     if (sendingRef.current || pickingRef.current) return;
@@ -278,41 +272,22 @@ export function ChatComposer({ userId, threadId, onQueued, disabled, replyTo, on
           </Pressable>
         </View>
       ) : null}
-      {panel === 'emoji' ? (
-        <ScrollView style={st.emojiPanel} contentContainerStyle={{ padding: 10, gap: 8 }} keyboardShouldPersistTaps="always" testID="chat-emoji-panel">
-          {EMOJI.map((g) => (
-            <View key={g.label} style={{ gap: 4 }}>
-              <Text style={st.emojiLabel}>{g.label}</Text>
-              <View style={st.emojiGrid}>
-                {g.items.map((e) => (
-                  <Pressable key={e} accessibilityRole="button" accessibilityLabel={e} onPress={() => addEmoji(e)} style={({ pressed }) => [st.emojiCell, pressed && { opacity: 0.5 }]}>
-                    <Text style={st.emoji}>{e}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-      ) : panel === 'gif' ? <GifPicker onPick={pickGif} onClose={() => setPanel('none')} /> : null}
-      <View style={st.wrap}>
+      {panel === 'gif' ? <GifPicker onPick={pickGif} onClose={() => setPanel('none')} /> : null}
+      <View style={[st.wrap, { paddingBottom: 10 + bottomInset }]}>
         <View style={st.tools}>
-          <Pressable testID="chat-emoji" accessibilityRole="button" accessibilityLabel="Emoji seç" accessibilityState={{ selected: panel === 'emoji' }}
-            onPress={() => { tap(); setPanel((p) => (p === 'emoji' ? 'none' : 'emoji')); }} style={[st.tool, panel === 'emoji' && st.toolOn]}>
-            <Feather name="smile" size={19} color={P.text} />
+          <Pressable testID="chat-photo-pick" accessibilityRole="button" accessibilityLabel="Galeriden fotoğraf seç" accessibilityState={{ disabled: picking || queueing || !hydrated }}
+            disabled={picking || queueing || !hydrated} onPress={pickPhoto} style={st.tool}>
+            <Feather name={picking ? 'loader' : 'image'} size={19} color={P.text} />
           </Pressable>
           <Pressable testID="chat-gif" accessibilityRole="button" accessibilityLabel="GIF seç" accessibilityState={{ selected: panel === 'gif' }}
             disabled={queueing || picking} onPress={() => { tap(); setPanel((p) => (p === 'gif' ? 'none' : 'gif')); }} style={[st.tool, panel === 'gif' && st.toolOn]}>
             <Text style={st.gifTxt}>GIF</Text>
           </Pressable>
-          <Pressable testID="chat-photo-pick" accessibilityRole="button" accessibilityLabel="Galeriden fotoğraf seç" accessibilityState={{ disabled: picking || queueing || !hydrated }}
-            disabled={picking || queueing || !hydrated} onPress={pickPhoto} style={st.tool}>
-            <Feather name={picking ? 'loader' : 'image'} size={19} color={P.text} />
-          </Pressable>
         </View>
         <View style={st.box}>
           <TextInput ref={input} testID="chat-input" value={body} onChangeText={change} onBlur={stopTyping} editable={hydrated}
-            onFocus={() => setPanel((p) => (p === 'emoji' ? p : 'none'))}
-            placeholder="Bir mektup yaz..." placeholderTextColor={P.muted} multiline maxLength={MAX_BODY} style={st.input} accessibilityLabel="Mesaj" />
+            onFocus={() => setPanel('none')}
+            placeholder="Mesaj yaz..." placeholderTextColor={P.muted} multiline maxLength={MAX_BODY} style={st.input} accessibilityLabel="Mesaj" />
           {body.length > MAX_BODY - 300 ? <Text style={st.count}>{body.length}/{MAX_BODY}</Text> : null}
         </View>
         <Pressable testID="chat-send" accessibilityRole="button" accessibilityLabel="Gönder" accessibilityState={{ disabled: !can }} disabled={!can} onPress={send}
@@ -334,17 +309,12 @@ const useStStyles = makeStyles((t) => {
     attachTitle: { fontFamily: F.semi, fontSize: 12, color: S.foilDeep },
     attachBody: { fontFamily: F.body, fontSize: 13, color: P.muted },
     x: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    emojiPanel: { maxHeight: 230, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: P.border, backgroundColor: P.background },
-    emojiLabel: { fontFamily: F.semi, fontSize: 11, letterSpacing: 0.6, color: P.muted, textTransform: 'uppercase' },
-    emojiGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-    emojiCell: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-    emoji: { fontSize: 24 },
     wrap: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: P.border, backgroundColor: P.background },
     tools: { flexDirection: 'row', gap: 2, paddingBottom: 3 },
-    tool: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    tool: { width: 38, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     toolOn: { backgroundColor: P.card, borderWidth: 1, borderColor: S.foilMid },
     gifTxt: { fontFamily: F.semi, fontSize: 12, letterSpacing: 0.6, color: P.text, borderWidth: 1.5, borderColor: P.text, borderRadius: 5, paddingHorizontal: 4, paddingVertical: 1 },
-    box: { flex: 1, borderRadius: 22, borderWidth: 1, borderColor: P.border, backgroundColor: P.card, paddingHorizontal: 14, paddingVertical: 6 },
+    box: { flex: 1, minWidth: 0, borderRadius: 22, borderWidth: 1, borderColor: P.border, backgroundColor: P.card, paddingHorizontal: 14, paddingVertical: 6 },
     input: { minHeight: 34, maxHeight: 130, fontFamily: F.body, fontSize: 15, color: P.text, paddingVertical: 6 },
     count: { alignSelf: 'flex-end', fontFamily: F.body, fontSize: 11, color: P.muted },
     send: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: S.bubbleMine },

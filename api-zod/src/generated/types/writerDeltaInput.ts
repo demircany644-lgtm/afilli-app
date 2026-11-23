@@ -13,13 +13,8 @@ export interface WriterDeltaInput {
   expectedRevision: number;
   saveId: string;
   metadata?: WriterMetadata;
-  /** @maxItems 200 */
   upserts: WriterChapter[];
-  /** @maxItems 200 */
   deletedChapterIds: string[];
-  /**
-     * Required for additions, deletions or reorder; exact final permutation of chapter IDs.
-     * @maxItems 200
-     */
+  /** Required for additions, deletions or reorder; exact final permutation of chapter IDs. */
   chapterOrder?: string[];
 }

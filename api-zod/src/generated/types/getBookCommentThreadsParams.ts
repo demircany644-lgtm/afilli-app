@@ -5,7 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { GetBookCommentThreadsScope } from './getBookCommentThreadsScope';
 
 export type GetBookCommentThreadsParams = {
 cursor?: string;
+chapterId?: string;
+paragraphId?: string;
+scope?: GetBookCommentThreadsScope;
 };

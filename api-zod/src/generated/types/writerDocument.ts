@@ -26,6 +26,5 @@ export interface WriterDocument {
   completion: WriterDocumentCompletion;
   /** @nullable */
   cover: string | null;
-  /** @maxItems 200 */
   chapters: WriterChapter[];
 }

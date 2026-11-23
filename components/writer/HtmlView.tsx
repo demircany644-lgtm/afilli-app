@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, StyleSheet, Text, View, type TextStyle } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, StyleSheet, Text, View, type TextStyle } from 'react-native';
 import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useGetWriterImageAccess, getGetWriterImageAccessQueryKey } from '@workspace/api-client-react';
 import { F } from '@/components/ui';
 import { scoped, actorRequest } from '@/components/profile/hooks';
 import { useCommunity } from '@/context/CommunityContext';
-import { decodeEntities, writerMediaId } from '@/lib/writer-text';
+import { writerMediaId } from '@/lib/writer-text';
 import { CopyGuard, CopyProtectionHint } from './CopyGuard';
 import { useWriterPalette, writerPalette, Confirm } from '@/components/writer/parts';
 import { mediaUrl } from '@/components/bulletins/common';
@@ -15,39 +15,8 @@ import { mediaUrl } from '@/components/bulletins/common';
  * Manuscript HTML -> native Text/View. Nothing is executed: unknown tags are
  * flattened to their text, only http(s) links (confirmed) and canonical images render.
  */
-type El = { tag: string; attrs: Record<string, string>; kids: Node[] };
-type Node = El | string;
-const VOID = new Set(['br', 'img', 'hr']);
-const DROP = new Set(['script', 'style', 'iframe', 'object', 'embed', 'template', 'svg', 'math']);
-const BLOCK = new Set(['p', 'div', 'h1', 'h2', 'h3', 'blockquote', 'ul', 'ol', 'li', 'img', 'hr']);
-
-export function parseHtml(html: string): El {
-  const root: El = { tag: 'root', attrs: {}, kids: [] };
-  const stack: El[] = [root];
-  const re = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[^\s=>]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>|([^<]+)|</g;
-  let m: RegExpExecArray | null;
-  let skip = 0;
-  while ((m = re.exec(html))) {
-    const top = stack[stack.length - 1];
-    if (m[0].startsWith('<!--')) continue;
-    if (m[4] !== undefined || m[0] === '<') { if (!skip) top.kids.push(decodeEntities(m[4] ?? '<')); continue; }
-    const close = m[1] === '/', tag = m[2].toLowerCase();
-    if (DROP.has(tag)) { skip += close ? -1 : 1; if (skip < 0) skip = 0; continue; }
-    if (skip) continue;
-    if (close) {
-      for (let i = stack.length - 1; i > 0; i--) if (stack[i].tag === tag) { stack.length = i; break; }
-      continue;
-    }
-    const attrs: Record<string, string> = {};
-    const ar = /([^\s=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
-    let a: RegExpExecArray | null;
-    while ((a = ar.exec(m[3] ?? ''))) attrs[a[1].toLowerCase()] = decodeEntities(a[2] ?? a[3] ?? a[4] ?? '');
-    const el: El = { tag, attrs, kids: [] };
-    top.kids.push(el);
-    if (!VOID.has(tag)) stack.push(el);
-  }
-  return root;
-}
+import { parseHtml, hasImg, isBlock, BLOCK, type El, type Node } from '@workspace/reader-core';
+export { parseHtml };
 
 const PX = new Set([12, 14, 16, 17, 18, 20, 22, 24, 28, 32]);
 type Mut<T> = { -readonly [K in keyof T]: T[K] };
@@ -58,17 +27,21 @@ function styleOf(attrs: Record<string, string>): TextStyle & { align?: 'left' | 
     if (key === 'color' && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\))$/.test(v)) out.color = v;
     else if (key === 'font-size') { const n = parseInt(v, 10); if (PX.has(n)) { out.fontSize = n; out.lineHeight = Math.round(n * 1.6); } }
     else if (key === 'text-align' && (v === 'left' || v === 'center' || v === 'right')) out.align = v;
-    else if (key === 'font-weight' && (v === 'bold' || parseInt(v, 10) >= 600)) out.fontFamily = F.semi;
-    else if (key === 'font-style' && v === 'italic') out.fontStyle = 'italic';
+    else if (key === 'font-weight' && /^(?:normal|bold|[1-9]00)$/.test(v)) {
+      const weight = v === 'normal' ? '400' : v === 'bold' ? '700' : v;
+      out.fontWeight = weight as TextStyle['fontWeight'];
+      out.fontFamily = Number(weight) >= 600 ? F.semi : Number(weight) < 400
+        ? Platform.OS === 'android' ? 'sans-serif-light' : Platform.OS === 'ios' ? 'System' : 'system-ui'
+        : Number(weight) === 500 ? F.med : F.body;
+    }
+    else if (key === 'font-style' && (v === 'italic' || v === 'normal')) out.fontStyle = v;
     else if ((key === 'text-decoration' || key === 'text-decoration-line') && /underline|line-through/.test(v))
       out.textDecorationLine = v.includes('underline') && v.includes('line-through') ? 'underline line-through' : v.includes('underline') ? 'underline' : 'line-through';
   }
   return out;
 }
-const hasImg = (n: Node): boolean => typeof n !== 'string' && (n.tag === 'img' || n.kids.some(hasImg));
-const isBlock = (n: Node) => typeof n !== 'string' && (BLOCK.has(n.tag) || hasImg(n));
 
-export function HtmlView({ html, night, owner, privatePreview = false, fontSize = 17 }: { html: string; night?: boolean; owner: string | null; privatePreview?: boolean; fontSize?: number }) {
+export function HtmlView({ html, night, owner, privatePreview = false, fontSize = 17, annotate }: { html: string; night?: boolean; owner: string | null; privatePreview?: boolean; fontSize?: number; annotate?: (path: string, text: React.ReactNode) => React.ReactNode }) {
   const W = useWriterPalette();
   const rs = useRsStyles();
   const [link, setLink] = useState<string | null>(null);
@@ -103,44 +76,51 @@ export function HtmlView({ html, night, owner, privatePreview = false, fontSize 
   const flowText = (nodes: Node[], k: string, style: TextStyle[], align?: string) => {
     const parts = nodes.map((c, i) => inline(c, k + '.' + i));
     const txt = nodes.length === 0 ? '' : null;
-    return <Text key={k} selectable={false} style={[base, ...style.map(scaleStyle), align ? { textAlign: align as TextStyle['textAlign'] } : null]}>{txt ?? parts}</Text>;
+    const el = <Text key={k} selectable={false} style={[base, ...style.map(scaleStyle), align ? { textAlign: align as TextStyle['textAlign'] } : null]}>{txt ?? parts}</Text>;
+    // Paragraph discussion controls attach by the same path reader-core reports.
+    return annotate ? <React.Fragment key={k}>{annotate(k, el)}</React.Fragment> : el;
   };
-  const blocks = (nodes: Node[], k: string): React.ReactNode[] => {
+  const blocks = (nodes: Node[], k: string, inherited: TextStyle[] = [], inheritedAlign?: string): React.ReactNode[] => {
     const out: React.ReactNode[] = []; let run: Node[] = [];
-    const flush = () => { if (run.some((r) => typeof r !== 'string' || r.trim())) out.push(flowText(run, k + 'r' + out.length, [rs.p])); run = []; };
+    const flush = () => { if (run.some((r) => typeof r !== 'string' || r.trim())) out.push(flowText(run, k + 'r' + out.length, [rs.p, ...inherited], inheritedAlign)); run = []; };
     nodes.forEach((n, i) => {
       if (!isBlock(n)) { run.push(n); return; }
       flush();
-      out.push(block(n as El, k + '.' + i));
+      out.push(block(n as El, k + '.' + i, inherited, inheritedAlign));
     });
     flush();
     return out;
   };
-  const block = (n: El, k: string): React.ReactNode => {
+  const block = (n: El, k: string, inherited: TextStyle[], inheritedAlign?: string): React.ReactNode => {
     const s = styleOf(n.attrs);
-    const { align, ...ts } = s;
+    const { align: ownAlign, ...ts } = s;
+    const align = ownAlign ?? inheritedAlign;
+    const styles = [...inherited, ts];
     switch (n.tag) {
       case 'img': return <ReaderImage key={k} src={n.attrs.src ?? ''} owner={owner} privatePreview={privatePreview} />;
       case 'hr': return <View key={k} style={rs.hr} />;
-      case 'blockquote': return <View key={k} style={rs.quote}>{blocks(n.kids, k)}</View>;
+      case 'blockquote': return <View key={k} style={rs.quote}>{blocks(n.kids, k, [...inherited, { fontStyle: 'italic' }, ts], align)}</View>;
       case 'ul': case 'ol': {
         let i = 0;
         return (
           <View key={k} style={rs.list}>
-            {n.kids.filter((c): c is El => typeof c !== 'string' && c.tag === 'li').map((li, j) => (
+            {n.kids.filter((c): c is El => typeof c !== 'string' && c.tag === 'li').map((li, j) => {
+              const { align: liAlign, ...liStyle } = styleOf(li.attrs);
+              const itemStyles = [...styles, liStyle], itemAlign = liAlign ?? align;
+              return (
               <View key={k + 'li' + j} style={rs.li}>
                 <Text style={[base, rs.bullet]}>{n.tag === 'ol' ? ++i + '.' : '\u2022'}</Text>
-                <View style={{ flex: 1 }}>{hasImg(li) || li.kids.some(isBlock) ? blocks(li.kids, k + 'l' + j) : flowText(li.kids, k + 'l' + j, [ts])}</View>
+                <View style={{ flex: 1 }}>{hasImg(li) || li.kids.some(isBlock) ? blocks(li.kids, k + 'l' + j, itemStyles, itemAlign) : flowText(li.kids, k + 'l' + j, itemStyles, itemAlign)}</View>
               </View>
-            ))}
+            ); })}
           </View>
         );
       }
       default: {
         const head = n.tag === 'h1' ? rs.h1 : n.tag === 'h2' ? rs.h2 : n.tag === 'h3' ? rs.h3 : rs.p;
-        if (hasImg(n) || n.kids.some((c) => typeof c !== 'string' && BLOCK.has(c.tag))) return <View key={k}>{blocks(n.kids, k)}</View>;
+        if (hasImg(n) || n.kids.some((c) => typeof c !== 'string' && BLOCK.has(c.tag))) return <View key={k}>{blocks(n.kids, k, styles, align)}</View>;
         if (!n.kids.length || n.kids.every((c) => (typeof c === 'string' ? !c.trim() : c.tag === 'br'))) return <View key={k} style={{ height: 14 }} />;
-        return flowText(n.kids, k, [head, ts, n.tag.startsWith('h') ? { color: ink } : {}], align);
+        return flowText(n.kids, k, [...inherited, head, ts, n.tag.startsWith('h') ? { color: ink } : {}], align);
       }
     }
   };

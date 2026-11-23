@@ -4,18 +4,17 @@ import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { useLocalSearchParams } from 'expo-router';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import type { DirectMessage, MessageGif, MessageQuote } from '@workspace/api-client-react';
+import type { DirectMessage, MessageQuote } from '@workspace/api-client-react';
 import { useCommunity } from '@/context/CommunityContext';
 import { useDirectMessages } from '@/context/DirectMessagesContext';
 import { useDirectThread } from '@/lib/useDirectThread';
 import { F, tap } from '@/components/ui';
-import { Avatar } from '@/components/bulletins/common';
-import { MarbleBackground, Notice, Skeleton, StateCard, StatusLine, TopBar } from '@/components/profile/kit';
-import { useOptionalAppearance } from '@/context/AppearanceContext';
+import { MarbleBackground, Notice, Skeleton, StateCard } from '@/components/profile/kit';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatComposer } from '@/components/profile/ChatComposer';
 import { GifMessage } from '@/components/profile/GifMessage';
 import { PhotoMessage, LocalPhotoPreview } from '@/components/profile/PhotoMessage';
-import { go, useIdentityKey } from '@/components/profile/hooks';
+import { go, goBack, useIdentityKey } from '@/components/profile/hooks';
 
 type Pending = ReturnType<typeof useDirectThread>['pending'][number];
 type Item = { kind: 'server'; m: DirectMessage } | { kind: 'pending'; p: Pending };
@@ -43,7 +42,9 @@ function Quote({ q, mine, peerId }: { q: Pick<MessageQuote, 'available' | 'sende
 function Chat({ id }: { id: string }) {
   const { magazine: P, social: S } = useTheme();
   const st = useStStyles();
-  const lavaOn = !!useOptionalAppearance()?.isLava;
+  const ins = useSafeAreaInsets();
+  const webTop = Platform.OS === 'web' ? 67 : ins.top;
+  const bottomPad = Platform.OS === 'web' ? 34 : ins.bottom;
   const { ready, userId } = useCommunity();
   const { connection, mediaCleanupError } = useDirectMessages();
   const t = useDirectThread(id);
@@ -90,7 +91,7 @@ function Chat({ id }: { id: string }) {
       {t.deleteError ? <Notice tone="error" testID="chat-delete-error" text={t.deleteError} /> : null}
       {mediaCleanupError ? <Text testID="chat-media-cleanup-status" style={st.meta}>{mediaCleanupError}</Text> : null}
       <FlatList
-        testID="chat-list" inverted data={data} style={{ flex: 1 }}
+        testID="chat-list" inverted data={data} style={{ flex: 1, minHeight: 0 }}
         keyExtractor={(it) => it.kind === 'server' ? it.m.id : 'p-' + it.p.clientId}
         keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled"
         windowSize={5} initialNumToRender={12} maxToRenderPerBatch={6}
@@ -150,24 +151,22 @@ function Chat({ id }: { id: string }) {
       {conv.data.peerTyping ? <Text testID="chat-typing" style={[st.meta, { color: S.typing, textAlign: 'left', paddingHorizontal: 18 }]}>{peer?.nickname} yazıyor...</Text> : null}
       {t.outboxErr ? <Notice tone="error" testID="chat-outbox-error" text="Bekleyen gönderimlerin okunamadı; silinmedi." action={{ label: 'Tekrar dene', onPress: t.reloadOutbox }} /> : null}
       <ChatComposer userId={userId} threadId={id} onQueued={t.deliver} replyTo={replyTo} onCancelReply={() => setReplyTo(null)}
-        findMessage={(mid) => byId.get(mid)} peerName={peer?.nickname} />
+        findMessage={(mid) => byId.get(mid)} peerName={peer?.nickname} bottomInset={bottomPad} />
     </>
   );
 
   return (
     <View style={{ flex: 1, backgroundColor: P.background }}>
       <MarbleBackground />
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }} keyboardVerticalOffset={0}>
-        <TopBar back title="" backFallback="/messages" right={ready && peer && conv.data ? (
-          <Pressable testID="chat-peer" accessibilityRole="link" accessibilityLabel={peer.nickname + ' profilini aç'} onPress={() => go('/people/' + peer.id)} style={[st.peer, lavaOn && st.peerLava]}>
-            <Avatar person={peer} size={38} />
-            <View style={{ flexShrink: 1 }}>
-              <Text style={st.peerName} numberOfLines={1}>{peer.nickname}</Text>
-              <StatusLine presence={{ online: conv.data.peerOnline, typing: conv.data.peerTyping, lastSeen: conv.data.peerLastSeen }} />
-            </View>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, minHeight: 0 }} keyboardVerticalOffset={0}>
+        <View style={[st.header, { paddingTop: webTop + 6 }]}>
+          <Pressable testID="chat-back" accessibilityRole="button" accessibilityLabel="Geri" hitSlop={10} onPress={() => { tap(); goBack('/messages'); }} style={st.back}>
+            <Feather name="arrow-left" size={24} color={P.text} />
           </Pressable>
-        ) : null} />
-        {body}
+          <Text testID="chat-peer-name" accessibilityRole="header" numberOfLines={1} style={st.headerTitle}>{ready && conv.data && peer ? peer.nickname : ''}</Text>
+          <View style={st.back} />
+        </View>
+        <View style={{ flex: 1, minHeight: 0 }}>{body}</View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -186,9 +185,9 @@ function ReplyBtn({ m, onReply }: { m: DirectMessage; onReply: (m: DirectMessage
 const useStStyles = makeStyles((t) => {
   const { magazine: P, social: S } = t;
   return StyleSheet.create({
-  peerLava: { backgroundColor: P.card, borderRadius: 24, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: P.border },
-  peer: { flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: 260 },
-  peerName: { fontFamily: F.serifBold, fontSize: 17, color: P.text },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: P.border, backgroundColor: P.background },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', fontFamily: F.serifBold, fontSize: 18, color: P.text },
   row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   bubble: { maxWidth: '80%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9, gap: 5 },
   mine: { alignSelf: 'flex-end', backgroundColor: S.bubbleMine, borderBottomRightRadius: 6 },

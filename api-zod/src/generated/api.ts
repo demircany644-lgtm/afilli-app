@@ -2253,8 +2253,6 @@ export const getWriterBookResponseDocumentChaptersItemTitleMax = 150;
 
 export const getWriterBookResponseDocumentChaptersItemHtmlMax = 600000;
 
-export const getWriterBookResponseDocumentChaptersMax = 200;
-
 
 
 export const GetWriterBookResponse = zod.object({
@@ -2273,7 +2271,7 @@ export const GetWriterBookResponse = zod.object({
   "title": zod.string().max(getWriterBookResponseDocumentChaptersItemTitleMax),
   "html": zod.string().max(getWriterBookResponseDocumentChaptersItemHtmlMax),
   "status": zod.enum(['draft', 'published'])
-})).max(getWriterBookResponseDocumentChaptersMax)
+}))
 }),
   "revision": zod.number().int(),
   "publication": zod.enum(['draft', 'published']),
@@ -2299,8 +2297,6 @@ export const saveWriterBookBodyDocumentChaptersItemTitleMax = 150;
 
 export const saveWriterBookBodyDocumentChaptersItemHtmlMax = 600000;
 
-export const saveWriterBookBodyDocumentChaptersMax = 200;
-
 export const saveWriterBookBodyExpectedRevisionMin = 0;
 
 export const saveWriterBookBodyLocalIdMax = 200;
@@ -2321,7 +2317,7 @@ export const SaveWriterBookBody = zod.object({
   "title": zod.string().max(saveWriterBookBodyDocumentChaptersItemTitleMax),
   "html": zod.string().max(saveWriterBookBodyDocumentChaptersItemHtmlMax),
   "status": zod.enum(['draft', 'published'])
-})).max(saveWriterBookBodyDocumentChaptersMax)
+}))
 }),
   "expectedRevision": zod.number().int().min(saveWriterBookBodyExpectedRevisionMin),
   "saveId": zod.string().uuid(),
@@ -2341,8 +2337,6 @@ export const saveWriterBookResponseDocumentChaptersItemTitleMax = 150;
 
 export const saveWriterBookResponseDocumentChaptersItemHtmlMax = 600000;
 
-export const saveWriterBookResponseDocumentChaptersMax = 200;
-
 
 
 export const SaveWriterBookResponse = zod.object({
@@ -2361,7 +2355,7 @@ export const SaveWriterBookResponse = zod.object({
   "title": zod.string().max(saveWriterBookResponseDocumentChaptersItemTitleMax),
   "html": zod.string().max(saveWriterBookResponseDocumentChaptersItemHtmlMax),
   "status": zod.enum(['draft', 'published'])
-})).max(saveWriterBookResponseDocumentChaptersMax)
+}))
 }),
   "revision": zod.number().int(),
   "publication": zod.enum(['draft', 'published']),
@@ -2406,12 +2400,6 @@ export const patchWriterBookBodyUpsertsItemTitleMax = 150;
 
 export const patchWriterBookBodyUpsertsItemHtmlMax = 600000;
 
-export const patchWriterBookBodyUpsertsMax = 200;
-
-export const patchWriterBookBodyDeletedChapterIdsMax = 200;
-
-export const patchWriterBookBodyChapterOrderMax = 200;
-
 
 
 export const PatchWriterBookBody = zod.object({
@@ -2431,9 +2419,9 @@ export const PatchWriterBookBody = zod.object({
   "title": zod.string().max(patchWriterBookBodyUpsertsItemTitleMax),
   "html": zod.string().max(patchWriterBookBodyUpsertsItemHtmlMax),
   "status": zod.enum(['draft', 'published'])
-})).max(patchWriterBookBodyUpsertsMax),
-  "deletedChapterIds": zod.array(zod.string().uuid()).max(patchWriterBookBodyDeletedChapterIdsMax),
-  "chapterOrder": zod.array(zod.string().uuid()).max(patchWriterBookBodyChapterOrderMax).optional().describe('Required for additions, deletions or reorder; exact final permutation of chapter IDs.')
+})),
+  "deletedChapterIds": zod.array(zod.string().uuid()),
+  "chapterOrder": zod.array(zod.string().uuid()).optional().describe('Required for additions, deletions or reorder; exact final permutation of chapter IDs.')
 })
 
 
@@ -2474,8 +2462,6 @@ export const changeWriterPublicationResponseDocumentChaptersItemTitleMax = 150;
 
 export const changeWriterPublicationResponseDocumentChaptersItemHtmlMax = 600000;
 
-export const changeWriterPublicationResponseDocumentChaptersMax = 200;
-
 
 
 export const ChangeWriterPublicationResponse = zod.object({
@@ -2494,7 +2480,7 @@ export const ChangeWriterPublicationResponse = zod.object({
   "title": zod.string().max(changeWriterPublicationResponseDocumentChaptersItemTitleMax),
   "html": zod.string().max(changeWriterPublicationResponseDocumentChaptersItemHtmlMax),
   "status": zod.enum(['draft', 'published'])
-})).max(changeWriterPublicationResponseDocumentChaptersMax)
+}))
 }),
   "revision": zod.number().int(),
   "publication": zod.enum(['draft', 'published']),
@@ -2756,11 +2742,15 @@ export const GetBookCommentThreadsParams = zod.object({
 })
 
 export const GetBookCommentThreadsQueryParams = zod.object({
-  "cursor": zod.coerce.string().optional()
+  "cursor": zod.coerce.string().optional(),
+  "chapterId": zod.coerce.string().uuid().optional(),
+  "paragraphId": zod.coerce.string().uuid().optional(),
+  "scope": zod.enum(['book', 'chapter', 'paragraph']).optional()
 })
 
 export const GetBookCommentThreadsResponse = zod.object({
   "items": zod.array(zod.object({
+  "paragraphId": zod.string().uuid().nullish(),
   "bookId": zod.string(),
   "parentId": zod.string().nullable(),
   "deleted": zod.boolean(),
@@ -2784,11 +2774,74 @@ export const GetBookCommentThreadsResponse = zod.object({
 })
 
 
+export const EditWriterCommentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const editWriterCommentBodyBodyMax = 3000;
+
+
+
+export const EditWriterCommentBody = zod.object({
+  "body": zod.string().min(1).max(editWriterCommentBodyBodyMax)
+})
+
+export const EditWriterCommentResponse = zod.object({
+  "paragraphId": zod.string().uuid().nullish(),
+  "bookId": zod.string(),
+  "parentId": zod.string().nullable(),
+  "deleted": zod.boolean(),
+  "replyCount": zod.number().int(),
+  "reactions": zod.array(zod.object({
+  "reaction": zod.enum(['like', 'love']),
+  "count": zod.number().int(),
+  "selected": zod.boolean()
+})),
+  "id": zod.string(),
+  "author": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}),
+  "body": zod.string(),
+  "chapterId": zod.string().nullable(),
+  "createdAt": zod.string()
+})
+
+
+export const DeleteWriterCommentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteWriterCommentResponse = zod.object({
+  "paragraphId": zod.string().uuid().nullish(),
+  "bookId": zod.string(),
+  "parentId": zod.string().nullable(),
+  "deleted": zod.boolean(),
+  "replyCount": zod.number().int(),
+  "reactions": zod.array(zod.object({
+  "reaction": zod.enum(['like', 'love']),
+  "count": zod.number().int(),
+  "selected": zod.boolean()
+})),
+  "id": zod.string(),
+  "author": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}),
+  "body": zod.string(),
+  "chapterId": zod.string().nullable(),
+  "createdAt": zod.string()
+})
+
+
 export const GetWriterCommentPathParams = zod.object({
   "id": zod.coerce.string()
 })
 
 export const GetWriterCommentPathResponseItem = zod.object({
+  "paragraphId": zod.string().uuid().nullish(),
   "bookId": zod.string(),
   "parentId": zod.string().nullable(),
   "deleted": zod.boolean(),
@@ -2821,6 +2874,7 @@ export const GetWriterCommentRepliesQueryParams = zod.object({
 
 export const GetWriterCommentRepliesResponse = zod.object({
   "items": zod.array(zod.object({
+  "paragraphId": zod.string().uuid().nullish(),
   "bookId": zod.string(),
   "parentId": zod.string().nullable(),
   "deleted": zod.boolean(),
@@ -2853,6 +2907,7 @@ export const SetWriterCommentReactionBody = zod.object({
 })
 
 export const SetWriterCommentReactionResponse = zod.object({
+  "paragraphId": zod.string().uuid().nullish(),
   "bookId": zod.string(),
   "parentId": zod.string().nullable(),
   "deleted": zod.boolean(),
@@ -2874,11 +2929,186 @@ export const SetWriterCommentReactionResponse = zod.object({
 })
 
 
+export const GetReaderChapterParams = zod.object({
+  "id": zod.coerce.string(),
+  "chapterId": zod.coerce.string().uuid()
+})
+
+export const GetReaderChapterResponse = zod.object({
+  "bookId": zod.string().uuid(),
+  "chapterId": zod.string().uuid(),
+  "contentHash": zod.string(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "chapterCommentCount": zod.number().int(),
+  "paragraphs": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "path": zod.string(),
+  "quote": zod.string(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "archived": zod.boolean()
+})),
+  "archived": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "path": zod.string(),
+  "quote": zod.string(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "archived": zod.boolean()
+}))
+})
+
+
+export const SetReaderLikeParams = zod.object({
+  "id": zod.coerce.string(),
+  "chapterId": zod.coerce.string().uuid()
+})
+
+export const SetReaderLikeBody = zod.object({
+  "liked": zod.boolean(),
+  "paragraphId": zod.string().uuid().nullish()
+})
+
+export const SetReaderLikeResponse = zod.object({
+  "bookId": zod.string().uuid(),
+  "chapterId": zod.string().uuid(),
+  "contentHash": zod.string(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "chapterCommentCount": zod.number().int(),
+  "paragraphs": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "path": zod.string(),
+  "quote": zod.string(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "archived": zod.boolean()
+})),
+  "archived": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "path": zod.string(),
+  "quote": zod.string(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "archived": zod.boolean()
+}))
+})
+
+
+export const ReportWriterCommentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const reportWriterCommentBodyDetailsMax = 1000;
+
+
+
+export const ReportWriterCommentBody = zod.object({
+  "reason": zod.enum(['spam', 'abuse', 'other']),
+  "details": zod.string().max(reportWriterCommentBodyDetailsMax).optional()
+})
+
+export const ReportWriterCommentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "commentId": zod.string().uuid(),
+  "bookId": zod.string().uuid(),
+  "chapterId": zod.string().uuid().nullable(),
+  "paragraphId": zod.string().uuid().nullable(),
+  "author": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}),
+  "reporter": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}),
+  "body": zod.string(),
+  "reason": zod.enum(['spam', 'abuse', 'other']),
+  "details": zod.string(),
+  "status": zod.enum(['pending', 'dismissed', 'hidden']),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const GetReaderReportsQueryParams = zod.object({
+  "cursor": zod.coerce.string().optional(),
+  "status": zod.enum(['pending', 'dismissed', 'hidden']).optional()
+})
+
+export const GetReaderReportsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "commentId": zod.string().uuid(),
+  "bookId": zod.string().uuid(),
+  "chapterId": zod.string().uuid().nullable(),
+  "paragraphId": zod.string().uuid().nullable(),
+  "author": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}),
+  "reporter": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}),
+  "body": zod.string(),
+  "reason": zod.enum(['spam', 'abuse', 'other']),
+  "details": zod.string(),
+  "status": zod.enum(['pending', 'dismissed', 'hidden']),
+  "createdAt": zod.coerce.date()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+export const ResolveReaderReportParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ResolveReaderReportBody = zod.object({
+  "action": zod.enum(['dismiss', 'hide'])
+})
+
+export const ResolveReaderReportResponse = zod.object({
+  "id": zod.string().uuid(),
+  "commentId": zod.string().uuid(),
+  "bookId": zod.string().uuid(),
+  "chapterId": zod.string().uuid().nullable(),
+  "paragraphId": zod.string().uuid().nullable(),
+  "author": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}),
+  "reporter": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}),
+  "body": zod.string(),
+  "reason": zod.enum(['spam', 'abuse', 'other']),
+  "details": zod.string(),
+  "status": zod.enum(['pending', 'dismissed', 'hidden']),
+  "createdAt": zod.coerce.date()
+})
+
+
 export const GetAuthoredBookCommentsParams = zod.object({
   "id": zod.coerce.string()
 })
 
 export const GetAuthoredBookCommentsResponseItem = zod.object({
+  "paragraphId": zod.string().uuid().nullish(),
   "bookId": zod.string(),
   "parentId": zod.string().nullable(),
   "deleted": zod.boolean(),
@@ -2912,11 +3142,13 @@ export const addAuthoredBookCommentBodyBodyMax = 3000;
 export const AddAuthoredBookCommentBody = zod.object({
   "clientId": zod.string().uuid(),
   "body": zod.string().min(1).max(addAuthoredBookCommentBodyBodyMax),
+  "paragraphId": zod.string().uuid().nullish(),
   "chapterId": zod.string().uuid().nullish(),
   "parentId": zod.string().uuid().nullish()
 })
 
 export const AddAuthoredBookCommentResponse = zod.object({
+  "paragraphId": zod.string().uuid().nullish(),
   "bookId": zod.string(),
   "parentId": zod.string().nullable(),
   "deleted": zod.boolean(),

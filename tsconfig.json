@@ -17,6 +17,9 @@
   "references": [
     {
       "path": "./api-client-react"
+    },
+    {
+      "path": "./reader-core"
     }
   ],
   "exclude": [
@@ -27,6 +30,7 @@
     "api-zod",
     "db",
     "integrations-openai-ai-server",
+    "reader-core",
     "generated-artifacts"
   ]
 }

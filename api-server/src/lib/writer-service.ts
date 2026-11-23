@@ -78,20 +78,21 @@ export async function patchWriter(db: Transaction, id: string, owner: string, in
   }
   if (row.writer_revision !== input.expectedRevision) return fail(409, 'Başka bir cihazda değişiklik var. Yerel metnin korunuyor; sürümleri karşılaştır.');
   const base = row.writer_data ?? legacyDocument(row);
+  const baseIds = new Set(base.chapters.map(ch => ch.id));
   const removed = new Set(input.deletedChapterIds);
   const upsertIds = new Set(input.upserts.map(c => c.id));
   if (upsertIds.size !== input.upserts.length || removed.size !== input.deletedChapterIds.length
-    || input.upserts.some(c => removed.has(c.id)) || input.deletedChapterIds.some(id => !base.chapters.some(c => c.id === id))) {
+    || input.upserts.some(c => removed.has(c.id)) || input.deletedChapterIds.some(id => !baseIds.has(id))) {
     return fail(400, 'Bölüm değişiklikleri tutarsız.');
   }
-  const structural = removed.size > 0 || input.upserts.some(c => !base.chapters.some(old => old.id === c.id));
+  const structural = removed.size > 0 || input.upserts.some(c => !baseIds.has(c.id));
   if (structural && input.chapterOrder === undefined) return fail(400, 'Bölüm eklerken veya silerken son sıralamayı gönder.');
   // Only changed HTML is sanitized again. Existing chapters already passed validation.
   const normalized = normalizeDocument({ ...base, ...input.metadata, chapters: input.upserts });
   const chapters = new Map(base.chapters.filter(c => !removed.has(c.id)).map(c => [c.id, c]));
   normalized.chapters.forEach(c => chapters.set(c.id, c));
   const order = input.chapterOrder ?? base.chapters.map(c => c.id);
-  if (chapters.size > 200 || order.length !== chapters.size || new Set(order).size !== order.length || order.some(id => !chapters.has(id))) {
+  if (order.length !== chapters.size || new Set(order).size !== order.length || order.some(id => !chapters.has(id))) {
     return fail(400, 'Bölüm sıralaması kitaptaki her bölümü tam bir kez içermeli.');
   }
   const document: WriterDocument = { ...normalized, chapters: order.map(id => chapters.get(id)!) };

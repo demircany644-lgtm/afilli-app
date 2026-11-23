@@ -1,14 +1,25 @@
 import { Router, type IRouter } from 'express';
 import { pool } from '@workspace/db';
-import { SetBookSubscriptionBody, SubscribeSavedBooksBody, SetWriterCommentReactionBody } from '@workspace/api-zod';
+import { SetBookSubscriptionBody, SubscribeSavedBooksBody, SetWriterCommentReactionBody, EditWriterCommentBody, GetBookCommentThreadsQueryParams } from '@workspace/api-zod';
 import { route, requirePerson, parse, uuid, viewer, transaction, fail } from '../lib/community';
-import { commentNode, commentScope, commentPage, commentPath } from '../lib/book-comments';
+import { commentNode, commentScope, commentPage, commentPath, editComment, deleteComment } from '../lib/book-comments';
 import { publicBook } from '../lib/book-access';
 import { bookNotifications, readBookNotification } from '../lib/book-notifications';
+import readerInteractions from './reader-interactions';
 
 const router: IRouter = Router();
+router.use(readerInteractions);
+router.patch('/writer-comments/:id', route(async (req, res) => {
+  const actor = await requirePerson(req), id = uuid(req.params.id), input = parse(EditWriterCommentBody, req.body);
+  res.json(await transaction(db => editComment(db, id, actor.id, input.body)));
+}));
+router.delete('/writer-comments/:id', route(async (req, res) => {
+  const actor = await requirePerson(req), id = uuid(req.params.id);
+  res.json(await transaction(db => deleteComment(db, id, actor.id)));
+}));
 router.get('/authored-books/:id/comment-threads', route(async (req, res) => {
-  res.json(await commentPage(await commentScope(uuid(req.params.id)), viewer(req), null, req.query.cursor));
+  const query = parse(GetBookCommentThreadsQueryParams, req.query);
+  res.json(await commentPage(await commentScope(uuid(req.params.id)), viewer(req), null, query.cursor, query));
 }));
 router.get('/writer-comments/:id/path', route(async (req, res) => {
   res.json(await commentPath(uuid(req.params.id), viewer(req)));

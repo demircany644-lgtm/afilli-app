@@ -34,6 +34,7 @@
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/integrations-openai-ai-server": "workspace:*",
+    "@workspace/reader-core": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dictionary-tr": "^2.0.0",

@@ -9,6 +9,8 @@ import type { CommunityPerson } from './communityPerson';
 import type { WriterCommentReactionsItem } from './writerCommentReactionsItem';
 
 export interface WriterComment {
+  /** @nullable */
+  paragraphId?: string | null;
   bookId: string;
   /** @nullable */
   parentId: string | null;
