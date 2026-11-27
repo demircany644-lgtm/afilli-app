@@ -215,7 +215,7 @@ export function ChatComposer({ userId, threadId, onQueued, disabled, replyTo, on
     setPhoto(photoRef.current);
     if (!replyRef.current && rReply) onCancelRef.current();
     onQueuedRef.current(entry);
-    if (rGif && customerId && allowedRef.current) {
+    if (rGif?.provider === 'klipy' && customerId && allowedRef.current) {
       // Analytics only; the message itself is already durable and sending.
       notifyGifShared(rGif, rQuery, customerId).catch(() => { if (mounted.current) setInfo('GIF gönderiliyor; KLIPY paylaşım bildirimi iletilemedi.'); });
     }

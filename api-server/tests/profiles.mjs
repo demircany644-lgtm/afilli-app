@@ -113,7 +113,7 @@ try {
   await api(a, '/social-settings', 'PUT', originalSettings);
   console.log('PASS private/public book access, actual likes/content, deduplicated genuine reads, recent-read crown and immediately revocable admin access');
 
-  const photo = await readFile(new URL('../../afilli/assets/images/magazine/autumn-cover.webp', import.meta.url));
+  const photo = await readFile(new URL('../../assets/images/magazine/autumn-cover.webp', import.meta.url));
   const upload = await api(a, '/profile-uploads', 'POST', { purpose: 'avatar', contentType: 'image/webp', size: photo.length }); images.push(upload.id);
   assert.equal((await fetch(upload.uploadURL, { method: 'PUT', headers: { 'Content-Type': 'image/webp' }, body: photo })).ok, true);
   await api(b, '/my-profile', 'PATCH', { ...input('Fotoğraf Hırsızlığı'), avatarUploadId: upload.id }, 403);

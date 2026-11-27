@@ -16,6 +16,7 @@
     "test:book-community-local": "node tests/book-community-local.mjs",
     "test:direct-messages": "tsx tests/direct-messages.mjs",
     "test:direct-media": "tsx tests/direct-media.mjs",
+    "test:gif-library": "node tests/gif-library-local.mjs && tsx --test tests/gif-library-schema.mjs && tsx tests/gif-library.mjs",
     "test:direct-messages-local": "node tests/direct-messages-local.mjs && node tests/klipy-client.mjs && node tests/direct-native-stream.mjs",
     "test:reading-local": "node tests/reading-progress.mjs && node tests/writer-clipboard.mjs",
     "test:account-recovery": "node tests/auth-deletion-recovery.mjs && node tests/account-local-delete.mjs && node tests/chat-drafts.mjs",

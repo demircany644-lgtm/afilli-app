@@ -4,7 +4,7 @@ import { transform } from 'esbuild';
 import vm from 'node:vm';
 
 async function load(path, dependencies, suffix = '') {
-  const source = await readFile(new URL('../../afilli/' + path, import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
   const code = (await transform(source + suffix, { loader: 'tsx', format: 'cjs' })).code;
   const module = { exports: {} };
   vm.runInNewContext(code, { module, exports: module.exports, Date, setTimeout, clearTimeout,

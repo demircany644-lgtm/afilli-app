@@ -8,6 +8,111 @@
 import * as zod from 'zod';
 
 
+export const getGifLibraryQueryOffsetDefault = 0;
+export const getGifLibraryQueryOffsetMin = 0;
+export const getGifLibraryQueryOffsetMax = 100000;
+
+
+
+export const GetGifLibraryQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(getGifLibraryQueryOffsetMin).max(getGifLibraryQueryOffsetMax).default(getGifLibraryQueryOffsetDefault)
+})
+
+export const getGifLibraryResponseItemsItemIdMax = 250;
+
+export const getGifLibraryResponseItemsItemTitleMax = 250;
+
+export const getGifLibraryResponseItemsItemUrlMax = 2048;
+
+export const getGifLibraryResponseItemsItemWidthMax = 4000;
+
+export const getGifLibraryResponseItemsItemHeightMax = 4000;
+
+export const getGifLibraryResponseItemsItemSourceUrlMax = 2048;
+
+export const getGifLibraryResponseItemsItemAttributionMax = 500;
+
+export const getGifLibraryResponseItemsItemLicenseMax = 100;
+
+
+
+export const GetGifLibraryResponse = zod.object({
+  "items": zod.array(zod.object({
+  "provider": zod.enum(['klipy', 'afilli']),
+  "id": zod.string().min(1).max(getGifLibraryResponseItemsItemIdMax),
+  "title": zod.string().max(getGifLibraryResponseItemsItemTitleMax),
+  "url": zod.string().url().max(getGifLibraryResponseItemsItemUrlMax),
+  "width": zod.number().int().min(1).max(getGifLibraryResponseItemsItemWidthMax),
+  "height": zod.number().int().min(1).max(getGifLibraryResponseItemsItemHeightMax),
+  "sourceUrl": zod.string().url().max(getGifLibraryResponseItemsItemSourceUrlMax),
+  "attribution": zod.string().max(getGifLibraryResponseItemsItemAttributionMax),
+  "license": zod.string().max(getGifLibraryResponseItemsItemLicenseMax).nullable()
+})),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const requestLibraryGifUploadBodyTitleMax = 120;
+
+export const requestLibraryGifUploadBodySizeMax = 5242880;
+
+
+
+export const RequestLibraryGifUploadBody = zod.object({
+  "clientId": zod.string().uuid(),
+  "title": zod.string().min(1).max(requestLibraryGifUploadBodyTitleMax),
+  "size": zod.number().int().min(1).max(requestLibraryGifUploadBodySizeMax)
+})
+
+export const RequestLibraryGifUploadResponse = zod.object({
+  "id": zod.string().uuid(),
+  "ready": zod.boolean(),
+  "uploadUrl": zod.string().nullable()
+})
+
+
+export const CompleteLibraryGifUploadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const completeLibraryGifUploadResponseIdMax = 250;
+
+export const completeLibraryGifUploadResponseTitleMax = 250;
+
+export const completeLibraryGifUploadResponseUrlMax = 2048;
+
+export const completeLibraryGifUploadResponseWidthMax = 4000;
+
+export const completeLibraryGifUploadResponseHeightMax = 4000;
+
+export const completeLibraryGifUploadResponseSourceUrlMax = 2048;
+
+export const completeLibraryGifUploadResponseAttributionMax = 500;
+
+export const completeLibraryGifUploadResponseLicenseMax = 100;
+
+
+
+export const CompleteLibraryGifUploadResponse = zod.object({
+  "provider": zod.enum(['klipy', 'afilli']),
+  "id": zod.string().min(1).max(completeLibraryGifUploadResponseIdMax),
+  "title": zod.string().max(completeLibraryGifUploadResponseTitleMax),
+  "url": zod.string().url().max(completeLibraryGifUploadResponseUrlMax),
+  "width": zod.number().int().min(1).max(completeLibraryGifUploadResponseWidthMax),
+  "height": zod.number().int().min(1).max(completeLibraryGifUploadResponseHeightMax),
+  "sourceUrl": zod.string().url().max(completeLibraryGifUploadResponseSourceUrlMax),
+  "attribution": zod.string().max(completeLibraryGifUploadResponseAttributionMax),
+  "license": zod.string().max(completeLibraryGifUploadResponseLicenseMax).nullable()
+})
+
+
+export const GetLibraryGifMediaParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetLibraryGifMediaResponse = zod.unknown()
+
+
 export const getDiscoveryBooksQuerySortDefault = `new`;
 export const getDiscoveryBooksQuerySearchMax = 100;
 
@@ -905,7 +1010,7 @@ export const GetConversationMessagesResponse = zod.object({
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(getConversationMessagesResponseItemsItemReplyOneGifOneIdMax),
   "title": zod.string().max(getConversationMessagesResponseItemsItemReplyOneGifOneTitleMax),
   "url": zod.string().url().max(getConversationMessagesResponseItemsItemReplyOneGifOneUrlMax),
@@ -923,7 +1028,7 @@ export const GetConversationMessagesResponse = zod.object({
   "mediaExpired": zod.boolean().optional()
 }),zod.null()]),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(getConversationMessagesResponseItemsItemGifOneIdMax),
   "title": zod.string().max(getConversationMessagesResponseItemsItemGifOneTitleMax),
   "url": zod.string().url().max(getConversationMessagesResponseItemsItemGifOneUrlMax),
@@ -977,7 +1082,7 @@ export const SendConversationMessageBody = zod.object({
   "body": zod.string().max(sendConversationMessageBodyBodyMax),
   "replyToId": zod.string().uuid().nullish(),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(sendConversationMessageBodyGifOneIdMax),
   "title": zod.string().max(sendConversationMessageBodyGifOneTitleMax),
   "url": zod.string().url().max(sendConversationMessageBodyGifOneUrlMax),
@@ -1047,7 +1152,7 @@ export const SendConversationMessageResponse = zod.object({
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(sendConversationMessageResponseReplyOneGifOneIdMax),
   "title": zod.string().max(sendConversationMessageResponseReplyOneGifOneTitleMax),
   "url": zod.string().url().max(sendConversationMessageResponseReplyOneGifOneUrlMax),
@@ -1065,7 +1170,7 @@ export const SendConversationMessageResponse = zod.object({
   "mediaExpired": zod.boolean().optional()
 }),zod.null()]),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(sendConversationMessageResponseGifOneIdMax),
   "title": zod.string().max(sendConversationMessageResponseGifOneTitleMax),
   "url": zod.string().url().max(sendConversationMessageResponseGifOneUrlMax),
@@ -1156,7 +1261,7 @@ export const SyncConversationMessagesResponse = zod.object({
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(syncConversationMessagesResponseItemsItemReplyOneGifOneIdMax),
   "title": zod.string().max(syncConversationMessagesResponseItemsItemReplyOneGifOneTitleMax),
   "url": zod.string().url().max(syncConversationMessagesResponseItemsItemReplyOneGifOneUrlMax),
@@ -1174,7 +1279,7 @@ export const SyncConversationMessagesResponse = zod.object({
   "mediaExpired": zod.boolean().optional()
 }),zod.null()]),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(syncConversationMessagesResponseItemsItemGifOneIdMax),
   "title": zod.string().max(syncConversationMessagesResponseItemsItemGifOneTitleMax),
   "url": zod.string().url().max(syncConversationMessagesResponseItemsItemGifOneUrlMax),
@@ -1268,7 +1373,7 @@ export const GetConversationChangesResponse = zod.object({
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(getConversationChangesResponseItemsItemReplyOneGifOneIdMax),
   "title": zod.string().max(getConversationChangesResponseItemsItemReplyOneGifOneTitleMax),
   "url": zod.string().url().max(getConversationChangesResponseItemsItemReplyOneGifOneUrlMax),
@@ -1286,7 +1391,7 @@ export const GetConversationChangesResponse = zod.object({
   "mediaExpired": zod.boolean().optional()
 }),zod.null()]),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(getConversationChangesResponseItemsItemGifOneIdMax),
   "title": zod.string().max(getConversationChangesResponseItemsItemGifOneTitleMax),
   "url": zod.string().url().max(getConversationChangesResponseItemsItemGifOneUrlMax),
@@ -1373,7 +1478,7 @@ export const DeleteConversationMessageResponse = zod.object({
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(deleteConversationMessageResponseReplyOneGifOneIdMax),
   "title": zod.string().max(deleteConversationMessageResponseReplyOneGifOneTitleMax),
   "url": zod.string().url().max(deleteConversationMessageResponseReplyOneGifOneUrlMax),
@@ -1391,7 +1496,7 @@ export const DeleteConversationMessageResponse = zod.object({
   "mediaExpired": zod.boolean().optional()
 }),zod.null()]),
   "gif": zod.union([zod.object({
-  "provider": zod.enum(['klipy']),
+  "provider": zod.enum(['klipy', 'afilli']),
   "id": zod.string().min(1).max(deleteConversationMessageResponseGifOneIdMax),
   "title": zod.string().max(deleteConversationMessageResponseGifOneTitleMax),
   "url": zod.string().url().max(deleteConversationMessageResponseGifOneUrlMax),

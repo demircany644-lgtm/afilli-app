@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-const source = await readFile(new URL('../../afilli/lib/writer-editor-html.ts', import.meta.url), 'utf8');
+const source = await readFile(new URL('../../lib/writer-editor-html.ts', import.meta.url), 'utf8');
 const listeners = {}, commands = [];
 let undo = 0, redo = 0;
 const ed = { addEventListener: (name, fn) => { listeners[name] = fn; } };

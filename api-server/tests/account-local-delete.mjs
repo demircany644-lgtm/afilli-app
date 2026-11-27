@@ -9,7 +9,7 @@ const storage = {
   setItem: async (key, value) => { memory.set(key, value); },
   removeItem: async key => { if (failRemove) throw new Error('Disk unavailable'); memory.delete(key); },
 };
-const code = (await transform(await readFile(new URL('../../afilli/lib/account-local-delete.ts', import.meta.url), 'utf8'), { loader: 'ts', format: 'cjs' })).code;
+const code = (await transform(await readFile(new URL('../../lib/account-local-delete.ts', import.meta.url), 'utf8'), { loader: 'ts', format: 'cjs' })).code;
 function load() {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', code)(name => {

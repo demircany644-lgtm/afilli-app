@@ -130,7 +130,7 @@ try {
   await click('profile-edit-avatar-library'); await wait(`!!document.querySelector('input[type=file]')`);
   const doc = await call('DOM.getDocument');
   const node = await call('DOM.querySelector', { nodeId: doc.root.nodeId, selector: 'input[type=file]' });
-  await call('DOM.setFileInputFiles', { nodeId: node.nodeId, files: [fileURLToPath(new URL('../../afilli/assets/images/magazine/autumn-cover.webp', import.meta.url))] });
+  await call('DOM.setFileInputFiles', { nodeId: node.nodeId, files: [fileURLToPath(new URL('../../assets/images/magazine/autumn-cover.webp', import.meta.url))] });
   await wait(exists('profile-edit-avatar-undo'));
   await wait(`!document.body.innerText.includes('Fotoğraf yükleniyor')`);
   await click('profile-edit-save'); await wait(exists('profile-name'));

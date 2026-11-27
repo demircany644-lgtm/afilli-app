@@ -57,7 +57,7 @@ const modules = {
   '@/components/writer/parts': { useWriterPalette:()=>({}),writerPalette:()=>({}),Skeleton:'Skeleton' },
   './CommentOwnerActions': { CommentOwnerActions: 'CommentOwnerActions' },
 };
-const { Composer } = await compile('../../afilli/components/writer/BookComments.tsx','export {Composer};',modules);
+const { Composer } = await compile('../../components/writer/BookComments.tsx','export {Composer};',modules);
 const parent = { id:randomUUID(),chapterId:randomUUID(),author:{id:'other',nickname:'Other'} };
 function render() { cursor=0;return Composer({bookId:'book',parent,context:{scope:'chapter',chapterId:'wrong-reader-chapter'},onCount(){},
   placeholder:'Reply',testID:'reply',onPosted:keep=>posted.push(keep)}); }
@@ -112,7 +112,7 @@ console.log('PASS collapsed/remounted composer: late acknowledgements preserve r
 
 const queueCalls=[], gate=deferred(), ids=Array.from({length:102},()=>randomUUID());
 let fail=true;
-const queue = await compile('../../afilli/lib/book-subscriptions.ts','',{
+const queue = await compile('../../lib/book-subscriptions.ts','',{
   react:React,
   '@workspace/api-client-react': {
     async subscribeSavedBooks(input,opts) {

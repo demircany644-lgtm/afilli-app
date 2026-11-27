@@ -10,7 +10,7 @@ const storage = {
   removeItem: async (key) => { if (failWrite) throw new Error('Storage unavailable'); memory.delete(key); },
   getAllKeys: async () => [...memory.keys()],
 };
-const source = await readFile(new URL('../../afilli/lib/chat-drafts.ts', import.meta.url), 'utf8');
+const source = await readFile(new URL('../../lib/chat-drafts.ts', import.meta.url), 'utf8');
 const code = (await transform(source, { loader: 'ts', format: 'cjs' })).code;
 const module = { exports: {} };
 new Function('require', 'module', 'exports', code)(() => storage, module, module.exports);

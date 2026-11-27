@@ -6,6 +6,7 @@ import type { MessageGif } from '@workspace/api-client-react';
 import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { F, tap } from '@/components/ui';
 import { useGifPrivacy } from '@/context/DirectMessagesContext';
+import { LibraryGifImage } from './LibraryGifImage';
 
 export const KLIPY_URL = 'https://klipy.com';
 
@@ -34,6 +35,11 @@ export function GifMessage({ gif, maxW = 220, compact }: { gif: MessageGif; maxW
   const ratio = gif.width > 0 && gif.height > 0 ? gif.height / gif.width : 1;
   const h = Math.max(48, Math.min(Math.round(w * ratio), compact ? 96 : 280));
   const label = gif.title ? 'GIF: ' + gif.title : 'GIF';
+
+  if (gif.provider === 'afilli') return <View style={{ width: w, gap: 3 }}>
+    <LibraryGifImage id={gif.id} width={w} height={h} label={label} />
+    {!compact ? <Text style={st.powered}>Afilli GIF</Text> : null}
+  </View>;
 
   if (!allowed) {
     return (

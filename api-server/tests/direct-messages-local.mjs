@@ -24,8 +24,8 @@ function hooks() {
 }
 const memory=new Map();let failWrite=false;
 const storage={getItem:async k=>memory.get(k)??null,setItem:async(k,v)=>{if(failWrite)throw Error('offline storage');memory.set(k,v);},removeItem:async k=>{if(failWrite)throw Error('offline storage');memory.delete(k);},getAllKeys:async()=>[...memory.keys()]};
-const drafts=await compile('../../afilli/lib/chat-drafts.ts',{'@react-native-async-storage/async-storage':storage});
-const state=await compile('../../afilli/lib/direct-message-state.ts',{});
+const drafts=await compile('../../lib/chat-drafts.ts',{'@react-native-async-storage/async-storage':storage});
+const state=await compile('../../lib/direct-message-state.ts',{});
 const preparedPhotoId=randomUUID();
 const photoDeps={prepareChatPhoto:async(_owner,_thread,entry)=>entry.photoId??(entry.photo?preparedPhotoId:null),queueChatPhotoCleanup:async()=>{},drainChatPhotoCleanup:async()=>{},chooseChatPhoto:async()=>null};
 const noChanges=async(_id,{after})=>({items:[],nextAfter:after,hasMore:false});
@@ -66,7 +66,7 @@ const api={
   sendConversationMessage:(_id,input)=>{const d=deferred();sends.push({...d,input});return d.promise;},
   readConversation:(_id,input)=>{const d=deferred();reads.push({...d,input});return d.promise;},
 };
-const {useDirectThread}=await compile('../../afilli/lib/useDirectThread.ts',{
+const {useDirectThread}=await compile('../../lib/useDirectThread.ts',{
   react:h.React,'@workspace/api-client-react':api,'@/context/DirectMessagesContext':{useDirectMessages:()=>({owner,revision,refresh:async()=>{}})},
   '@/components/profile/hooks':{actorRequest:id=>({headers:{'X-Afilli-Actor':id}}),useFocusedForeground:()=>true,useOwnerGuard:()=>guard},
   './chat-drafts':drafts,'./direct-message-state':state,'./chat-photos':photoDeps,'expo-crypto':{randomUUID},
@@ -127,7 +127,7 @@ async function recoveryCase(kind) {
   const local=hooks(),stableGuard=()=>true,refreshList=async()=>{};
   let version=0,rows=[],latest={items:[message(10)],nextCursor:'s:10'},failAt=null,result;
   const requested=[];
-  const hook=await compile('../../afilli/lib/useDirectThread.ts',{
+  const hook=await compile('../../lib/useDirectThread.ts',{
     react:local.React,
     '@workspace/api-client-react':{
       getConversationChanges:noChanges,
@@ -187,7 +187,7 @@ await recoveryCase('ack-before-recovery');
   const rows=Array.from({length:35},(_,i)=>({...message(i+1),changeSequence:String(i+1)})),asked=[];
   const readOld={...rows[0],changeSequence:'36',readAt:'2026-11-19T04:00:00Z'};
   const deletedOld={...rows[1],changeSequence:'37',body:'',deletedAt:'2026-11-19T04:01:00Z'};
-  const hook=await compile('../../afilli/lib/useDirectThread.ts',{
+  const hook=await compile('../../lib/useDirectThread.ts',{
     react:local.React,'expo-crypto':{randomUUID},
     '@workspace/api-client-react':{
       getConversation:async()=>conversation,
@@ -222,7 +222,7 @@ await recoveryCase('ack-before-recovery');
 const c=hooks(),posted=[];let enqueueGate=null;
 const baseEnqueue=drafts.enqueueOutbox;
 const composerDrafts={...drafts,enqueueOutbox:async(...args)=>{if(enqueueGate)await enqueueGate.promise;return baseEnqueue(...args);}};
-const {ChatComposer}=await compile('../../afilli/components/profile/ChatComposer.tsx',{
+const {ChatComposer}=await compile('../../components/profile/ChatComposer.tsx',{
   react:c.React,'react-native':{Pressable:'Pressable',ScrollView:'ScrollView',Text:'Text',TextInput:'TextInput',View:'View',StyleSheet:{create:x=>x,hairlineWidth:1}},
   '@/hooks/useTheme':{useTheme:()=>({magazine:{},social:{}}),makeStyles:()=>()=>({})},'@expo/vector-icons':{Feather:'Feather'},'expo-crypto':{randomUUID},
   '@/lib/chat-drafts':composerDrafts,'@workspace/api-client-react':{useSetConversationTyping:()=>({mutate(){}})},'@/lib/klipy':{notifyGifShared:async()=>{}},
@@ -242,15 +242,15 @@ enqueueGate=deferred();find(compose(),'chat-send').props.onPress();c.unmount();e
 const restored=await drafts.readChatDraft('A','compose');assert.equal(restored.body,'');assert.equal(restored.outbox.length,2);
 // Provider re-evaluation (Fast Refresh/lazy routes) must reuse the context object.
 const contextReact={createContext:value=>({value}),useContext:ctx=>ctx.value};
-const authContext=await compile('../../afilli/context/auth-session.ts',{react:contextReact});
-const directContext=await compile('../../afilli/context/direct-session.ts',{react:contextReact});
+const authContext=await compile('../../context/auth-session.ts',{react:contextReact});
+const directContext=await compile('../../context/direct-session.ts',{react:contextReact});
 authContext.AuthSessionContext.value={userId:'same-session'};
 directContext.DirectSessionContext.value={owner:'same-session'};
 const providerDeps=new Proxy({react:contextReact,'react-native':{Platform:{OS:'web'}},
   './auth-session':authContext,'./direct-session':directContext},{has:()=>true,get:(target,key)=>target[key]??{}});
 for(let reload=0;reload<2;reload++) {
-  const authModule=await compile('../../afilli/context/AuthContext.tsx',providerDeps);
-  const dmModule=await compile('../../afilli/context/DirectMessagesContext.tsx',providerDeps);
+  const authModule=await compile('../../context/AuthContext.tsx',providerDeps);
+  const dmModule=await compile('../../context/DirectMessagesContext.tsx',providerDeps);
   assert.equal(authModule.useAuth().userId,'same-session');
   assert.equal(dmModule.useDirectMessages().owner,'same-session');
 }

@@ -9,7 +9,7 @@ const sources = new Map();
 async function compile(file, deps) {
   let code = sources.get(file);
   if (!code) {
-    code = (await transform(await readFile(new URL('../../afilli/' + file, import.meta.url), 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs', jsx: 'transform' })).code;
+    code = (await transform(await readFile(new URL('../../' + file, import.meta.url), 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs', jsx: 'transform' })).code;
     sources.set(file, code);
   }
   const module = { exports: {} };

@@ -33,6 +33,7 @@ export async function searchGifs(query: string, page: number, signal: AbortSigna
   return { items: payload.data.data.map(mapGif), hasMore: payload.data.has_next === true };
 }
 export async function notifyGifShared(gif: MessageGif, query: string, customerId: string, signal?: AbortSignal): Promise<void> {
+  if (gif.provider !== 'klipy') return;
   let response: Response;
   try { response = await fetch(endpoint('share/' + encodeURIComponent(gif.id)), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_id: customerId, q: query }), credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', signal }); }
   catch { throw new Error('KLIPY paylaşım kaydı iletilemedi.'); }

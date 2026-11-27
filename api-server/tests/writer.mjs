@@ -233,7 +233,7 @@ try {
   await api(a, '/writer-voice', 'POST', { clientId: voiceId, audioBase64: wave.toString('base64'), mimeType: 'audio/wav', consent: true }, 400);
   assert.equal(Number((await pool.query('SELECT count(*) FROM writer_voice_requests WHERE owner_id=$1', [a.id])).rows[0].count), 0);
   if (process.argv.includes('--paid-voice')) {
-    const input = { clientId: randomUUID(), audioBase64: (await readFile(new URL('../../../generated-artifacts/writer-voice.wav', import.meta.url))).toString('base64'), mimeType: 'audio/wav', consent: true };
+    const input = { clientId: randomUUID(), audioBase64: (await readFile(new URL('../../generated-artifacts/writer-voice.wav', import.meta.url))).toString('base64'), mimeType: 'audio/wav', consent: true };
     const transcript = await api(a, '/writer-voice', 'POST', input);
     assert.ok(transcript.text.trim().length > 0);
     assert.deepEqual(await api(a, '/writer-voice', 'POST', input), transcript);

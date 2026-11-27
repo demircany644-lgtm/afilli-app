@@ -17,7 +17,7 @@ function harness() {
   return { react, render(fn) { cursor = 0; return fn(); } };
 }
 async function load(file, dependencies, suffix = '') {
-  const source = await readFile(new URL('../../afilli/components/writer/' + file + '.tsx', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../components/writer/' + file + '.tsx', import.meta.url), 'utf8');
   const code = (await transform(source + suffix, { loader: 'tsx', format: 'cjs' })).code;
   const module = { exports: {} };
   vm.runInNewContext(code, { module, exports: module.exports, Date,

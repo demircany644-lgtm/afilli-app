@@ -78,13 +78,18 @@ import type {
   GetConversationChangesParams,
   GetConversationMessagesParams,
   GetDiscoveryBooksParams,
+  GetGifLibraryParams,
   GetPeopleParams,
   GetProfileConnectionsParams,
   GetProfileContentParams,
   GetReaderReportsParams,
   GetWriterCommentRepliesParams,
+  GifLibraryPage,
   HealthStatus,
+  LibraryGifInput,
+  LibraryGifUpload,
   MediaCleanupResult,
+  MessageGif,
   MessageInput,
   MessagePage,
   MessagePhoto,
@@ -164,6 +169,353 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetGifLibraryUrl = (params?: GetGifLibraryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/gif-library?${stringifiedParams}` : `/api/gif-library`
+}
+
+export const getGifLibrary = async (params?: GetGifLibraryParams, options?: Parameters<typeof customFetch>[1]): Promise<GifLibraryPage> => {
+
+  return customFetch<GifLibraryPage>(getGetGifLibraryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGifLibraryQueryKey = (params?: GetGifLibraryParams,) => {
+    return [
+    `/api/gif-library`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetGifLibraryQueryOptions = <TData = Awaited<ReturnType<typeof getGifLibrary>>, TError = ErrorType<unknown>>(params?: GetGifLibraryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGifLibrary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGifLibraryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGifLibrary>>> = ({ signal }) => getGifLibrary(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGifLibrary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetGifLibraryQueryResult = NonNullable<Awaited<ReturnType<typeof getGifLibrary>>>
+export type GetGifLibraryQueryError = ErrorType<unknown>
+
+
+export function useGetGifLibrary<TData = Awaited<ReturnType<typeof getGifLibrary>>, TError = ErrorType<unknown>>(
+ params: undefined |  GetGifLibraryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGifLibrary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGifLibrary>>,
+          TError,
+          Awaited<ReturnType<typeof getGifLibrary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGifLibrary<TData = Awaited<ReturnType<typeof getGifLibrary>>, TError = ErrorType<unknown>>(
+ params?: GetGifLibraryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGifLibrary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGifLibrary>>,
+          TError,
+          Awaited<ReturnType<typeof getGifLibrary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGifLibrary<TData = Awaited<ReturnType<typeof getGifLibrary>>, TError = ErrorType<unknown>>(
+ params?: GetGifLibraryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGifLibrary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetGifLibrary<TData = Awaited<ReturnType<typeof getGifLibrary>>, TError = ErrorType<unknown>>(
+ params?: GetGifLibraryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGifLibrary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetGifLibraryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRequestLibraryGifUploadUrl = () => {
+
+
+
+
+  return `/api/admin/gif-uploads`
+}
+
+export const requestLibraryGifUpload = async (libraryGifInput: LibraryGifInput, options?: Parameters<typeof customFetch>[1]): Promise<LibraryGifUpload> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LibraryGifUpload>(getRequestLibraryGifUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(libraryGifInput)
+  }
+);}
+
+
+
+
+
+export const getRequestLibraryGifUploadMutationKey = () => ['requestLibraryGifUpload'] as const;
+
+export const getRequestLibraryGifUploadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestLibraryGifUpload>>, TError,RequestLibraryGifUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestLibraryGifUpload>>, TError,RequestLibraryGifUploadMutationVariables, TContext> => {
+
+const mutationKey = getRequestLibraryGifUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestLibraryGifUpload>>, RequestLibraryGifUploadMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestLibraryGifUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestLibraryGifUploadMutationResult = NonNullable<Awaited<ReturnType<typeof requestLibraryGifUpload>>>
+    export type RequestLibraryGifUploadMutationBody = BodyType<LibraryGifInput>
+    export type RequestLibraryGifUploadMutationError = ErrorType<unknown>
+    export type RequestLibraryGifUploadMutationVariables = {data: BodyType<LibraryGifInput>}
+
+    export const useRequestLibraryGifUpload = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestLibraryGifUpload>>, TError,RequestLibraryGifUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestLibraryGifUpload>>,
+        TError,
+        RequestLibraryGifUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestLibraryGifUploadMutationOptions(options), queryClient);
+    }
+
+export const getCompleteLibraryGifUploadUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/gif-uploads/${id}/complete`
+}
+
+export const completeLibraryGifUpload = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<MessageGif> => {
+
+  return customFetch<MessageGif>(getCompleteLibraryGifUploadUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteLibraryGifUploadMutationKey = () => ['completeLibraryGifUpload'] as const;
+
+export const getCompleteLibraryGifUploadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeLibraryGifUpload>>, TError,CompleteLibraryGifUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeLibraryGifUpload>>, TError,CompleteLibraryGifUploadMutationVariables, TContext> => {
+
+const mutationKey = getCompleteLibraryGifUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeLibraryGifUpload>>, CompleteLibraryGifUploadMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  completeLibraryGifUpload(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteLibraryGifUploadMutationResult = NonNullable<Awaited<ReturnType<typeof completeLibraryGifUpload>>>
+
+    export type CompleteLibraryGifUploadMutationError = ErrorType<unknown>
+    export type CompleteLibraryGifUploadMutationVariables = {id: string}
+
+    export const useCompleteLibraryGifUpload = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeLibraryGifUpload>>, TError,CompleteLibraryGifUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeLibraryGifUpload>>,
+        TError,
+        CompleteLibraryGifUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteLibraryGifUploadMutationOptions(options), queryClient);
+    }
+
+export const getGetLibraryGifMediaUrl = (id: string,) => {
+
+
+
+
+  return `/api/gif-library/${id}/media`
+}
+
+export const getLibraryGifMedia = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetLibraryGifMediaUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLibraryGifMediaQueryKey = (id: string,) => {
+    return [
+    `/api/gif-library/${id}/media`
+    ] as const;
+    }
+
+
+export const getGetLibraryGifMediaQueryOptions = <TData = Awaited<ReturnType<typeof getLibraryGifMedia>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLibraryGifMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLibraryGifMediaQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLibraryGifMedia>>> = ({ signal }) => getLibraryGifMedia(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLibraryGifMedia>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetLibraryGifMediaQueryResult = NonNullable<Awaited<ReturnType<typeof getLibraryGifMedia>>>
+export type GetLibraryGifMediaQueryError = ErrorType<unknown>
+
+
+export function useGetLibraryGifMedia<TData = Awaited<ReturnType<typeof getLibraryGifMedia>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLibraryGifMedia>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLibraryGifMedia>>,
+          TError,
+          Awaited<ReturnType<typeof getLibraryGifMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLibraryGifMedia<TData = Awaited<ReturnType<typeof getLibraryGifMedia>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLibraryGifMedia>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLibraryGifMedia>>,
+          TError,
+          Awaited<ReturnType<typeof getLibraryGifMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLibraryGifMedia<TData = Awaited<ReturnType<typeof getLibraryGifMedia>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLibraryGifMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetLibraryGifMedia<TData = Awaited<ReturnType<typeof getLibraryGifMedia>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLibraryGifMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetLibraryGifMediaQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetDiscoveryBooksUrl = (params?: GetDiscoveryBooksParams,) => {
   const normalizedParams = new URLSearchParams();
