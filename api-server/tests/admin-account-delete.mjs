@@ -10,7 +10,8 @@ const key = randomUUID(), ids = ['root', 'admin', 'target', 'keep'].map(x => `af
 const [root, admin, target, keep] = ids, password = `Synthetic ${randomUUID()}`;
 const book = randomUUID(), otherBook = randomUUID(), post = randomUUID(), otherPost = randomUUID();
 const comment = randomUUID(), reply = randomUUID(), thread = randomUUID();
-const media = [randomUUID(), randomUUID(), randomUUID()];
+const media = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+const moderationAttempt = media[3];
 let checks = 0;
 async function api(path, token, expected, method = 'GET', data) {
   const r = await fetch(`http://localhost:80/api${path}`, {
@@ -50,6 +51,8 @@ try {
   await pool.query('INSERT INTO writer_media_reservations(media_id,reservation_id) VALUES($1,$2)', [media[0], randomUUID()]);
   await pool.query("INSERT INTO profile_uploads(id,owner_id,purpose,content_type,size) VALUES($1,$2,'avatar','image/png',1)", [media[1], target]);
   await pool.query("INSERT INTO bulletin_uploads(id,owner_id,post_id,object_path,content_type,size) VALUES($1,$2,$3,'synthetic','image/png',1)", [media[2], target, post]);
+  await pool.query(`INSERT INTO prohibited_image_attempts(id,user_id,area,evidence_path,distance,threshold)
+    VALUES($1::uuid,$2,'bulletin','attempts/'||$1::text||'.jpg',0,6)`, [moderationAttempt, target]);
   await pool.query("INSERT INTO writer_voice_requests(id,owner_id,status,seconds) VALUES($1,$2,'completed',1)", [randomUUID(), target]);
   await pool.query('INSERT INTO writer_voice_usage(user_id,seconds) VALUES($1,1)', [target]);
   await pool.query('INSERT INTO writer_book_deletions(book_id,owner_id) VALUES($1,$2)', [randomUUID(), target]);
@@ -62,7 +65,7 @@ try {
   await api(`/admin/accounts/${target}`, tokens[0], 409, 'DELETE', { ...body, confirmation: 'Wrong account' });
   await api(`/admin/accounts/${target}`, tokens[0], 400, 'DELETE', { ...body, reason: ' ' });
   const scope = await api(`/admin/accounts/${target}/deletion`, tokens[0], 200);
-  assert.deepEqual(scope, { nickname: 'SilmeHedef', books: 1, bulletins: 1, comments: 2, conversations: 1, media: 3 });
+  assert.deepEqual(scope, { nickname: 'SilmeHedef', books: 1, bulletins: 1, comments: 2, conversations: 1, media: 4 });
   // Force a failure AFTER all deletes: everything including queue and audit must roll back.
   await assert.rejects(transaction(async db => {
     await deleteAccount(db, root, target, body.confirmation, body.reason);
@@ -70,6 +73,7 @@ try {
   }), /synthetic rollback/);
   assert.equal((await pool.query('SELECT id FROM community_users WHERE id=$1', [target])).rowCount, 1);
   assert.equal((await pool.query('SELECT id FROM authored_books WHERE id=$1', [book])).rowCount, 1);
+  assert.equal((await pool.query('SELECT id FROM prohibited_image_attempts WHERE id=$1', [moderationAttempt])).rowCount, 1);
   assert.equal((await pool.query('SELECT media_id FROM account_media_deletions WHERE media_id=ANY($1::uuid[])', [media])).rowCount, 0);
   await api(`/admin/accounts/${target}`, tokens[0], 204, 'DELETE', body);
   await api(`/admin/accounts/${target}`, tokens[0], 404, 'DELETE', body);
@@ -81,13 +85,14 @@ try {
     assert.equal((await pool.query(`SELECT * FROM ${table} WHERE ${column}=$1`, [target])).rowCount, 0, table);
   }
   assert.equal((await pool.query('SELECT * FROM authored_books WHERE id=$1', [book])).rowCount, 0);
+  assert.equal((await pool.query('SELECT * FROM prohibited_image_attempts WHERE id=$1', [moderationAttempt])).rowCount, 0);
   assert.equal((await pool.query('SELECT * FROM conversations WHERE id=$1', [thread])).rowCount, 0);
   assert.equal((await pool.query('SELECT * FROM authored_books WHERE id=$1', [otherBook])).rowCount, 1);
   assert.equal((await pool.query('SELECT book_id FROM bulletins WHERE id=$1', [otherPost])).rows[0].book_id, null);
   assert.equal((await pool.query('SELECT parent_id FROM bulletin_comments WHERE id=$1', [reply])).rows[0].parent_id, null);
   assert.equal((await pool.query('SELECT * FROM bulletin_reactions WHERE target_id=$1', [comment])).rowCount, 0);
   assert.equal((await pool.query("SELECT * FROM admin_audit WHERE target_id=$1 AND action='account.delete'", [target])).rowCount, 1);
-  assert.equal((await pool.query('SELECT * FROM account_media_deletions WHERE media_id=ANY($1::uuid[]) AND eligible_at>now()', [media])).rowCount, 3);
+  assert.equal((await pool.query('SELECT * FROM account_media_deletions WHERE media_id=ANY($1::uuid[]) AND eligible_at>now()', [media])).rowCount, 4);
   // Make only our synthetic jobs eligible; fake remover never touches real objects.
   await pool.query("UPDATE account_media_deletions SET eligible_at=now()-interval '1 second' WHERE media_id=ANY($1::uuid[])", [media]);
   const seen = [];
@@ -96,7 +101,7 @@ try {
     seen.push(id);
     if (id === media[0]) throw new Error('Synthetic storage outage');
   });
-  assert.equal(seen.length, 3);
+  assert.equal(seen.length, 4);
   assert.equal((await pool.query('SELECT * FROM account_media_deletions WHERE media_id=ANY($1::uuid[])', [media])).rowCount, 1);
   await cleanDeletedAccountMedia(async (_kind, id) => {
     if (!media.includes(id)) throw new Error('Not our fixture');

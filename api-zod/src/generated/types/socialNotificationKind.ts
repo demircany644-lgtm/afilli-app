@@ -11,6 +11,10 @@ export type SocialNotificationKind = typeof SocialNotificationKind[keyof typeof 
 
 export const SocialNotificationKind = {
   chapter: 'chapter',
+  book_like: 'book_like',
   book_comment: 'book_comment',
   comment_reply: 'comment_reply',
+  premium_status: 'premium_status',
+  store_order: 'store_order',
+  account_appeal: 'account_appeal',
 } as const;

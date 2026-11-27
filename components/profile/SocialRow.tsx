@@ -27,9 +27,9 @@ export function OfficialInstagramIcon() {
     <View style={st.container}>
       <Pressable testID="profile-social-instagram" accessibilityRole="link" accessibilityLabel="Afilli Instagram hesabını aç"
         onPress={() => { tap(); setError(false); Linking.openURL(url).catch(() => setError(true)); }}
-        hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+        hitSlop={8} style={({ pressed }) => [st.touchTarget, { opacity: pressed ? 0.7 : 1 }]}>
         <LinearGradient colors={[S.igOrange, S.igPink, S.igPurple]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={st.icon}>
-          <MaterialCommunityIcons name="instagram" size={20} color={S.onBrand} />
+          <MaterialCommunityIcons name="instagram" size={18} color={S.onBrand} />
         </LinearGradient>
       </Pressable>
       {error ? <Text testID="profile-social-error" accessibilityLiveRegion="polite" style={st.error}>Instagram açılamadı. Tekrar dene.</Text> : null}
@@ -41,7 +41,8 @@ const useStStyles = makeStyles((t) => {
   const { magazine: P } = t;
   return StyleSheet.create({
   container: { alignItems: 'center', marginTop: 6 },
-  icon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  touchTarget: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   error: { fontFamily: F.med, fontSize: 12, color: P.danger, textAlign: 'center', marginTop: 6 },
   });
 });

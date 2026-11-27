@@ -19,10 +19,11 @@ export async function limitAuth(req: Request, action: string, email: string, max
     if (result.rows[0].count > (subject.startsWith('ip:') ? 100 : max)) fail(429, 'Çok fazla deneme yapıldı. 15 dakika sonra yeniden dene.');
   }
 }
-export async function accountUser(id: string): Promise<AccountUser> {
-  const found = await pool.query<AccountUser>(`SELECT a.user_id AS id,a.email,u.nickname,a.role FROM afilli_auth_accounts a
-    JOIN community_users u ON u.id=a.user_id WHERE a.user_id=$1 AND NOT a.disabled`, [id]);
-  return found.rows[0] ?? fail(401, 'Oturumun sona erdi. Yeniden giriş yap.');
+export async function accountUser(id: string, accessMode: AccountUser['accessMode'] = 'normal'): Promise<AccountUser> {
+  const found = await pool.query<Omit<AccountUser, 'accessMode'>>(`SELECT a.user_id AS id,a.email,u.nickname,a.role FROM afilli_auth_accounts a
+    JOIN community_users u ON u.id=a.user_id
+    WHERE a.user_id=$1 AND (NOT a.disabled OR $2 IN ('appeal','contact'))`, [id, accessMode]);
+  return found.rows[0] ? { ...found.rows[0], accessMode } : fail(401, 'Oturumun sona erdi. Yeniden giriş yap.');
 }
 export async function register(email: string, nickname: string, password: string) {
   const passwordHash = await hashPassword(password);
@@ -49,8 +50,13 @@ export async function login(email: string, password: string) {
     'SELECT user_id,password_hash,disabled FROM afilli_auth_accounts WHERE email=$1', [email]);
   const account = result.rows[0];
   const valid = await verifyPassword(password, account?.password_hash ?? null);
-  if (!valid || !account || account.disabled) fail(401, 'E-posta veya şifre yanlış. Eski hesabın için Şifremi unuttum ile şifre belirleyebilirsin.');
-  return accountUser(account.user_id);
+  if (!valid || !account) fail(401, 'E-posta veya şifre yanlış. Eski hesabın için Şifremi unuttum ile şifre belirleyebilirsin.');
+  if (!account.disabled) return accountUser(account.user_id);
+  const moderation = await pool.query(
+    `SELECT 1 FROM prohibited_image_attempts WHERE user_id=$1 AND status IN ('pending','confirmed') LIMIT 1`,
+    [account.user_id],
+  );
+  return accountUser(account.user_id, moderation.rowCount ? 'contact' : 'appeal');
 }
 export async function passwordCode(email: string) {
   if (!authMailReady()) fail(503, 'Şifre e-postası gönderimi henüz yapılandırılmadı. Mevcut hesabın korunuyor.');

@@ -15,3 +15,14 @@ export function homeCoverLayout(originalHeight: number) {
     scrollHeight: height + 2 + 14,
   };
 }
+
+/** Size portrait covers so two fit and roughly half of a third peeks in. */
+export function homeCategoryCarouselLayout(viewportWidth: number, horizontalPadding: number, gap = 12) {
+  const contentWidth = Math.max(0, Math.min(viewportWidth, 560) - horizontalPadding * 2);
+  const coverWidth = Math.floor(Math.min(190, Math.max(0, (contentWidth - gap * 2) / 2.5)));
+  return {
+    coverWidth,
+    coverHeight: Math.round(coverWidth * 1.5),
+    gap,
+  };
+}

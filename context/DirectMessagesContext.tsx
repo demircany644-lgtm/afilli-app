@@ -5,6 +5,7 @@ import { fetch as expoFetch } from 'expo/fetch';
 import { customFetch, getConversations, cleanupDirectMedia, type Conversation } from '@workspace/api-client-react';
 import { drainChatPhotoCleanup } from '@/lib/chat-photos';
 import { useCommunity } from './CommunityContext';
+import { useAuth } from './AuthContext';
 import { actorRequest, useOwnerGuard } from '@/components/profile/hooks';
 import { eventParser } from '@/lib/direct-message-state';
 import { DirectSessionContext as Context, GifPrivacyContext as Privacy, type Connection } from './direct-session';
@@ -14,7 +15,9 @@ export function useGifPrivacy() { const v = useContext(Privacy); if (!v) throw n
 
 export function DirectMessagesProvider({ children }: { children: React.ReactNode }) {
   const { ready, userId } = useCommunity();
-  return <AccountMessages key={ready ? userId ?? 'guest' : 'pending'} owner={ready ? userId : null}>{children}</AccountMessages>;
+  const { accessMode } = useAuth();
+  const owner = ready && accessMode === 'normal' ? userId : null;
+  return <AccountMessages key={ready ? owner ?? 'guest' : 'pending'} owner={owner}>{children}</AccountMessages>;
 }
 function AccountMessages({ owner, children }: { owner: string | null; children: React.ReactNode }) {
   const alive = useOwnerGuard(owner);

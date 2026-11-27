@@ -1,10 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { makeStyles } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
-import { useGetWriterLibrary, getGetWriterLibraryQueryKey, type WriterSummary } from '@workspace/api-client-react';
+import { copyWriterBook, useGetWriterLibrary, getGetWriterLibraryQueryKey, type WriterSummary } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { Btn, apiError, goSignIn } from '@/components/bulletins/common';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
@@ -12,6 +12,8 @@ import { scoped, actorRequest } from '@/components/profile/hooks';
 import { useApp, type Draft } from '@/context/AppContext';
 import { claimGuestRecord, listRecords, newRecord, updateRecord, isDirty, type WriterRecord } from '@/lib/writer-store';
 import { emptyDocument, legacyTextToChapters, clockTR, TITLE_MAX } from '@/lib/writer-text';
+import { copyWriterDocument } from '@/lib/writer-copy';
+import { adoptRemote } from '@/lib/writer-sync';
 import { useWriterPalette, writerPalette, WriterCover, useCoverUri, Banner, Confirm, Skeleton, FadeIn, Toast, type ToastMsg } from '@/components/writer/parts';
 import { useNewWriterBook } from '@/components/writer/useNewWriterBook';
 
@@ -99,7 +101,10 @@ export function WriterShelf({ owner, offline }: { owner: string; offline: boolea
               <Text style={sh.emptyTitle}>Henüz bir kitabın yok</Text>
               <Text style={sh.emptyText}>İlk cümle her zaman en zorudur. Yukarıdan yeni bir kitap başlat.</Text>
             </View>
-          ) : rows.map(([id, x], i) => <FadeIn key={id} delay={Math.min(i, 6) * 40}><ShelfRow id={id} rec={x.rec} sum={x.sum} /></FadeIn>)}
+          ) : rows.map(([id, x], i) => <FadeIn key={id} delay={Math.min(i, 6) * 40}>
+            <ShelfRow id={id} rec={x.rec} sum={x.sum} owner={owner}
+              onCopied={copyId => { void load(); if (signed) void lib.refetch(); open(copyId); }} />
+          </FadeIn>)}
 
         {guest.length ? (
           <>
@@ -153,7 +158,9 @@ export function WriterShelf({ owner, offline }: { owner: string; offline: boolea
   );
 }
 
-export function ShelfRow({ id, rec, sum, onPress }: { id: string; rec?: WriterRecord; sum?: WriterSummary; onPress?: () => void }) {
+export function ShelfRow({ id, rec, sum, onPress, owner, onCopied }: {
+  id: string; rec?: WriterRecord; sum?: WriterSummary; onPress?: () => void; owner?: string | null; onCopied?: (id: string) => void;
+}) {
   const W = useWriterPalette();
   const sh = useShStyles();
   const title = rec?.doc.title || sum?.title || 'Adsız kitap';
@@ -164,20 +171,75 @@ export function ShelfRow({ id, rec, sum, onPress }: { id: string; rec?: WriterRe
   const count = rec?.doc.chapters.length ?? sum?.chapterCount ?? 0;
   const when = rec ? clockTR(rec.localSavedAt) + ' · ' + new Date(rec.localSavedAt).toLocaleDateString('tr-TR') : sum?.updatedAt ? new Date(sum.updatedAt).toLocaleDateString('tr-TR') : 'Kayıt zamanı bilinmiyor';
   return (
-    <Pressable testID={'shelf-' + id} accessibilityRole="button" accessibilityLabel={title + ', ' + (pub ? 'yayında' : 'taslak')} onPress={() => { tap(); if (onPress) onPress(); else open(id); }}
-      style={({ pressed }) => [sh.book, pressed && { opacity: 0.85 }]}>
-      <WriterCover uri={cover && !/^\/api\//.test(cover) ? cover : uri} title={title} w={54} />
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text style={sh.title} numberOfLines={2}>{title}</Text>
-        <Text style={sh.meta}>{count} bölüm · {when}</Text>
-        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-          <View style={[sh.pill, pub && { backgroundColor: W.ok }]}><Text style={[sh.pillText, pub && { color: W.paper }]}>{pub ? 'Yayında' : 'Taslak'}</Text></View>
-          {local ? <View style={sh.pill}><Text style={sh.pillText}>{rec?.cloud ? 'Cihazda değişiklik var' : 'Yalnızca cihazda'}</Text></View> : null}
-          {rec?.conflict ? <View style={[sh.pill, { backgroundColor: W.danger }]}><Text style={[sh.pillText, { color: W.paper }]}>Çakışma</Text></View> : null}
+    <View style={sh.book}>
+      <Pressable testID={'shelf-' + id} accessibilityRole="button" accessibilityLabel={title + ', ' + (pub ? 'yayında' : 'taslak')} onPress={() => { tap(); if (onPress) onPress(); else open(id); }}
+        style={({ pressed }) => [sh.bookMain, pressed && { opacity: 0.85 }]}>
+        <WriterCover uri={cover && !/^\/api\//.test(cover) ? cover : uri} title={title} w={54} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={sh.title} numberOfLines={2}>{title}</Text>
+          <Text style={sh.meta}>{count} bölüm · {when}</Text>
+          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+            <View style={[sh.pill, pub && { backgroundColor: W.ok }]}><Text style={[sh.pillText, pub && { color: W.paper }]}>{pub ? 'Yayında' : 'Taslak'}</Text></View>
+            {local ? <View style={sh.pill}><Text style={sh.pillText}>{rec?.cloud ? 'Cihazda değişiklik var' : 'Yalnızca cihazda'}</Text></View> : null}
+            {rec?.conflict ? <View style={[sh.pill, { backgroundColor: W.danger }]}><Text style={[sh.pillText, { color: W.paper }]}>Çakışma</Text></View> : null}
+          </View>
         </View>
-      </View>
-      <Feather name="chevron-right" size={20} color={W.muted} />
-    </Pressable>
+        <Feather name="chevron-right" size={20} color={W.muted} />
+      </Pressable>
+      {owner && onCopied ? <WriterCopyAction id={id} title={title} owner={owner} rec={rec} onCopied={onCopied} /> : null}
+    </View>
+  );
+}
+
+function WriterCopyAction({ id, title, owner, rec, onCopied }: {
+  id: string; title: string; owner: string; rec?: WriterRecord; onCopied: (id: string) => void;
+}) {
+  const W = useWriterPalette();
+  const sh = useShStyles();
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<ToastMsg>(null);
+  const requestId = useRef<string | null>(null);
+  const doCopy = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      let copyId: string;
+      if (rec && (owner === 'guest' || !rec.cloud || isDirty(rec) || rec.pending || rec.conflict)) {
+        copyId = requestId.current ?? randomUUID();
+        requestId.current = copyId;
+        const document = copyWriterDocument(rec.doc, randomUUID);
+        await updateRecord(owner, copyId, current => current ? null : {
+          ...newRecord(owner, copyId, randomUUID(), document),
+          coverLocal: rec.coverLocal,
+        });
+      } else {
+        if (owner === 'guest') throw new Error('Bu kitap için yerel taslak bulunamadı.');
+        const copied = await copyWriterBook(id, { clientRequestId: requestId.current ?? (requestId.current = randomUUID()) },
+          { headers: { 'X-Afilli-Actor': owner } });
+        const adopted = await adoptRemote(owner, copied);
+        if (!adopted) throw new Error('Kopya cihazdaki kitap rafına kaydedilemedi; kaynak kitap değişmedi.');
+        copyId = copied.id;
+      }
+      requestId.current = null;
+      setConfirm(false);
+      onCopied(copyId);
+    } catch (error) {
+      setToast({ text: apiError(error, 'Kitap kopyalanamadı. Kaynak kitap korunuyor.'), tone: 'err', at: Date.now() });
+    } finally { setBusy(false); }
+  };
+  return (
+    <>
+      <Pressable testID={'writer-book-copy-' + id} accessibilityRole="button" accessibilityLabel={title + ' kitabını kopyala'}
+        disabled={busy} onPress={() => { tap(); setConfirm(true); }}
+        style={({ pressed }) => [sh.copyAction, { opacity: busy ? 0.45 : pressed ? 0.65 : 1 }]}>
+        <Feather name="copy" size={18} color={W.ink} />
+      </Pressable>
+      <Confirm visible={confirm} title="Kitabı kopyala" confirm="Yeni taslak oluştur" busy={busy}
+        onCancel={() => setConfirm(false)} onConfirm={() => void doCopy()}
+        text={'"' + title + '" kitabının metni ve bölümleri yeni, düzenlenebilir bir taslak olur. Kaynak kitap ve yayımlanmış sürümü değişmez; beğeni, yorum, yanıt ve okuma kayıtları kopyalanmaz.'} />
+      <Toast msg={toast} />
+    </>
   );
 }
 
@@ -190,7 +252,9 @@ const useShStyles = makeStyles((t) => {
   heroSub: { fontFamily: F.body, fontSize: 12.5, lineHeight: 18, color: '#E6D6BC', marginTop: 3 },
   h: { fontFamily: F.serifBold, fontSize: 20, color: W.ink, marginHorizontal: 18, marginTop: 22, marginBottom: 10 },
   note: { fontFamily: F.body, fontSize: 12.5, lineHeight: 18, color: W.muted, marginHorizontal: 18, marginTop: -4, marginBottom: 10 },
-  book: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 16, marginBottom: 10, padding: 12, borderRadius: 18, backgroundColor: W.paper, borderWidth: 1, borderColor: W.line },
+  book: { flexDirection: 'row', alignItems: 'center', gap: 4, marginHorizontal: 16, marginBottom: 10, padding: 8, borderRadius: 18, backgroundColor: W.paper, borderWidth: 1, borderColor: W.line },
+  bookMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0, padding: 4 },
+  copyAction: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: W.line },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 8, padding: 12, borderRadius: 14, backgroundColor: W.paper, borderWidth: 1, borderColor: W.line },
   title: { fontFamily: F.serifBold, fontSize: 15.5, color: W.ink },
   meta: { fontFamily: F.body, fontSize: 11.5, color: W.muted },

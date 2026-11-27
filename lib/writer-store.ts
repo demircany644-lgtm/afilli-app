@@ -63,7 +63,7 @@ const isNat = (x: unknown): x is number => typeof x === 'number' && Number.isInt
 const isTime = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x) && x >= 0;
 const strOrNull = (x: unknown) => x === null || typeof x === 'string';
 const dateOrNull = (x: unknown) => x === null || typeof x === 'string' && Number.isFinite(Date.parse(x));
-const genres = new Set(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim']);
+const genres = new Set(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Distopya', 'Korku', 'Aşk', 'Romantik', 'Gerilim', 'Polisiye', 'Gizem', 'Mafya', 'Yeraltı Dünyası', 'Dram', 'Hayat Hikâyeleri', 'Tarihi', 'Kişisel Gelişim', 'Macera', 'Mizah', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim']);
 const optional = <T>(x: unknown, ok: (v: unknown) => boolean, dflt: T): T | false => x === undefined ? dflt : ok(x) ? x as T : false;
 
 function validDoc(d: unknown): d is WriterDocument {

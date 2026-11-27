@@ -19,6 +19,8 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _sessionRefreshHandler: (() => Promise<void> | void) | null = null;
+let _sessionRefreshInFlight: Promise<void> | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -44,6 +46,21 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/** Lets an app refresh its current account after the server changes session access. */
+export function setSessionRefreshHandler(handler: (() => Promise<void> | void) | null): void {
+  _sessionRefreshHandler = handler;
+}
+
+function refreshSessionForAccessChange(errorData: unknown): void {
+  if (!errorData || typeof errorData !== 'object' || !('code' in errorData)
+    || !['prohibited_image', 'session_access_changed'].includes(String(errorData.code))
+    || !_sessionRefreshHandler || _sessionRefreshInFlight) return;
+  const handler = _sessionRefreshHandler;
+  _sessionRefreshInFlight = Promise.resolve().then(handler).then(() => undefined).catch(() => undefined).finally(() => {
+    _sessionRefreshInFlight = null;
+  });
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -366,6 +383,7 @@ export async function customFetch<T = unknown>(
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
+    if (response.status === 403) refreshSessionForAccessChange(errorData);
     throw new ApiError(response, errorData, requestInfo);
   }
 

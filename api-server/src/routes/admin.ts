@@ -8,8 +8,13 @@ import { route, parse, fail, uuid } from '../lib/community';
 import { personId } from '../lib/social';
 import { deletionScope, deleteAccount } from '../lib/admin-account-delete';
 import { DeleteAdminAccountBody, GetAdminAccountDeletionResponse } from '@workspace/api-zod';
+import { DecideAdminPremiumApplicationBody, DecideAdminPremiumApplicationResponse,
+  GetAdminPremiumApplicationsResponse } from '@workspace/api-zod';
 import { adminActor, adminWrite, adminPage, reasonText, accountColumns, adminAccount, audit,
   contentSources, contentKind, contentSelect, contentRecord, saveAdminSettings } from '../lib/admin';
+import { grantFreePremium, notifyPremiumStatus } from '../lib/premium';
+import { adminAccountAppeals, decideAccountAppeal } from '../lib/account-appeals';
+import { GetAdminAccountAppealsResponse, DecideAdminAccountAppealBody, DecideAdminAccountAppealResponse } from '@workspace/api-zod';
 
 const router: IRouter = Router();
 router.get('/admin/overview', route(async (req, res) => {
@@ -23,6 +28,66 @@ router.get('/admin/overview', route(async (req, res) => {
     ((SELECT count(*) FROM authored_books WHERE moderation_hidden)+(SELECT count(*) FROM bulletins WHERE moderation_hidden)
       +(SELECT count(*) FROM writer_comments WHERE moderation_hidden)+(SELECT count(*) FROM bulletin_comments WHERE moderation_hidden))::int AS "hiddenContent"`);
   res.json(GetAdminOverviewResponse.parse({ ...result.rows[0], role: actor.role }));
+}));
+
+router.get('/admin/premium-applications', route(async (req, res) => {
+  await adminActor(req);
+  const { offset } = adminPage(req.query);
+  const result = await pool.query(`SELECT p.id,p.user_id AS "userId",u.nickname,a.email,
+      p.package_identifier AS "packageIdentifier",p.product_identifier AS "productIdentifier",
+      p.plan_name AS "planName",p.status,p.created_at AS "createdAt"
+    FROM premium_applications p JOIN community_users u ON u.id=p.user_id
+    LEFT JOIN afilli_auth_accounts a ON a.user_id=p.user_id
+    ORDER BY p.created_at DESC,p.id DESC LIMIT 25 OFFSET $1`, [offset]);
+  const total = (await pool.query('SELECT count(*)::int AS n FROM premium_applications')).rows[0].n as number;
+  res.json(GetAdminPremiumApplicationsResponse.parse({
+    items: result.rows,
+    total, nextOffset: offset + 25 < total ? offset + 25 : null,
+  }));
+}));
+
+router.post('/admin/premium-applications/:id/decision', route(async (req, res) => {
+  const id = uuid(req.params.id), input = parse(DecideAdminPremiumApplicationBody, req.body);
+  const reason = reasonText(input.reason);
+  const result = await adminWrite(req, false, async (db, actor) => {
+    const application = (await db.query<{
+      id: string; userId: string; status: string; planName: string; packageIdentifier: string;
+      productIdentifier: string; nickname: string; email: string; createdAt: Date;
+    }>(`SELECT p.id,p.user_id AS "userId",p.status,p.plan_name AS "planName",
+        p.package_identifier AS "packageIdentifier",p.product_identifier AS "productIdentifier",
+        u.nickname,coalesce(a.email,'') AS email,p.created_at AS "createdAt"
+      FROM premium_applications p JOIN community_users u ON u.id=p.user_id
+      LEFT JOIN afilli_auth_accounts a ON a.user_id=p.user_id WHERE p.id=$1 FOR UPDATE OF p`, [id])).rows[0];
+    if (!application) return fail(404, 'Başvuru bulunamadı.');
+    if (application.status !== 'pending') return fail(409, 'Bu başvuru artık beklemede değil. Listeyi yenile.');
+
+    const status = input.decision === 'paid' ? 'paid_approved' : input.decision === 'free' ? 'active' : 'rejected';
+    if (input.decision === 'free') {
+      const active = await db.query(`SELECT 1 FROM premium_memberships WHERE user_id=$1 AND status='active'
+        AND (source='free' OR expires_at>now()) FOR UPDATE`, [application.userId]);
+      if (active.rowCount) return fail(409, 'Kullanıcının zaten etkin bir Premium üyeliği var.');
+      await grantFreePremium(db, application.userId, id, actor.id);
+    }
+    await db.query(`UPDATE premium_applications SET status=$2,decision=$3,decided_at=clock_timestamp(),decided_by=$4
+      WHERE id=$1`, [id, status, input.decision, actor.id]);
+    await notifyPremiumStatus(db, application.userId, actor.id, id, input.decision === 'free' ? 'free' : status);
+    await audit(db, actor.id, `premium.application.${input.decision}`, 'premium_application', id, reason,
+      { userId: application.userId, packageIdentifier: application.packageIdentifier, productIdentifier: application.productIdentifier });
+    return { ...application, status };
+  });
+  res.json(DecideAdminPremiumApplicationResponse.parse(result));
+}));
+
+router.get('/admin/account-appeals', route(async (req, res) => {
+  await adminActor(req, pool, true);
+  const { offset } = adminPage(req.query);
+  res.json(GetAdminAccountAppealsResponse.parse(await adminAccountAppeals(offset)));
+}));
+
+router.post('/admin/account-appeals/:id/decision', route(async (req, res) => {
+  const id = uuid(req.params.id), input = parse(DecideAdminAccountAppealBody, req.body);
+  const result = await adminWrite(req, true, (db, actor) => decideAccountAppeal(db, actor, id, input));
+  res.json(DecideAdminAccountAppealResponse.parse(result));
 }));
 
 router.get('/admin/accounts', route(async (req, res) => {
@@ -68,6 +133,9 @@ router.patch('/admin/accounts/:id', route(async (req, res) => {
     if (disabled || role !== before.role) {
       await db.query('UPDATE afilli_auth_sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL', [id]);
       await db.query('UPDATE afilli_auth_codes SET used_at=now() WHERE user_id=$1 AND used_at IS NULL', [id]);
+    } else if (before.disabled && !disabled) {
+      await db.query(`UPDATE afilli_auth_sessions SET access_mode='normal'
+        WHERE user_id=$1 AND revoked_at IS NULL AND access_mode IN ('appeal','contact')`, [id]);
     }
     await audit(db, actor.id, 'account.update', 'account', id, reason,
       { before: { role: before.role, disabled: before.disabled }, after: { role, disabled }, nicknameChanged: nickname !== before.nickname });

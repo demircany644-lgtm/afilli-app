@@ -10,6 +10,7 @@ import type { CommunityPerson } from './communityPerson';
 export interface DiscoveryBookCard {
   id: string;
   title: string;
+  description: string;
   author: CommunityPerson;
   /** @nullable */
   coverUrl?: string | null;

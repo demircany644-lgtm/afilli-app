@@ -78,20 +78,24 @@ try {
   assert.equal((await api(a, `/bulletin-reactions?targetType=post&targetId=${p.id}`)).length, 2);
   await api(b, '/bulletin-reactions', 'PUT', { targetType: 'comment', targetId: reply.id, emoji: '📖' });
   await api(b, '/bulletin-reactions', 'PUT', { ...target, emoji: 'invalid' }, 400);
-  const notes = await api(a, '/bulletin-notifications');
-  assert.ok(notes.some((note) => note.postId === p.id && !note.read));
-  await api(b, `/bulletin-notifications/${notes[0].id}`, 'PATCH', undefined, 404);
-  await api(a, `/bulletin-notifications/${notes[0].id}`, 'PATCH', undefined, 204);
-  assert.equal((await api(a, '/bulletin-notifications')).find((note) => note.id === notes[0].id).read, true);
+  assert.deepEqual(await api(a, '/bulletin-notifications'), []); // Compatibility endpoint intentionally has no inbox events.
   await api(a, `/bulletin-comments/${comment.id}`, 'DELETE', undefined, 204);
   const thread = await api(a, `/bulletins/${p.id}/comments`);
-  assert.equal(thread.find((row) => row.id === comment.id).deleted, true);
+  const removedComment = thread.find((row) => row.id === comment.id);
+  assert.equal(removedComment.deleted, true); assert.equal(removedComment.body, '');
+  assert.deepEqual(removedComment.author, { id: 'deleted', nickname: '', avatar: null });
+  assert.deepEqual(removedComment.reactions, []);
+  assert.equal((await pool.query("SELECT target_id FROM bulletin_reactions WHERE target_type='comment' AND target_id=$1", [comment.id])).rowCount, 0);
+  assert.equal(thread.find((row) => row.id === reply.id).body, 'İlk cevap');
   assert.equal(thread.find((row) => row.id === third.id).parentId, reply.id);
   assert.equal((await api(a, `/bulletins/${p.id}`)).commentCount, 2);
-  console.log('PASS: replacement reactions, real people lists, private notifications, moderation and preserved child threads');
+  await api(b, `/bulletins/${p.id}/comments`, 'POST', { body: 'Yeni yanıt engellenmeli', parentId: comment.id }, 404);
+  await api(b, '/bulletin-reactions', 'PUT', { targetType: 'comment', targetId: comment.id, emoji: '❤️' }, 404);
+  console.log('PASS: comment reactions are removed while reply threads remain intact');
 
   const ownBook = await api(a, '/authored-books', 'POST', { localId: randomUUID(), title: 'Yazarın kitabı', body: 'Birinci bölüm.' });
   const otherBook = await api(b, '/authored-books', 'POST', { localId: randomUUID(), title: 'Başka yazarın kitabı', body: 'Özel taslak.' });
+  await pool.query("UPDATE authored_books SET publication='published',published_at=now() WHERE id=$1", [ownBook.id]);
   assert.ok(!(await api(a, '/authored-books')).some((book) => book.id === otherBook.id));
   await api(a, `/authored-books/${otherBook.id}`, 'GET', undefined, 404);
   await api(a, '/bulletins', 'POST', { clientId: randomUUID(), body: '', photoIds: [], bookId: otherBook.id }, 403);

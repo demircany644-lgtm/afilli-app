@@ -1,13 +1,14 @@
 import { Router, type IRouter } from 'express';
 import { randomUUID } from 'node:crypto';
 import { pool } from '@workspace/db';
-import { SaveWriterBookBody, PatchWriterBookBody, PatchWriterBookResponse, DeleteWriterBookBody, ChangeWriterPublicationBody, SaveAuthoredBookBody,
+import { SaveWriterBookBody, PatchWriterBookBody, PatchWriterBookResponse, DeleteWriterBookBody, ChangeWriterPublicationBody, CopyWriterBookBody, SaveAuthoredBookBody,
   SetAuthoredBookLikeBody, AddAuthoredBookCommentBody } from '@workspace/api-zod';
 import { route, requirePerson, parse, uuid, fail, viewer, transaction } from '../lib/community';
-import { authoredBook, authoredCards, librarySummaries, ownWriter, patchWriter, publishWriter, requirePublished, saveWriter, writerRow } from '../lib/writer-service';
+import { authoredBook, authoredCards, copyWriterBook, librarySummaries, ownWriter, patchWriter, publishWriter, requirePublished, saveWriter, writerRow } from '../lib/writer-service';
 import { legacyDocument, writerBook } from '../lib/writer-document';
 import { addComment, commentNode, commentScope } from '../lib/book-comments';
 import { commentTree } from '../lib/book-comment-query';
+import { socialNotify } from '../lib/social';
 
 const router: IRouter = Router();
 router.get('/writer-books', route(async (req, res) => res.json(await librarySummaries((await requirePerson(req)).id))));
@@ -15,6 +16,10 @@ router.get('/writer-books/:id', route(async (req, res) => res.json(writerBook(aw
 router.put('/writer-books/:id', route(async (req, res) => {
   const owner = await requirePerson(req), id = uuid(req.params.id), input = parse(SaveWriterBookBody, req.body);
   res.json(await transaction(db => saveWriter(db, id, owner.id, input)));
+}));
+router.post('/writer-books/:id/copy', route(async (req, res) => {
+  const owner = await requirePerson(req), id = uuid(req.params.id), input = parse(CopyWriterBookBody, req.body);
+  res.json(await transaction(db => copyWriterBook(db, id, owner.id, input.clientRequestId)));
 }));
 router.patch('/writer-books/:id', route(async (req, res) => {
   const owner = await requirePerson(req), id = uuid(req.params.id), input = parse(PatchWriterBookBody, req.body);
@@ -79,8 +84,11 @@ router.get('/published-books', route(async (req, res) => {
 router.put('/authored-books/:id/like', route(async (req, res) => {
   const owner = await requirePerson(req), id = uuid(req.params.id), input = parse(SetAuthoredBookLikeBody, req.body);
   await transaction(async db => {
-    await writerRow(id, db, true); await requirePublished(id, db);
-    if (input.liked) await db.query('INSERT INTO writer_likes(book_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [id, owner.id]);
+    const book = await writerRow(id, db, true); await requirePublished(id, db);
+    if (input.liked) {
+      const inserted = await db.query('INSERT INTO writer_likes(book_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING book_id', [id, owner.id]);
+      if (inserted.rowCount) await socialNotify(db, book.author_id, owner.id, 'book_like', `book_like:${id}:${owner.id}`, null, id);
+    }
     else await db.query('DELETE FROM writer_likes WHERE book_id=$1 AND user_id=$2', [id, owner.id]);
   });
   res.json(await authoredBook(id, owner.id));

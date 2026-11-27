@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { GetDiscoveryBooksCategory } from './getDiscoveryBooksCategory';
 import type { GetDiscoveryBooksSort } from './getDiscoveryBooksSort';
 
 export type GetDiscoveryBooksParams = {
@@ -13,6 +14,7 @@ sort?: GetDiscoveryBooksSort;
  * @maxLength 100
  */
 search?: string;
+category?: GetDiscoveryBooksCategory;
 /**
  * @maxLength 2048
  */

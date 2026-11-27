@@ -8,7 +8,7 @@ import {
 import { pool } from '@workspace/db';
 import { parse, route, requirePerson } from '../lib/community';
 import { accountUser, limitAuth, login, normalizeEmail, passwordCode, register, resetPassword } from '../lib/accounts';
-import { authenticatedUserId, clearSessionCookie, createSession, requestToken } from '../lib/auth-session';
+import { authenticatedAccessMode, authenticatedUserId, clearSessionCookie, createSession, requestToken } from '../lib/auth-session';
 import { digest } from '../lib/auth-crypto';
 import { deletionScope } from '../lib/admin-account-delete';
 import { removeOwnAccount } from '../lib/self-account';
@@ -34,7 +34,7 @@ router.post('/auth/account/deletion-status', route(async (req, res) => {
 }));
 router.get('/auth/session', route(async (req, res) => {
   const id = authenticatedUserId(req);
-  res.json(GetAccountSessionResponse.parse({ user: id ? await accountUser(id) : null }));
+  res.json(GetAccountSessionResponse.parse({ user: id ? await accountUser(id, authenticatedAccessMode(req) ?? 'normal') : null }));
 }));
 router.post('/auth/register', route(async (req, res) => {
   const data = parse(RegisterAccountBody, req.body);
@@ -42,14 +42,14 @@ router.post('/auth/register', route(async (req, res) => {
   if (nickname.length < 3 || nickname.length > 15) { res.status(400).json({ error: 'Takma ad 3–15 karakter olmalı.' }); return; }
   await limitAuth(req, 'register', email, 6);
   const user = await register(email, nickname, data.password);
-  const token = await createSession(user.id, req, res);
+  const token = await createSession(user.id, req, res, user.accessMode);
   res.status(201).json(RegisterAccountResponse.parse({ user, ...(token ? { token } : {}) }));
 }));
 router.post('/auth/login', route(async (req, res) => {
   const data = parse(LoginAccountBody, req.body), email = normalizeEmail(data.email);
   await limitAuth(req, 'login', email);
   const user = await login(email, data.password);
-  const token = await createSession(user.id, req, res);
+  const token = await createSession(user.id, req, res, user.accessMode);
   res.json(LoginAccountResponse.parse({ user, ...(token ? { token } : {}) }));
 }));
 router.post('/auth/logout', route(async (req, res) => {

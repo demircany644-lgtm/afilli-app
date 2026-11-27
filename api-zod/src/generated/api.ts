@@ -8,6 +8,243 @@
 import * as zod from 'zod';
 
 
+export const GetVisualCollectionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "name": zod.string(),
+  "description": zod.string(),
+  "month": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number().int(),
+  "height": zod.number().int(),
+  "published": zod.boolean(),
+  "ready": zod.boolean(),
+  "savedCount": zod.number().int()
+}))
+})
+
+
+export const GetMyVisualCollectionResponse = zod.object({
+  "active": zod.boolean(),
+  "savedIds": zod.array(zod.string()),
+  "selections": zod.array(zod.object({
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "targetId": zod.string(),
+  "asset": zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "name": zod.string(),
+  "description": zod.string(),
+  "month": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number().int(),
+  "height": zod.number().int(),
+  "published": zod.boolean(),
+  "ready": zod.boolean(),
+  "savedCount": zod.number().int()
+}),
+  "caption": zod.string()
+}))
+})
+
+
+export const SaveVisualCollectionItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const SaveVisualCollectionItemResponse = zod.object({
+  "active": zod.boolean(),
+  "savedIds": zod.array(zod.string()),
+  "selections": zod.array(zod.object({
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "targetId": zod.string(),
+  "asset": zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "name": zod.string(),
+  "description": zod.string(),
+  "month": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number().int(),
+  "height": zod.number().int(),
+  "published": zod.boolean(),
+  "ready": zod.boolean(),
+  "savedCount": zod.number().int()
+}),
+  "caption": zod.string()
+}))
+})
+
+
+export const setVisualCollectionSelectionBodyTargetIdDefault = `profile`;
+export const setVisualCollectionSelectionBodyTargetIdMax = 100;
+
+export const setVisualCollectionSelectionBodyCaptionDefault = ``;
+export const setVisualCollectionSelectionBodyCaptionMax = 240;
+
+
+
+export const SetVisualCollectionSelectionBody = zod.object({
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "assetId": zod.string().uuid().nullable(),
+  "targetId": zod.string().max(setVisualCollectionSelectionBodyTargetIdMax).default(setVisualCollectionSelectionBodyTargetIdDefault),
+  "caption": zod.string().max(setVisualCollectionSelectionBodyCaptionMax).default(setVisualCollectionSelectionBodyCaptionDefault)
+})
+
+export const SetVisualCollectionSelectionResponse = zod.object({
+  "active": zod.boolean(),
+  "savedIds": zod.array(zod.string()),
+  "selections": zod.array(zod.object({
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "targetId": zod.string(),
+  "asset": zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "name": zod.string(),
+  "description": zod.string(),
+  "month": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number().int(),
+  "height": zod.number().int(),
+  "published": zod.boolean(),
+  "ready": zod.boolean(),
+  "savedCount": zod.number().int()
+}),
+  "caption": zod.string()
+}))
+})
+
+
+export const getActiveVisualCollectionQueryUserIdMax = 100;
+
+export const getActiveVisualCollectionQueryTargetIdDefault = `profile`;
+export const getActiveVisualCollectionQueryTargetIdMax = 100;
+
+
+
+export const GetActiveVisualCollectionQueryParams = zod.object({
+  "userId": zod.coerce.string().max(getActiveVisualCollectionQueryUserIdMax),
+  "targetId": zod.coerce.string().max(getActiveVisualCollectionQueryTargetIdMax).default(getActiveVisualCollectionQueryTargetIdDefault)
+})
+
+export const GetActiveVisualCollectionResponseItem = zod.object({
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "targetId": zod.string(),
+  "asset": zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "name": zod.string(),
+  "description": zod.string(),
+  "month": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number().int(),
+  "height": zod.number().int(),
+  "published": zod.boolean(),
+  "ready": zod.boolean(),
+  "savedCount": zod.number().int()
+}),
+  "caption": zod.string()
+})
+export const GetActiveVisualCollectionResponse = zod.array(GetActiveVisualCollectionResponseItem)
+
+
+export const GetAdminVisualCollectionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "name": zod.string(),
+  "description": zod.string(),
+  "month": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number().int(),
+  "height": zod.number().int(),
+  "published": zod.boolean(),
+  "ready": zod.boolean(),
+  "savedCount": zod.number().int()
+}))
+})
+
+
+export const requestVisualAssetUploadBodyOneNameMax = 100;
+
+export const requestVisualAssetUploadBodyOneDescriptionMax = 1000;
+
+export const requestVisualAssetUploadBodyOneMonthRegExp = new RegExp('^\\d{4}-(0[1-9]|1[0-2])$');
+export const requestVisualAssetUploadBodyTwoSizeMax = 8388608;
+
+
+
+export const RequestVisualAssetUploadBody = zod.object({
+  "name": zod.string().min(1).max(requestVisualAssetUploadBodyOneNameMax),
+  "description": zod.string().max(requestVisualAssetUploadBodyOneDescriptionMax),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "month": zod.string().regex(requestVisualAssetUploadBodyOneMonthRegExp),
+  "published": zod.boolean()
+}).and(zod.object({
+  "contentType": zod.enum(['image/png', 'image/webp', 'image/gif']),
+  "size": zod.number().int().min(1).max(requestVisualAssetUploadBodyTwoSizeMax)
+}))
+
+export const RequestVisualAssetUploadResponse = zod.object({
+  "id": zod.string(),
+  "uploadUrl": zod.string()
+})
+
+
+export const CompleteVisualAssetUploadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CompleteVisualAssetUploadResponse = zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "name": zod.string(),
+  "description": zod.string(),
+  "month": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number().int(),
+  "height": zod.number().int(),
+  "published": zod.boolean(),
+  "ready": zod.boolean(),
+  "savedCount": zod.number().int()
+})
+
+
+export const UpdateVisualAssetParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateVisualAssetBodyNameMax = 100;
+
+export const updateVisualAssetBodyDescriptionMax = 1000;
+
+export const updateVisualAssetBodyMonthRegExp = new RegExp('^\\d{4}-(0[1-9]|1[0-2])$');
+
+
+export const UpdateVisualAssetBody = zod.object({
+  "name": zod.string().min(1).max(updateVisualAssetBodyNameMax),
+  "description": zod.string().max(updateVisualAssetBodyDescriptionMax),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "month": zod.string().regex(updateVisualAssetBodyMonthRegExp),
+  "published": zod.boolean()
+})
+
+export const UpdateVisualAssetResponse = zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['frame', 'background', 'badge', 'effect', 'book_frame', 'divider', 'signature', 'banner', 'animation']),
+  "name": zod.string(),
+  "description": zod.string(),
+  "month": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number().int(),
+  "height": zod.number().int(),
+  "published": zod.boolean(),
+  "ready": zod.boolean(),
+  "savedCount": zod.number().int()
+})
+
+
 export const getGifLibraryQueryOffsetDefault = 0;
 export const getGifLibraryQueryOffsetMin = 0;
 export const getGifLibraryQueryOffsetMax = 100000;
@@ -106,6 +343,710 @@ export const CompleteLibraryGifUploadResponse = zod.object({
 })
 
 
+export const GetPremiumConfigResponse = zod.object({
+  "configured": zod.boolean(),
+  "message": zod.string().nullable(),
+  "iosPublicKey": zod.string().nullable(),
+  "androidPublicKey": zod.string().nullable(),
+  "packages": zod.array(zod.object({
+  "packageIdentifier": zod.string(),
+  "productIdentifier": zod.string(),
+  "productName": zod.string(),
+  "platform": zod.enum(['ios', 'android'])
+}))
+})
+
+
+export const GetAccountAppealConfigResponse = zod.object({
+  "configured": zod.boolean(),
+  "message": zod.string().nullable(),
+  "iosPublicKey": zod.string().nullable(),
+  "androidPublicKey": zod.string().nullable(),
+  "packages": zod.array(zod.object({
+  "packageIdentifier": zod.string(),
+  "productIdentifier": zod.string(),
+  "productName": zod.string(),
+  "platform": zod.enum(['ios', 'android'])
+})),
+  "priceAmount": zod.literal(200),
+  "currency": zod.enum(['TRY'])
+})
+
+
+export const GetMyAccountAppealResponse = zod.object({
+  "blocked": zod.boolean(),
+  "appeal": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "productIdentifier": zod.string(),
+  "packageIdentifier": zod.string(),
+  "platform": zod.enum(['ios', 'android']),
+  "transactionId": zod.string().nullish(),
+  "paymentStatus": zod.enum(['verified']),
+  "paymentVerifiedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullish(),
+  "decisionReason": zod.string().nullish()
+}),zod.null()]),
+  "blockReason": zod.string().nullable(),
+  "blockedAt": zod.coerce.date().nullable()
+})
+
+
+export const GetProhibitedImageContactMeResponse = zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'confirmed', 'released']),
+  "area": zod.enum(['profile', 'bulletin', 'book', 'private_message']),
+  "createdAt": zod.coerce.date(),
+  "decisionReason": zod.string().nullable(),
+  "messages": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "body": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+export const sendProhibitedImageContactMessageBodyBodyMax = 2000;
+
+
+
+export const SendProhibitedImageContactMessageBody = zod.object({
+  "body": zod.string().min(1).max(sendProhibitedImageContactMessageBodyBodyMax)
+})
+
+export const SendProhibitedImageContactMessageResponse = zod.object({
+  "id": zod.string().uuid()
+})
+
+
+export const verifyAccountAppealPurchaseBodyProductIdentifierMax = 160;
+
+export const verifyAccountAppealPurchaseBodyPackageIdentifierMax = 160;
+
+export const verifyAccountAppealPurchaseBodyTransactionIdMax = 200;
+
+
+
+export const VerifyAccountAppealPurchaseBody = zod.object({
+  "productIdentifier": zod.string().min(1).max(verifyAccountAppealPurchaseBodyProductIdentifierMax),
+  "packageIdentifier": zod.string().min(1).max(verifyAccountAppealPurchaseBodyPackageIdentifierMax),
+  "platform": zod.enum(['ios', 'android']),
+  "transactionId": zod.string().min(1).max(verifyAccountAppealPurchaseBodyTransactionIdMax)
+})
+
+export const VerifyAccountAppealPurchaseResponse = zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "productIdentifier": zod.string(),
+  "packageIdentifier": zod.string(),
+  "platform": zod.enum(['ios', 'android']),
+  "transactionId": zod.string().nullish(),
+  "paymentStatus": zod.enum(['verified']),
+  "paymentVerifiedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullish(),
+  "decisionReason": zod.string().nullish()
+})
+
+
+export const GetMyPremiumResponse = zod.object({
+  "active": zod.boolean(),
+  "source": zod.union([zod.literal('free'),zod.literal('paid'),zod.literal(null)]).nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "application": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "packageIdentifier": zod.string(),
+  "productIdentifier": zod.string(),
+  "planName": zod.string(),
+  "status": zod.enum(['pending', 'paid_approved', 'active', 'rejected', 'expired']),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "preferences": zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+export const createPremiumApplicationBodyPackageIdentifierMax = 200;
+
+export const createPremiumApplicationBodyProductIdentifierMax = 255;
+
+
+
+export const CreatePremiumApplicationBody = zod.object({
+  "packageIdentifier": zod.string().min(1).max(createPremiumApplicationBodyPackageIdentifierMax),
+  "productIdentifier": zod.string().min(1).max(createPremiumApplicationBodyProductIdentifierMax),
+  "platform": zod.enum(['ios', 'android'])
+})
+
+export const CreatePremiumApplicationResponse = zod.object({
+  "id": zod.string().uuid(),
+  "packageIdentifier": zod.string(),
+  "productIdentifier": zod.string(),
+  "planName": zod.string(),
+  "status": zod.enum(['pending', 'paid_approved', 'active', 'rejected', 'expired']),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const VerifyPremiumPurchaseParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const VerifyPremiumPurchaseResponse = zod.object({
+  "active": zod.boolean(),
+  "source": zod.union([zod.literal('free'),zod.literal('paid'),zod.literal(null)]).nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "application": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "packageIdentifier": zod.string(),
+  "productIdentifier": zod.string(),
+  "planName": zod.string(),
+  "status": zod.enum(['pending', 'paid_approved', 'active', 'rejected', 'expired']),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "preferences": zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+export const RestorePremiumPurchaseResponse = zod.object({
+  "active": zod.boolean(),
+  "source": zod.union([zod.literal('free'),zod.literal('paid'),zod.literal(null)]).nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "application": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "packageIdentifier": zod.string(),
+  "productIdentifier": zod.string(),
+  "planName": zod.string(),
+  "status": zod.enum(['pending', 'paid_approved', 'active', 'rejected', 'expired']),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "preferences": zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+export const UpdatePremiumPreferencesBody = zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night'])
+})
+
+export const UpdatePremiumPreferencesResponse = zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const getStoreCatalogResponseProductsItemPriceKurusMin = 0;
+
+
+
+export const GetStoreCatalogResponse = zod.object({
+  "active": zod.boolean().describe('Whether order requests are currently accepted; not a payment or checkout state.'),
+  "products": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "categoryLabel": zod.string(),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(getStoreCatalogResponseProductsItemPriceKurusMin),
+  "currency": zod.enum(['TRY']),
+  "imageKey": zod.string()
+}))
+})
+
+
+export const getMyStoreCartResponseItemsItemProductPriceKurusMin = 0;
+
+
+export const getMyStoreCartResponseItemsItemSubtotalKurusMin = 0;
+
+export const getMyStoreCartResponseTotalKurusMin = 0;
+
+
+
+export const GetMyStoreCartResponse = zod.object({
+  "items": zod.array(zod.object({
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "categoryLabel": zod.string(),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(getMyStoreCartResponseItemsItemProductPriceKurusMin),
+  "currency": zod.enum(['TRY']),
+  "imageKey": zod.string()
+}),
+  "quantity": zod.number().int().min(1),
+  "subtotalKurus": zod.number().int().min(getMyStoreCartResponseItemsItemSubtotalKurusMin)
+})),
+  "totalKurus": zod.number().int().min(getMyStoreCartResponseTotalKurusMin)
+})
+
+
+export const addStoreCartItemBodyProductIdMax = 80;
+
+
+
+export const AddStoreCartItemBody = zod.object({
+  "productId": zod.string().max(addStoreCartItemBodyProductIdMax)
+})
+
+export const addStoreCartItemResponseItemsItemProductPriceKurusMin = 0;
+
+
+export const addStoreCartItemResponseItemsItemSubtotalKurusMin = 0;
+
+export const addStoreCartItemResponseTotalKurusMin = 0;
+
+
+
+export const AddStoreCartItemResponse = zod.object({
+  "items": zod.array(zod.object({
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "categoryLabel": zod.string(),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(addStoreCartItemResponseItemsItemProductPriceKurusMin),
+  "currency": zod.enum(['TRY']),
+  "imageKey": zod.string()
+}),
+  "quantity": zod.number().int().min(1),
+  "subtotalKurus": zod.number().int().min(addStoreCartItemResponseItemsItemSubtotalKurusMin)
+})),
+  "totalKurus": zod.number().int().min(addStoreCartItemResponseTotalKurusMin)
+})
+
+
+export const updateStoreCartItemPathProductIdMax = 80;
+
+
+
+export const UpdateStoreCartItemParams = zod.object({
+  "productId": zod.coerce.string().max(updateStoreCartItemPathProductIdMax)
+})
+
+export const updateStoreCartItemBodyQuantityMax = 99;
+
+
+
+export const UpdateStoreCartItemBody = zod.object({
+  "quantity": zod.number().int().min(1).max(updateStoreCartItemBodyQuantityMax)
+})
+
+export const updateStoreCartItemResponseItemsItemProductPriceKurusMin = 0;
+
+
+export const updateStoreCartItemResponseItemsItemSubtotalKurusMin = 0;
+
+export const updateStoreCartItemResponseTotalKurusMin = 0;
+
+
+
+export const UpdateStoreCartItemResponse = zod.object({
+  "items": zod.array(zod.object({
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "categoryLabel": zod.string(),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(updateStoreCartItemResponseItemsItemProductPriceKurusMin),
+  "currency": zod.enum(['TRY']),
+  "imageKey": zod.string()
+}),
+  "quantity": zod.number().int().min(1),
+  "subtotalKurus": zod.number().int().min(updateStoreCartItemResponseItemsItemSubtotalKurusMin)
+})),
+  "totalKurus": zod.number().int().min(updateStoreCartItemResponseTotalKurusMin)
+})
+
+
+export const removeStoreCartItemPathProductIdMax = 80;
+
+
+
+export const RemoveStoreCartItemParams = zod.object({
+  "productId": zod.coerce.string().max(removeStoreCartItemPathProductIdMax)
+})
+
+export const removeStoreCartItemResponseItemsItemProductPriceKurusMin = 0;
+
+
+export const removeStoreCartItemResponseItemsItemSubtotalKurusMin = 0;
+
+export const removeStoreCartItemResponseTotalKurusMin = 0;
+
+
+
+export const RemoveStoreCartItemResponse = zod.object({
+  "items": zod.array(zod.object({
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "categoryLabel": zod.string(),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(removeStoreCartItemResponseItemsItemProductPriceKurusMin),
+  "currency": zod.enum(['TRY']),
+  "imageKey": zod.string()
+}),
+  "quantity": zod.number().int().min(1),
+  "subtotalKurus": zod.number().int().min(removeStoreCartItemResponseItemsItemSubtotalKurusMin)
+})),
+  "totalKurus": zod.number().int().min(removeStoreCartItemResponseTotalKurusMin)
+})
+
+
+export const getMyStoreOrdersResponseItemsItemItemsItemPriceKurusMin = 0;
+
+
+export const getMyStoreOrdersResponseItemsItemTotalKurusMin = 0;
+
+
+
+export const GetMyStoreOrdersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'payment_pending', 'approved_free', 'rejected']),
+  "items": zod.array(zod.object({
+  "productId": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(getMyStoreOrdersResponseItemsItemItemsItemPriceKurusMin),
+  "imageKey": zod.string(),
+  "quantity": zod.number().int().min(1)
+})),
+  "totalKurus": zod.number().int().min(getMyStoreOrdersResponseItemsItemTotalKurusMin),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "decisionNote": zod.string().nullable()
+}))
+})
+
+
+export const createStoreOrderResponseItemsItemPriceKurusMin = 0;
+
+
+export const createStoreOrderResponseTotalKurusMin = 0;
+
+
+
+export const CreateStoreOrderResponse = zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'payment_pending', 'approved_free', 'rejected']),
+  "items": zod.array(zod.object({
+  "productId": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(createStoreOrderResponseItemsItemPriceKurusMin),
+  "imageKey": zod.string(),
+  "quantity": zod.number().int().min(1)
+})),
+  "totalKurus": zod.number().int().min(createStoreOrderResponseTotalKurusMin),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "decisionNote": zod.string().nullable()
+})
+
+
+export const getAdminStoreOrdersQueryOffsetDefault = 0;
+export const getAdminStoreOrdersQueryOffsetMin = 0;
+
+
+
+export const GetAdminStoreOrdersQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(getAdminStoreOrdersQueryOffsetMin).default(getAdminStoreOrdersQueryOffsetDefault)
+})
+
+export const getAdminStoreOrdersResponseItemsItemOneItemsItemPriceKurusMin = 0;
+
+
+export const getAdminStoreOrdersResponseItemsItemOneTotalKurusMin = 0;
+
+
+
+export const GetAdminStoreOrdersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'payment_pending', 'approved_free', 'rejected']),
+  "items": zod.array(zod.object({
+  "productId": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(getAdminStoreOrdersResponseItemsItemOneItemsItemPriceKurusMin),
+  "imageKey": zod.string(),
+  "quantity": zod.number().int().min(1)
+})),
+  "totalKurus": zod.number().int().min(getAdminStoreOrdersResponseItemsItemOneTotalKurusMin),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "decisionNote": zod.string().nullable()
+}).and(zod.object({
+  "userId": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable()
+}))),
+  "total": zod.number().int(),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const DecideAdminStoreOrderParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const decideAdminStoreOrderBodyReasonMin = 3;
+export const decideAdminStoreOrderBodyReasonMax = 300;
+
+
+
+export const DecideAdminStoreOrderBody = zod.object({
+  "decision": zod.enum(['paid', 'free', 'reject', 'pending']),
+  "reason": zod.string().min(decideAdminStoreOrderBodyReasonMin).max(decideAdminStoreOrderBodyReasonMax)
+})
+
+export const DecideAdminStoreOrderResponse = zod.object({
+  "orderId": zod.string().uuid(),
+  "userId": zod.string(),
+  "status": zod.enum(['pending', 'payment_pending', 'approved_free', 'rejected'])
+})
+
+
+export const GetAdminStoreSettingsResponse = zod.object({
+  "active": zod.boolean(),
+  "updatedAt": zod.string().nullable()
+})
+
+
+export const updateAdminStoreSettingsBodyReasonMin = 3;
+export const updateAdminStoreSettingsBodyReasonMax = 300;
+
+
+
+export const UpdateAdminStoreSettingsBody = zod.object({
+  "active": zod.boolean(),
+  "reason": zod.string().min(updateAdminStoreSettingsBodyReasonMin).max(updateAdminStoreSettingsBodyReasonMax)
+})
+
+export const UpdateAdminStoreSettingsResponse = zod.object({
+  "active": zod.boolean(),
+  "updatedAt": zod.string().nullable()
+})
+
+
+export const getAdminStoreProductsResponsePriceKurusMin = 0;
+
+
+
+export const GetAdminStoreProductsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "categoryLabel": zod.string(),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(getAdminStoreProductsResponsePriceKurusMin),
+  "currency": zod.enum(['TRY']),
+  "imageKey": zod.string()
+})
+export const GetAdminStoreProductsResponse = zod.array(GetAdminStoreProductsResponseItem)
+
+
+export const createAdminStoreProductBodyNameMin = 2;
+export const createAdminStoreProductBodyNameMax = 120;
+
+export const createAdminStoreProductBodyProductTypeMax = 80;
+
+export const createAdminStoreProductBodySizeLabelMax = 60;
+
+export const createAdminStoreProductBodyPriceKurusMin = 0;
+export const createAdminStoreProductBodyPriceKurusMax = 100000000;
+
+export const createAdminStoreProductBodyImageKeyRegExp = new RegExp('^upload:[0-9a-fA-F-]{36}$');
+
+
+export const CreateAdminStoreProductBody = zod.object({
+  "name": zod.string().min(createAdminStoreProductBodyNameMin).max(createAdminStoreProductBodyNameMax),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "productType": zod.string().min(1).max(createAdminStoreProductBodyProductTypeMax),
+  "sizeLabel": zod.string().min(1).max(createAdminStoreProductBodySizeLabelMax),
+  "priceKurus": zod.number().int().min(createAdminStoreProductBodyPriceKurusMin).max(createAdminStoreProductBodyPriceKurusMax),
+  "imageKey": zod.string().regex(createAdminStoreProductBodyImageKeyRegExp)
+})
+
+export const createAdminStoreProductResponsePriceKurusMin = 0;
+
+
+
+export const CreateAdminStoreProductResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.enum(['perfume', 'accessory', 'gift', 'other']),
+  "categoryLabel": zod.string(),
+  "productType": zod.string(),
+  "sizeLabel": zod.string(),
+  "priceKurus": zod.number().int().min(createAdminStoreProductResponsePriceKurusMin),
+  "currency": zod.enum(['TRY']),
+  "imageKey": zod.string()
+})
+
+
+export const requestAdminStoreProductUploadBodySizeMax = 10485760;
+
+
+
+export const RequestAdminStoreProductUploadBody = zod.object({
+  "clientId": zod.string().uuid(),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp']),
+  "size": zod.number().int().min(1).max(requestAdminStoreProductUploadBodySizeMax)
+})
+
+export const RequestAdminStoreProductUploadResponse = zod.object({
+  "id": zod.string().uuid(),
+  "uploadUrl": zod.string().url()
+})
+
+
+export const CompleteAdminStoreProductUploadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CompleteAdminStoreProductUploadResponse = zod.object({
+  "id": zod.string().uuid(),
+  "imageKey": zod.string()
+})
+
+
+export const GetAdminBookPromotionSettingsResponse = zod.object({
+  "enabled": zod.boolean(),
+  "allowedDurations": zod.array(zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)])),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const updateAdminBookPromotionSettingsBodyAllowedDurationsMax = 4;
+
+
+
+export const UpdateAdminBookPromotionSettingsBody = zod.object({
+  "enabled": zod.boolean(),
+  "allowedDurations": zod.array(zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)])).min(1).max(updateAdminBookPromotionSettingsBodyAllowedDurationsMax)
+})
+
+export const UpdateAdminBookPromotionSettingsResponse = zod.object({
+  "enabled": zod.boolean(),
+  "allowedDurations": zod.array(zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)])),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const getAdminBookPromotionRequestsQueryOffsetDefault = 0;
+export const getAdminBookPromotionRequestsQueryOffsetMin = 0;
+
+export const getAdminBookPromotionRequestsQueryStatusDefault = `pending`;
+
+export const GetAdminBookPromotionRequestsQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(getAdminBookPromotionRequestsQueryOffsetMin).default(getAdminBookPromotionRequestsQueryOffsetDefault),
+  "status": zod.enum(['all', 'pending', 'active', 'rejected', 'expired']).default(getAdminBookPromotionRequestsQueryStatusDefault)
+})
+
+export const GetAdminBookPromotionRequestsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "bookId": zod.string().uuid().nullable(),
+  "authorId": zod.string().nullable(),
+  "bookTitle": zod.string(),
+  "coverUrl": zod.string().nullable(),
+  "authorNickname": zod.string(),
+  "authorAvatar": zod.string().nullable(),
+  "durationDays": zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)]),
+  "status": zod.enum(['pending', 'active', 'rejected', 'expired']),
+  "decision": zod.union([zod.literal('free'),zod.literal('reject'),zod.literal(null)]).nullable(),
+  "decisionNote": zod.string().nullable(),
+  "requestedAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullable(),
+  "startsAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable()
+})),
+  "total": zod.number().int(),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const DecideAdminBookPromotionRequestParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const decideAdminBookPromotionRequestBodyReasonMax = 300;
+
+
+
+export const DecideAdminBookPromotionRequestBody = zod.object({
+  "decision": zod.enum(['approve_free', 'reject']),
+  "reason": zod.string().max(decideAdminBookPromotionRequestBodyReasonMax).optional()
+})
+
+export const DecideAdminBookPromotionRequestResponse = zod.object({
+  "id": zod.string().uuid(),
+  "bookId": zod.string().uuid().nullable(),
+  "authorId": zod.string().nullable(),
+  "bookTitle": zod.string(),
+  "coverUrl": zod.string().nullable(),
+  "authorNickname": zod.string(),
+  "authorAvatar": zod.string().nullable(),
+  "durationDays": zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)]),
+  "status": zod.enum(['pending', 'active', 'rejected', 'expired']),
+  "decision": zod.union([zod.literal('free'),zod.literal('reject'),zod.literal(null)]).nullable(),
+  "decisionNote": zod.string().nullable(),
+  "requestedAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullable(),
+  "startsAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable()
+})
+
+
+export const GetStoreProductMediaParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetStoreProductMediaResponse = zod.unknown()
+
+
 export const GetLibraryGifMediaParams = zod.object({
   "id": zod.coerce.string()
 })
@@ -123,6 +1064,7 @@ export const getDiscoveryBooksQueryCursorMax = 2048;
 export const GetDiscoveryBooksQueryParams = zod.object({
   "sort": zod.enum(['new', 'read', 'popular']).default(getDiscoveryBooksQuerySortDefault),
   "search": zod.coerce.string().max(getDiscoveryBooksQuerySearchMax).optional(),
+  "category": zod.enum(['romantik', 'gerilim-polisiye-gizem', 'fantastik', 'mafya-yeralti', 'bilim-kurgu-distopya', 'dram-hayat-hikayeleri', 'ask-romani', 'fantastik-bilim-kurgu', 'polisiye-gerilim', 'mafya', 'psikolojik-iliskiler']).optional(),
   "cursor": zod.coerce.string().max(getDiscoveryBooksQueryCursorMax).optional()
 })
 
@@ -130,10 +1072,13 @@ export const GetDiscoveryBooksResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
   "title": zod.string(),
+  "description": zod.string(),
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "genres": zod.array(zod.string()),
@@ -144,6 +1089,48 @@ export const GetDiscoveryBooksResponse = zod.object({
 })),
   "nextCursor": zod.string().nullable()
 })
+
+
+export const GetPromotedBooksResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "author": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
+}),
+  "coverUrl": zod.string().nullish(),
+  "genres": zod.array(zod.string()),
+  "readCount": zod.number().int(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int(),
+  "publishedAt": zod.coerce.date()
+})
+export const GetPromotedBooksResponse = zod.array(GetPromotedBooksResponseItem)
+
+
+export const GetReaderReadBooksResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "author": zod.object({
+  "id": zod.string(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
+}),
+  "coverUrl": zod.string().nullish(),
+  "genres": zod.array(zod.string()),
+  "readCount": zod.number().int(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int(),
+  "publishedAt": zod.coerce.date()
+})
+export const GetReaderReadBooksResponse = zod.array(GetReaderReadBooksResponseItem)
 
 
 export const getBookCardsQueryIdsMax = 1200;
@@ -157,10 +1144,13 @@ export const GetBookCardsQueryParams = zod.object({
 export const GetBookCardsResponseItem = zod.object({
   "id": zod.string().uuid(),
   "title": zod.string(),
+  "description": zod.string(),
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "genres": zod.array(zod.string()),
@@ -206,6 +1196,236 @@ export const GetAdminOverviewResponse = zod.object({
   "bulletins": zod.number().int(),
   "comments": zod.number().int(),
   "hiddenContent": zod.number().int()
+})
+
+
+export const getAdminPremiumApplicationsQueryOffsetDefault = 0;
+export const getAdminPremiumApplicationsQueryOffsetMin = 0;
+
+
+
+export const GetAdminPremiumApplicationsQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(getAdminPremiumApplicationsQueryOffsetMin).default(getAdminPremiumApplicationsQueryOffsetDefault)
+})
+
+export const GetAdminPremiumApplicationsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string(),
+  "packageIdentifier": zod.string(),
+  "productIdentifier": zod.string(),
+  "planName": zod.string(),
+  "status": zod.enum(['pending', 'paid_approved', 'active', 'rejected', 'expired']),
+  "createdAt": zod.coerce.date()
+})),
+  "total": zod.number().int(),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const DecideAdminPremiumApplicationParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const decideAdminPremiumApplicationBodyReasonMin = 3;
+export const decideAdminPremiumApplicationBodyReasonMax = 300;
+
+
+
+export const DecideAdminPremiumApplicationBody = zod.object({
+  "decision": zod.enum(['paid', 'free', 'reject']),
+  "reason": zod.string().min(decideAdminPremiumApplicationBodyReasonMin).max(decideAdminPremiumApplicationBodyReasonMax)
+})
+
+export const DecideAdminPremiumApplicationResponse = zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string(),
+  "packageIdentifier": zod.string(),
+  "productIdentifier": zod.string(),
+  "planName": zod.string(),
+  "status": zod.enum(['pending', 'paid_approved', 'active', 'rejected', 'expired']),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const getAdminAccountAppealsQueryOffsetDefault = 0;
+export const getAdminAccountAppealsQueryOffsetMin = 0;
+
+
+
+export const GetAdminAccountAppealsQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(getAdminAccountAppealsQueryOffsetMin).default(getAdminAccountAppealsQueryOffsetDefault)
+})
+
+export const GetAdminAccountAppealsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "productIdentifier": zod.string(),
+  "packageIdentifier": zod.string(),
+  "platform": zod.enum(['ios', 'android']),
+  "transactionId": zod.string().nullish(),
+  "paymentStatus": zod.enum(['verified']),
+  "paymentVerifiedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullish(),
+  "decisionReason": zod.string().nullish()
+}).and(zod.object({
+  "userId": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string(),
+  "avatar": zod.string().nullable(),
+  "cover": zod.string().nullable(),
+  "blockReason": zod.string(),
+  "blockedAt": zod.coerce.date()
+}))),
+  "total": zod.number().int(),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const DecideAdminAccountAppealParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const decideAdminAccountAppealBodyReasonMin = 3;
+export const decideAdminAccountAppealBodyReasonMax = 300;
+
+
+
+export const DecideAdminAccountAppealBody = zod.object({
+  "decision": zod.enum(['approve', 'reject']),
+  "reason": zod.string().min(decideAdminAccountAppealBodyReasonMin).max(decideAdminAccountAppealBodyReasonMax)
+})
+
+export const DecideAdminAccountAppealResponse = zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "productIdentifier": zod.string(),
+  "packageIdentifier": zod.string(),
+  "platform": zod.enum(['ios', 'android']),
+  "transactionId": zod.string().nullish(),
+  "paymentStatus": zod.enum(['verified']),
+  "paymentVerifiedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullish(),
+  "decisionReason": zod.string().nullish()
+}).and(zod.object({
+  "userId": zod.string(),
+  "nickname": zod.string(),
+  "email": zod.string(),
+  "avatar": zod.string().nullable(),
+  "cover": zod.string().nullable(),
+  "blockReason": zod.string(),
+  "blockedAt": zod.coerce.date()
+}))
+
+
+export const GetAdminProhibitedImagesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "ready": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "imageUrl": zod.string().url().nullable()
+})),
+  "readyCount": zod.number().int(),
+  "minimum": zod.number().int(),
+  "maximum": zod.number().int()
+})
+
+
+export const requestProhibitedImageUploadBodySizeMax = 10485760;
+
+
+
+export const RequestProhibitedImageUploadBody = zod.object({
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp']),
+  "size": zod.number().int().min(1).max(requestProhibitedImageUploadBodySizeMax)
+})
+
+export const RequestProhibitedImageUploadResponse = zod.object({
+  "id": zod.string().uuid(),
+  "uploadUrl": zod.string().url()
+})
+
+
+export const CompleteProhibitedImageUploadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CompleteProhibitedImageUploadResponse = zod.object({
+  "id": zod.string().uuid(),
+  "ready": zod.boolean()
+})
+
+
+export const DeleteAdminProhibitedImageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteAdminProhibitedImageResponse = zod.void()
+
+
+export const getAdminProhibitedImageAttemptsQueryOffsetDefault = 0;
+export const getAdminProhibitedImageAttemptsQueryOffsetMin = 0;
+export const getAdminProhibitedImageAttemptsQueryOffsetMax = 1000000;
+
+
+
+export const GetAdminProhibitedImageAttemptsQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(getAdminProhibitedImageAttemptsQueryOffsetMin).max(getAdminProhibitedImageAttemptsQueryOffsetMax).default(getAdminProhibitedImageAttemptsQueryOffsetDefault)
+})
+
+export const GetAdminProhibitedImageAttemptsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string().nullable(),
+  "nickname": zod.string(),
+  "avatar": zod.string().nullable(),
+  "referenceId": zod.string().uuid().nullable(),
+  "area": zod.enum(['profile', 'bulletin', 'book', 'private_message']),
+  "distance": zod.number().int(),
+  "threshold": zod.number().int(),
+  "autoBlockApplied": zod.boolean(),
+  "status": zod.enum(['pending', 'confirmed', 'released']),
+  "createdAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullable(),
+  "decisionReason": zod.string().nullable(),
+  "evidenceUrl": zod.string().url(),
+  "referenceUrl": zod.string().url().nullable(),
+  "messages": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "body": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})),
+  "total": zod.number().int(),
+  "nextOffset": zod.number().int().nullable()
+})
+
+
+export const DecideProhibitedImageAttemptParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const decideProhibitedImageAttemptBodyReasonMin = 3;
+export const decideProhibitedImageAttemptBodyReasonMax = 300;
+
+
+
+export const DecideProhibitedImageAttemptBody = zod.object({
+  "decision": zod.enum(['keep', 'release']),
+  "reason": zod.string().min(decideProhibitedImageAttemptBodyReasonMin).max(decideProhibitedImageAttemptBodyReasonMax)
+})
+
+export const DecideProhibitedImageAttemptResponse = zod.object({
+  "id": zod.string().uuid(),
+  "status": zod.enum(['pending', 'confirmed', 'released']),
+  "accountReleased": zod.boolean().optional()
 })
 
 
@@ -407,7 +1627,8 @@ export const GetAccountSessionResponse = zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
   "email": zod.string().email(),
-  "role": zod.enum(['user', 'admin', 'superadmin']).optional()
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional(),
+  "accessMode": zod.enum(['normal', 'appeal', 'contact'])
 }),zod.null()]),
   "token": zod.string().optional()
 })
@@ -469,7 +1690,8 @@ export const RegisterAccountResponse = zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
   "email": zod.string().email(),
-  "role": zod.enum(['user', 'admin', 'superadmin']).optional()
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional(),
+  "accessMode": zod.enum(['normal', 'appeal', 'contact'])
 }),zod.null()]),
   "token": zod.string().optional()
 })
@@ -491,7 +1713,8 @@ export const LoginAccountResponse = zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
   "email": zod.string().email(),
-  "role": zod.enum(['user', 'admin', 'superadmin']).optional()
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional(),
+  "accessMode": zod.enum(['normal', 'appeal', 'contact'])
 }),zod.null()]),
   "token": zod.string().optional()
 })
@@ -531,7 +1754,8 @@ export const ResetAccountPasswordResponse = zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
   "email": zod.string().email(),
-  "role": zod.enum(['user', 'admin', 'superadmin']).optional()
+  "role": zod.enum(['user', 'admin', 'superadmin']).optional(),
+  "accessMode": zod.enum(['normal', 'appeal', 'contact'])
 }),zod.null()]),
   "token": zod.string().optional()
 })
@@ -603,7 +1827,15 @@ export const GetMyProfileResponse = zod.object({
   "lastSeen": zod.string().nullable(),
   "typing": zod.boolean(),
   "popular": zod.boolean(),
-  "premium": zod.boolean()
+  "premium": zod.boolean(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])),
+  "premiumPreferences": zod.union([zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+}),zod.null()])
 })
 
 
@@ -646,7 +1878,15 @@ export const UpdateMyProfileResponse = zod.object({
   "lastSeen": zod.string().nullable(),
   "typing": zod.boolean(),
   "popular": zod.boolean(),
-  "premium": zod.boolean()
+  "premium": zod.boolean(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])),
+  "premiumPreferences": zod.union([zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+}),zod.null()])
 })
 
 
@@ -673,7 +1913,15 @@ export const UpdateMyVisibilityResponse = zod.object({
   "lastSeen": zod.string().nullable(),
   "typing": zod.boolean(),
   "popular": zod.boolean(),
-  "premium": zod.boolean()
+  "premium": zod.boolean(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])),
+  "premiumPreferences": zod.union([zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+}),zod.null()])
 })
 
 
@@ -686,7 +1934,9 @@ export const GetPeopleResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 })),
   "nextCursor": zod.string().nullable()
 })
@@ -715,7 +1965,15 @@ export const GetReaderProfileResponse = zod.object({
   "lastSeen": zod.string().nullable(),
   "typing": zod.boolean(),
   "popular": zod.boolean(),
-  "premium": zod.boolean()
+  "premium": zod.boolean(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])),
+  "premiumPreferences": zod.union([zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+}),zod.null()])
 })
 
 
@@ -746,7 +2004,15 @@ export const SetProfileFollowResponse = zod.object({
   "lastSeen": zod.string().nullable(),
   "typing": zod.boolean(),
   "popular": zod.boolean(),
-  "premium": zod.boolean()
+  "premium": zod.boolean(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])),
+  "premiumPreferences": zod.union([zod.object({
+  "profileFrame": zod.enum(['classic', 'gold', 'rose', 'midnight']),
+  "profileBackground": zod.enum(['classic', 'linen', 'wine', 'starlight']),
+  "chatEffect": zod.enum(['none', 'gold', 'rose', 'violet']),
+  "storeDesign": zod.enum(['classic', 'gold', 'wine', 'night']),
+  "updatedAt": zod.coerce.date()
+}),zod.null()])
 })
 
 
@@ -763,7 +2029,9 @@ export const GetProfileConnectionsResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 })),
   "nextCursor": zod.string().nullable()
 })
@@ -791,7 +2059,9 @@ export const GetProfileContentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "cover": zod.string().nullable(),
   "genre": zod.string().nullable(),
@@ -804,7 +2074,9 @@ export const GetProfileContentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "photos": zod.array(zod.object({
@@ -818,7 +2090,9 @@ export const GetProfileContentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -892,7 +2166,9 @@ export const GetConversationsResponseItem = zod.object({
   "peer": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "lastMessage": zod.string().nullable(),
   "updatedAt": zod.string(),
@@ -913,7 +2189,9 @@ export const StartConversationResponse = zod.object({
   "peer": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "lastMessage": zod.string().nullable(),
   "updatedAt": zod.string(),
@@ -933,7 +2211,9 @@ export const GetConversationResponse = zod.object({
   "peer": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "lastMessage": zod.string().nullable(),
   "updatedAt": zod.string(),
@@ -993,7 +2273,9 @@ export const GetConversationMessagesResponse = zod.object({
   "sender": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "createdAt": zod.string(),
@@ -1006,7 +2288,9 @@ export const GetConversationMessagesResponse = zod.object({
   "sender": zod.union([zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
@@ -1135,7 +2419,9 @@ export const SendConversationMessageResponse = zod.object({
   "sender": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "createdAt": zod.string(),
@@ -1148,7 +2434,9 @@ export const SendConversationMessageResponse = zod.object({
   "sender": zod.union([zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
@@ -1244,7 +2532,9 @@ export const SyncConversationMessagesResponse = zod.object({
   "sender": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "createdAt": zod.string(),
@@ -1257,7 +2547,9 @@ export const SyncConversationMessagesResponse = zod.object({
   "sender": zod.union([zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
@@ -1356,7 +2648,9 @@ export const GetConversationChangesResponse = zod.object({
   "sender": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "createdAt": zod.string(),
@@ -1369,7 +2663,9 @@ export const GetConversationChangesResponse = zod.object({
   "sender": zod.union([zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
@@ -1461,7 +2757,9 @@ export const DeleteConversationMessageResponse = zod.object({
   "sender": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "createdAt": zod.string(),
@@ -1474,7 +2772,9 @@ export const DeleteConversationMessageResponse = zod.object({
   "sender": zod.union([zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),zod.null()]),
   "body": zod.string().nullable(),
   "gif": zod.union([zod.object({
@@ -1594,9 +2894,10 @@ export const SetConversationTypingResponse = zod.void()
 
 
 export const GetSocialNotificationsResponseItem = zod.object({
-  "kind": zod.enum(['chapter', 'book_comment', 'comment_reply']),
+  "kind": zod.enum(['chapter', 'book_like', 'book_comment', 'comment_reply', 'premium_status', 'store_order', 'account_appeal']),
   "commentId": zod.string().nullable(),
   "chapterId": zod.string().nullable(),
+  "applicationId": zod.string().nullable(),
   "id": zod.string(),
   "body": zod.string(),
   "read": zod.boolean(),
@@ -1626,7 +2927,9 @@ export const SaveCommunityProfileBody = zod.object({
 export const SaveCommunityProfileResponse = zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 })
 
 
@@ -1646,7 +2949,9 @@ export const GetBulletinsResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "photos": zod.array(zod.object({
@@ -1660,7 +2965,9 @@ export const GetBulletinsResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -1723,7 +3030,9 @@ export const CreateBulletinResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "photos": zod.array(zod.object({
@@ -1737,7 +3046,9 @@ export const CreateBulletinResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -1789,7 +3100,9 @@ export const GetBulletinResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "photos": zod.array(zod.object({
@@ -1803,7 +3116,9 @@ export const GetBulletinResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -1868,7 +3183,9 @@ export const UpdateBulletinResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "photos": zod.array(zod.object({
@@ -1882,7 +3199,9 @@ export const UpdateBulletinResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -1945,7 +3264,9 @@ export const SetBulletinLikeResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "photos": zod.array(zod.object({
@@ -1959,7 +3280,9 @@ export const SetBulletinLikeResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -2003,7 +3326,9 @@ export const GetBulletinLikesParams = zod.object({
 export const GetBulletinLikesResponseItem = zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 })
 export const GetBulletinLikesResponse = zod.array(GetBulletinLikesResponseItem)
 
@@ -2022,7 +3347,9 @@ export const GetBulletinCommentsResponseItem = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "parentId": zod.string().nullable(),
   "depth": zod.number().int().min(1).max(getBulletinCommentsResponseDepthMax),
@@ -2063,7 +3390,9 @@ export const CreateBulletinCommentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "parentId": zod.string().nullable(),
   "depth": zod.number().int().min(1).max(createBulletinCommentResponseDepthMax),
@@ -2103,7 +3432,9 @@ export const UpdateBulletinCommentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "parentId": zod.string().nullable(),
   "depth": zod.number().int().min(1).max(updateBulletinCommentResponseDepthMax),
@@ -2136,7 +3467,9 @@ export const GetBulletinReactionPeopleResponseItem = zod.object({
   "person": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "emoji": zod.string()
 })
@@ -2170,7 +3503,9 @@ export const GetAuthoredBooksResponseItem = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -2221,7 +3556,9 @@ export const SaveAuthoredBookResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -2263,7 +3600,9 @@ export const GetAuthoredBookResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -2285,6 +3624,61 @@ export const GetAuthoredBookResponse = zod.object({
   "commentCount": zod.number().int().optional(),
   "liked": zod.boolean().optional(),
   "canEdit": zod.boolean().optional()
+})
+
+
+export const GetMyBookPromotionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetMyBookPromotionResponse = zod.object({
+  "enabled": zod.boolean(),
+  "allowedDurations": zod.array(zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)])),
+  "latestRequest": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "bookId": zod.string().uuid().nullable(),
+  "authorId": zod.string().nullable(),
+  "bookTitle": zod.string(),
+  "coverUrl": zod.string().nullable(),
+  "authorNickname": zod.string(),
+  "authorAvatar": zod.string().nullable(),
+  "durationDays": zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)]),
+  "status": zod.enum(['pending', 'active', 'rejected', 'expired']),
+  "decision": zod.union([zod.literal('free'),zod.literal('reject'),zod.literal(null)]).nullable(),
+  "decisionNote": zod.string().nullable(),
+  "requestedAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullable(),
+  "startsAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable()
+}),zod.null()])
+})
+
+
+export const CreateBookPromotionRequestParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CreateBookPromotionRequestBody = zod.object({
+  "durationDays": zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)]),
+  "clientRequestId": zod.string().uuid()
+})
+
+export const CreateBookPromotionRequestResponse = zod.object({
+  "id": zod.string().uuid(),
+  "bookId": zod.string().uuid().nullable(),
+  "authorId": zod.string().nullable(),
+  "bookTitle": zod.string(),
+  "coverUrl": zod.string().nullable(),
+  "authorNickname": zod.string(),
+  "authorAvatar": zod.string().nullable(),
+  "durationDays": zod.union([zod.literal(3),zod.literal(7),zod.literal(15),zod.literal(30)]),
+  "status": zod.enum(['pending', 'active', 'rejected', 'expired']),
+  "decision": zod.union([zod.literal('free'),zod.literal('reject'),zod.literal(null)]).nullable(),
+  "decisionNote": zod.string().nullable(),
+  "requestedAt": zod.coerce.date(),
+  "decidedAt": zod.coerce.date().nullable(),
+  "startsAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable()
 })
 
 
@@ -2366,7 +3760,7 @@ export const GetWriterBookResponse = zod.object({
   "document": zod.object({
   "title": zod.string().max(getWriterBookResponseDocumentTitleMax),
   "description": zod.string().max(getWriterBookResponseDocumentDescriptionMax),
-  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(getWriterBookResponseDocumentGenresMax),
+  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Mafya', 'Yeraltı Dünyası', 'Distopya', 'Hayat Hikâyeleri', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(getWriterBookResponseDocumentGenresMax),
   "ageRating": zod.enum(['all', '13', '18']),
   "language": zod.string().min(getWriterBookResponseDocumentLanguageMin).max(getWriterBookResponseDocumentLanguageMax),
   "completion": zod.enum(['ongoing', 'completed']),
@@ -2412,7 +3806,7 @@ export const SaveWriterBookBody = zod.object({
   "document": zod.object({
   "title": zod.string().max(saveWriterBookBodyDocumentTitleMax),
   "description": zod.string().max(saveWriterBookBodyDocumentDescriptionMax),
-  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(saveWriterBookBodyDocumentGenresMax),
+  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Mafya', 'Yeraltı Dünyası', 'Distopya', 'Hayat Hikâyeleri', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(saveWriterBookBodyDocumentGenresMax),
   "ageRating": zod.enum(['all', '13', '18']),
   "language": zod.string().min(saveWriterBookBodyDocumentLanguageMin).max(saveWriterBookBodyDocumentLanguageMax),
   "completion": zod.enum(['ongoing', 'completed']),
@@ -2450,7 +3844,7 @@ export const SaveWriterBookResponse = zod.object({
   "document": zod.object({
   "title": zod.string().max(saveWriterBookResponseDocumentTitleMax),
   "description": zod.string().max(saveWriterBookResponseDocumentDescriptionMax),
-  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(saveWriterBookResponseDocumentGenresMax),
+  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Mafya', 'Yeraltı Dünyası', 'Distopya', 'Hayat Hikâyeleri', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(saveWriterBookResponseDocumentGenresMax),
   "ageRating": zod.enum(['all', '13', '18']),
   "language": zod.string().min(saveWriterBookResponseDocumentLanguageMin).max(saveWriterBookResponseDocumentLanguageMax),
   "completion": zod.enum(['ongoing', 'completed']),
@@ -2459,6 +3853,57 @@ export const SaveWriterBookResponse = zod.object({
   "id": zod.string().uuid(),
   "title": zod.string().max(saveWriterBookResponseDocumentChaptersItemTitleMax),
   "html": zod.string().max(saveWriterBookResponseDocumentChaptersItemHtmlMax),
+  "status": zod.enum(['draft', 'published'])
+}))
+}),
+  "revision": zod.number().int(),
+  "publication": zod.enum(['draft', 'published']),
+  "publishedAt": zod.string().nullable(),
+  "updatedAt": zod.string().nullable()
+})
+
+
+/**
+ * Copy an author's own current manuscript into an independent, unpublished draft with fresh chapter IDs. The clientRequestId makes retries idempotent.
+ */
+export const CopyWriterBookParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CopyWriterBookBody = zod.object({
+  "clientRequestId": zod.string().uuid()
+})
+
+export const copyWriterBookResponseDocumentTitleMax = 100;
+
+export const copyWriterBookResponseDocumentDescriptionMax = 500;
+
+export const copyWriterBookResponseDocumentGenresMax = 3;
+
+export const copyWriterBookResponseDocumentLanguageMin = 2;
+export const copyWriterBookResponseDocumentLanguageMax = 40;
+
+export const copyWriterBookResponseDocumentChaptersItemTitleMax = 150;
+
+export const copyWriterBookResponseDocumentChaptersItemHtmlMax = 600000;
+
+
+
+export const CopyWriterBookResponse = zod.object({
+  "id": zod.string(),
+  "localId": zod.string(),
+  "document": zod.object({
+  "title": zod.string().max(copyWriterBookResponseDocumentTitleMax),
+  "description": zod.string().max(copyWriterBookResponseDocumentDescriptionMax),
+  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Mafya', 'Yeraltı Dünyası', 'Distopya', 'Hayat Hikâyeleri', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(copyWriterBookResponseDocumentGenresMax),
+  "ageRating": zod.enum(['all', '13', '18']),
+  "language": zod.string().min(copyWriterBookResponseDocumentLanguageMin).max(copyWriterBookResponseDocumentLanguageMax),
+  "completion": zod.enum(['ongoing', 'completed']),
+  "cover": zod.string().nullable(),
+  "chapters": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string().max(copyWriterBookResponseDocumentChaptersItemTitleMax),
+  "html": zod.string().max(copyWriterBookResponseDocumentChaptersItemHtmlMax),
   "status": zod.enum(['draft', 'published'])
 }))
 }),
@@ -2513,7 +3958,7 @@ export const PatchWriterBookBody = zod.object({
   "metadata": zod.object({
   "title": zod.string().max(patchWriterBookBodyMetadataTitleMax),
   "description": zod.string().max(patchWriterBookBodyMetadataDescriptionMax),
-  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(patchWriterBookBodyMetadataGenresMax),
+  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Mafya', 'Yeraltı Dünyası', 'Distopya', 'Hayat Hikâyeleri', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(patchWriterBookBodyMetadataGenresMax),
   "ageRating": zod.enum(['all', '13', '18']),
   "language": zod.string().min(patchWriterBookBodyMetadataLanguageMin).max(patchWriterBookBodyMetadataLanguageMax),
   "completion": zod.enum(['ongoing', 'completed']),
@@ -2575,7 +4020,7 @@ export const ChangeWriterPublicationResponse = zod.object({
   "document": zod.object({
   "title": zod.string().max(changeWriterPublicationResponseDocumentTitleMax),
   "description": zod.string().max(changeWriterPublicationResponseDocumentDescriptionMax),
-  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(changeWriterPublicationResponseDocumentGenresMax),
+  "genres": zod.array(zod.enum(['Roman', 'Hikaye', 'Şiir', 'Fantastik', 'Bilim Kurgu', 'Korku', 'Aşk', 'Tarihi', 'Kişisel Gelişim', 'Polisiye', 'Gerilim', 'Gizem', 'Macera', 'Mizah', 'Dram', 'Romantik', 'Mafya', 'Yeraltı Dünyası', 'Distopya', 'Hayat Hikâyeleri', 'Gençlik', 'Çocuk', 'Masal', 'Deneme', 'Anı', 'Biyografi', 'Gezi', 'Felsefe', 'Psikoloji', 'Bilim', 'Sanat', 'Eğitim'])).max(changeWriterPublicationResponseDocumentGenresMax),
   "ageRating": zod.enum(['all', '13', '18']),
   "language": zod.string().min(changeWriterPublicationResponseDocumentLanguageMin).max(changeWriterPublicationResponseDocumentLanguageMax),
   "completion": zod.enum(['ongoing', 'completed']),
@@ -2607,7 +4052,9 @@ export const GetPublishedBooksResponseItem = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -2763,7 +4210,9 @@ export const SetAuthoredBookLikeResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "coverUrl": zod.string().nullish(),
   "cover": zod.string().nullish(),
@@ -2794,9 +4243,10 @@ export const GetBookNotificationsQueryParams = zod.object({
 
 export const GetBookNotificationsResponse = zod.object({
   "items": zod.array(zod.object({
-  "kind": zod.enum(['chapter', 'book_comment', 'comment_reply']),
+  "kind": zod.enum(['chapter', 'book_like', 'book_comment', 'comment_reply', 'premium_status', 'store_order', 'account_appeal']),
   "commentId": zod.string().nullable(),
   "chapterId": zod.string().nullable(),
+  "applicationId": zod.string().nullable(),
   "id": zod.string(),
   "body": zod.string(),
   "read": zod.boolean(),
@@ -2869,7 +4319,9 @@ export const GetBookCommentThreadsResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "chapterId": zod.string().nullable(),
@@ -2906,7 +4358,9 @@ export const EditWriterCommentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "chapterId": zod.string().nullable(),
@@ -2933,7 +4387,9 @@ export const DeleteWriterCommentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "chapterId": zod.string().nullable(),
@@ -2960,7 +4416,9 @@ export const GetWriterCommentPathResponseItem = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "chapterId": zod.string().nullable(),
@@ -2993,7 +4451,9 @@ export const GetWriterCommentRepliesResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "chapterId": zod.string().nullable(),
@@ -3026,7 +4486,9 @@ export const SetWriterCommentReactionResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "chapterId": zod.string().nullable(),
@@ -3043,6 +4505,7 @@ export const GetReaderChapterResponse = zod.object({
   "bookId": zod.string().uuid(),
   "chapterId": zod.string().uuid(),
   "contentHash": zod.string(),
+  "readCount": zod.number().int(),
   "likeCount": zod.number().int(),
   "liked": zod.boolean(),
   "commentCount": zod.number().int(),
@@ -3082,6 +4545,45 @@ export const SetReaderLikeResponse = zod.object({
   "bookId": zod.string().uuid(),
   "chapterId": zod.string().uuid(),
   "contentHash": zod.string(),
+  "readCount": zod.number().int(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "chapterCommentCount": zod.number().int(),
+  "paragraphs": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "path": zod.string(),
+  "quote": zod.string(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "archived": zod.boolean()
+})),
+  "archived": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "path": zod.string(),
+  "quote": zod.string(),
+  "likeCount": zod.number().int(),
+  "liked": zod.boolean(),
+  "commentCount": zod.number().int(),
+  "archived": zod.boolean()
+}))
+})
+
+
+/**
+ * Count an authenticated non-author reader once per published chapter per day and return current chapter interactions.
+ */
+export const RecordReaderChapterReadParams = zod.object({
+  "id": zod.coerce.string(),
+  "chapterId": zod.coerce.string().uuid()
+})
+
+export const RecordReaderChapterReadResponse = zod.object({
+  "bookId": zod.string().uuid(),
+  "chapterId": zod.string().uuid(),
+  "contentHash": zod.string(),
+  "readCount": zod.number().int(),
   "likeCount": zod.number().int(),
   "liked": zod.boolean(),
   "commentCount": zod.number().int(),
@@ -3129,12 +4631,16 @@ export const ReportWriterCommentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "reporter": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "reason": zod.enum(['spam', 'abuse', 'other']),
@@ -3159,12 +4665,16 @@ export const GetReaderReportsResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "reporter": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "reason": zod.enum(['spam', 'abuse', 'other']),
@@ -3193,12 +4703,16 @@ export const ResolveReaderReportResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "reporter": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "reason": zod.enum(['spam', 'abuse', 'other']),
@@ -3227,7 +4741,9 @@ export const GetAuthoredBookCommentsResponseItem = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "chapterId": zod.string().nullable(),
@@ -3267,7 +4783,9 @@ export const AddAuthoredBookCommentResponse = zod.object({
   "author": zod.object({
   "id": zod.string(),
   "nickname": zod.string(),
-  "avatar": zod.string().nullable()
+  "avatar": zod.string().nullable(),
+  "writerBadges": zod.array(zod.enum(['successful', 'master', 'popular'])).optional(),
+  "premiumChatEffect": zod.union([zod.literal('none'),zod.literal('gold'),zod.literal('rose'),zod.literal('violet'),zod.literal(null)]).nullish()
 }),
   "body": zod.string(),
   "chapterId": zod.string().nullable(),

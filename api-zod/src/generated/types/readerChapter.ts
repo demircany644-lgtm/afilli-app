@@ -11,6 +11,7 @@ export interface ReaderChapter {
   bookId: string;
   chapterId: string;
   contentHash: string;
+  readCount: number;
   likeCount: number;
   liked: boolean;
   commentCount: number;

@@ -10,8 +10,9 @@ import {
   EMOJIS, route, parse, uuid, fail, viewer, requirePerson, postOwner, transaction,
   notify, postData, reactions, commentsData, type Transaction,
 } from '../lib/community';
-import { bulletinObject, bulletinUploadUrl, validateBulletinObject } from '../lib/bulletin-storage';
+import { bulletinCanonicalObject, bulletinObject, bulletinSourceObject, bulletinUploadUrl, prepareBulletinObject } from '../lib/bulletin-storage';
 import { publicBook } from '../lib/book-access';
+import { checkAndRecordProhibitedImage, prohibitedImageFailure } from '../lib/prohibited-images';
 
 const router: IRouter = Router();
 
@@ -45,7 +46,7 @@ router.get('/bulletins/:id', route(async (req, res) => {
   res.json((await postData([id], viewer(req)))[0]);
 }));
 
-async function validateAttachments(client: Transaction, owner: string, photoIds: string[], bookId?: string | null, postId?: string) {
+async function validateAttachments(client: Transaction, owner: string, photoIds: string[], bookId?: string | null, postId?: string, sourcesToDelete: string[] = []) {
   if (new Set(photoIds).size !== photoIds.length) return fail(400, 'Aynı fotoğrafı birden fazla ekleme.');
   if (bookId) {
     uuid(bookId);
@@ -55,25 +56,35 @@ async function validateAttachments(client: Transaction, owner: string, photoIds:
     if (!published.rowCount) return fail(400, 'Bu kitap özel taslak. Önce Kitap Yaz sayfasından yayınla.');
   }
   for (const id of photoIds) {
-    const upload = await client.query<{ owner_id: string; post_id: string | null; content_type: string; size: number }>(
+    const upload = await client.query<{ owner_id: string; post_id: string | null; content_type: string; size: number; source_upload: boolean; sealed: boolean }>(
       'SELECT * FROM bulletin_uploads WHERE id=$1 FOR UPDATE', [uuid(id)],
     );
     const file = upload.rows[0];
     if (!file || file.owner_id !== owner || (file.post_id && file.post_id !== postId)) return fail(403, 'Bu fotoğrafı kullanma yetkin yok.');
-    try { await validateBulletinObject(id, file.content_type, file.size); }
+    let image: Buffer;
+    try { image = await prepareBulletinObject(id, file.content_type, file.size, file.source_upload, file.sealed); }
     catch { return fail(400, 'Fotoğraf yüklenemedi veya dosya geçersiz. Tekrar dene.'); }
+    const hit = await checkAndRecordProhibitedImage(owner, 'bulletin', image);
+    if (hit) prohibitedImageFailure(hit.id);
+    await bulletinCanonicalObject(id).save(image, {
+      resumable: false, contentType: 'image/jpeg', metadata: { cacheControl: 'private,no-store' },
+    });
+    if (file.source_upload) sourcesToDelete.push(id);
+    await client.query(`UPDATE bulletin_uploads SET content_type='image/jpeg',size=$2,sealed=true,source_upload=false
+      WHERE id=$1`, [id, image.length]);
   }
 }
 router.post('/bulletins', route(async (req, res) => {
   const person = await requirePerson(req);
   const input = parse(CreateBulletinBody, req.body);
   if (!input.body.trim() && !input.photoIds.length && !input.bookId) return fail(400, 'Önce yazını yaz');
+  const sourcesToDelete: string[] = [];
   const id = await transaction(async (client) => {
     // An idempotency lock also prevents concurrent retries from producing two posts.
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [person.id + input.clientId]);
     const previous = await client.query<{ id: string }>('SELECT id FROM bulletins WHERE author_id=$1 AND client_id=$2', [person.id, input.clientId]);
     if (previous.rows[0]) return previous.rows[0].id;
-    await validateAttachments(client, person.id, input.photoIds, input.bookId);
+    await validateAttachments(client, person.id, input.photoIds, input.bookId, undefined, sourcesToDelete);
     const post = await client.query<{ id: string }>(
       'INSERT INTO bulletins(author_id,client_id,body,photo_ids,book_id) VALUES($1,$2,$3,$4,$5) RETURNING id',
       [person.id, input.clientId, input.body.trim(), input.photoIds, input.bookId || null],
@@ -82,21 +93,24 @@ router.post('/bulletins', route(async (req, res) => {
     await client.query('UPDATE bulletin_uploads SET post_id=$1 WHERE id=ANY($2::uuid[])', [id, input.photoIds]);
     return id;
   });
+  await Promise.all(sourcesToDelete.map(id => bulletinSourceObject(id).delete({ ignoreNotFound: true }).catch(() => {})));
   res.status(201).json((await postData([id], person.id))[0]);
 }));
 router.patch('/bulletins/:id', route(async (req, res) => {
   const person = await requirePerson(req), id = uuid(req.params.id);
   const input = parse(UpdateBulletinBody, req.body);
   if (!input.body.trim() && !input.photoIds.length && !input.bookId) return fail(400, 'Önce yazını yaz');
+  const sourcesToDelete: string[] = [];
   await transaction(async (client) => {
     const result = await client.query<{ author_id: string }>('SELECT author_id FROM bulletins WHERE id=$1 FOR UPDATE', [id]);
     if (!result.rows[0]) return fail(404, 'Bülten bulunamadı.');
     if (result.rows[0].author_id !== person.id) return fail(403, 'Bu bülteni düzenleyemezsin.');
-    await validateAttachments(client, person.id, input.photoIds, input.bookId, id);
+    await validateAttachments(client, person.id, input.photoIds, input.bookId, id, sourcesToDelete);
     await client.query('UPDATE bulletin_uploads SET post_id=NULL WHERE post_id=$1 AND NOT(id=ANY($2::uuid[]))', [id, input.photoIds]);
     await client.query('UPDATE bulletin_uploads SET post_id=$1 WHERE id=ANY($2::uuid[])', [id, input.photoIds]);
     await client.query('UPDATE bulletins SET body=$2,photo_ids=$3,book_id=$4,updated_at=now() WHERE id=$1', [id, input.body.trim(), input.photoIds, input.bookId || null]);
   });
+  await Promise.all(sourcesToDelete.map(photoId => bulletinSourceObject(photoId).delete({ ignoreNotFound: true }).catch(() => {})));
   res.json((await postData([id], person.id))[0]);
 }));
 router.delete('/bulletins/:id', route(async (req, res) => {
@@ -209,17 +223,19 @@ router.post('/bulletin-uploads', route(async (req, res) => {
   const recent = await pool.query<{ count: number }>("SELECT count(*)::int AS count FROM bulletin_uploads WHERE owner_id=$1 AND created_at>now()-interval '1 hour'", [person.id]);
   if (recent.rows[0].count >= 60) return fail(429, 'Fotoğraf yükleme sınırına ulaştın. Daha sonra tekrar dene.');
   const uploadURL = await bulletinUploadUrl(id);
-  await pool.query('INSERT INTO bulletin_uploads(id,owner_id,object_path,content_type,size) VALUES($1,$2,$3,$4,$5)', [id, person.id, `bulletins/${id}`, input.contentType, input.size]);
+  await pool.query(`INSERT INTO bulletin_uploads(id,owner_id,object_path,content_type,size,source_upload)
+    VALUES($1,$2,$3,$4,$5,true)`, [id, person.id, `bulletins/${id}`, input.contentType, input.size]);
   res.json({ id, uploadURL });
 }));
 router.get('/bulletin-media/:id', route(async (req, res) => {
   const id = uuid(req.params.id);
-  const result = await pool.query<{ content_type: string }>(`SELECT v.content_type FROM bulletin_uploads v
+  const result = await pool.query<{ content_type: string; sealed: boolean }>(`SELECT v.content_type,v.sealed FROM bulletin_uploads v
     JOIN bulletins p ON p.id=v.post_id WHERE v.id=$1 AND NOT p.moderation_hidden`, [id]);
   if (!result.rows[0]) return fail(404, 'Fotoğraf bulunamadı.');
-  res.setHeader('Content-Type', result.rows[0].content_type);
+  res.setHeader('Content-Type', result.rows[0].sealed ? 'image/jpeg' : result.rows[0].content_type);
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  const stream = bulletinObject(id).createReadStream();
+  res.setHeader('Cache-Control', 'private,no-store');
+  const stream = (result.rows[0].sealed ? bulletinCanonicalObject(id) : bulletinObject(id)).createReadStream();
   stream.on('error', () => { if (!res.headersSent) res.status(404).json({ error: 'Fotoğraf yüklenemedi.' }); else res.destroy(); });
   stream.pipe(res);
 }));

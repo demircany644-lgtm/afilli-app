@@ -8,7 +8,6 @@ import { F, tap } from '@/components/ui';
 import { useGifPrivacy } from '@/context/DirectMessagesContext';
 import { searchGifs } from '@/lib/klipy';
 import { PoweredByKlipy } from './GifMessage';
-import { SharedGifPicker } from './SharedGifPicker';
 
 /** Explicit KLIPY disclosure; nothing external loads until the account consents. */
 export function GifConsent({ onAccept, onClose }: { onAccept: () => void; onClose?: () => void }) {
@@ -29,18 +28,7 @@ export function GifConsent({ onAccept, onClose }: { onAccept: () => void; onClos
 }
 
 export function GifPicker({ onPick, onClose }: { onPick: (gif: MessageGif, query: string) => void; onClose: () => void }) {
-  const [tab, setTab] = useState<'afilli' | 'klipy'>('afilli');
-  const { magazine: P } = useTheme();
-  return <View style={{ backgroundColor: P.background }}>
-    <View style={{ flexDirection: 'row', paddingHorizontal: 14, gap: 8, paddingTop: 8 }}>
-      {(['afilli', 'klipy'] as const).map(key => <Pressable key={key} testID={'gif-tab-' + key} accessibilityRole="tab"
-        accessibilityState={{ selected: tab === key }} onPress={() => setTab(key)}
-        style={{ flex: 1, minHeight: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: tab === key ? P.text : P.card }}>
-        <Text style={{ fontFamily: F.semi, fontSize: 13, color: tab === key ? P.card : P.text }}>{key === 'afilli' ? 'Afilli GIF’leri' : 'KLIPY'}</Text>
-      </Pressable>)}
-    </View>
-    {tab === 'afilli' ? <SharedGifPicker onPick={onPick} onClose={onClose} /> : <KlipyPicker onPick={onPick} onClose={onClose} />}
-  </View>;
+  return <KlipyPicker onPick={onPick} onClose={onClose} />;
 }
 
 function KlipyPicker({ onPick, onClose }: { onPick: (gif: MessageGif, query: string) => void; onClose: () => void }) {

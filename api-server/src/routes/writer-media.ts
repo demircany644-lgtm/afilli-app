@@ -8,6 +8,7 @@ import { writerObject, writerUploadUrl, writerImageAccessUrl } from '../lib/bull
 import { PRESETS, presetUrl } from '../lib/writer-document';
 import { publicBook } from '../lib/book-access';
 import { setMediaReservation } from '../lib/writer-retention';
+import { checkAndRecordProhibitedImage, prohibitedImageFailure } from '../lib/prohibited-images';
 
 const router: IRouter = Router();
 router.get('/writer-presets', route((_req, res) => res.json(PRESETS.map(({ id, title }) => ({ id, title, cover: `preset:${id}`, url: presetUrl(id) })))));
@@ -65,6 +66,8 @@ router.post('/writer-uploads/:id/complete', route(async (req, res) => {
       const actual = info.format === 'jpeg' ? 'image/jpeg' : info.format === 'png' ? 'image/png' : info.format === 'webp' ? 'image/webp' : '';
       if (!actual || actual !== row.content_type || (info.pages ?? 1) > 1 || !info.width || !info.height) throw new Error('type');
       const sealed = await processor.rotate().resize({ width: 1800, height: 2700, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 95, mozjpeg: true }).toBuffer();
+      const hit = await checkAndRecordProhibitedImage(owner.id, 'book', sealed);
+      if (hit) prohibitedImageFailure(hit.id);
       await writerObject(`${id}/image`).save(sealed, { resumable: false, contentType: 'image/jpeg', metadata: { cacheControl: 'private,max-age=0,no-store' } });
       await db.query('UPDATE writer_uploads SET ready=true WHERE id=$1', [id]);
       // The only signed PUT targets /source. A later PUT cannot replace the sealed image.

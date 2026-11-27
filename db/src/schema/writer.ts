@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, text, uuid, integer, boolean, timestamp, date, primaryKey, uniqueIndex, index, check, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, integer, boolean, timestamp, date, primaryKey, uniqueIndex, index, check, foreignKey, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { authoredBooks, communityUsers } from './community';
 
 export const writerUploads = pgTable('writer_uploads', {
@@ -28,6 +28,18 @@ export const writerLikes = pgTable('writer_likes', {
   bookId: uuid('book_id').notNull().references(() => authoredBooks.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => communityUsers.id),
 }, t => [primaryKey({ columns: [t.bookId, t.userId] })]);
+export const writerBookCopies = pgTable('writer_book_copies', {
+  ownerId: text('owner_id').notNull(),
+  sourceBookId: uuid('source_book_id').notNull(),
+  clientRequestId: uuid('client_request_id').notNull(),
+  copyBookId: uuid('copy_book_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  primaryKey({ columns: [t.ownerId, t.sourceBookId, t.clientRequestId] }),
+  foreignKey({ name: 'writer_book_copies_owner_id_fkey', columns: [t.ownerId], foreignColumns: [communityUsers.id] }).onDelete('cascade'),
+  foreignKey({ name: 'writer_book_copies_source_book_id_fkey', columns: [t.sourceBookId], foreignColumns: [authoredBooks.id] }).onDelete('cascade'),
+  foreignKey({ name: 'writer_book_copies_copy_book_id_fkey', columns: [t.copyBookId], foreignColumns: [authoredBooks.id] }).onDelete('set null'),
+]);
 // Thread structure survives content/account deletion, without keeping author,
 // body or client id. A deleted parent must not delete another reader's replies.
 export const writerCommentNodes = pgTable('writer_comment_nodes', {

@@ -17,12 +17,16 @@ export const authAccounts = pgTable('afilli_auth_accounts', {
 ]);
 export const authSessions = pgTable('afilli_auth_sessions', {
   tokenHash: text('token_hash').primaryKey(), userId: text('user_id').notNull(),
+  accessMode: text('access_mode').notNull().default('normal'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [
   foreignKey({ name: 'afilli_auth_sessions_user_id_fkey', columns: [t.userId], foreignColumns: [authAccounts.userId] }),
   index('afilli_auth_sessions_user').on(t.userId),
+  // The constraint was broadened after disabled-account appeals already used
+  // the earlier normal/appeal check; a new name makes Drizzle replace it.
+  check('afilli_auth_sessions_access_mode_contact', sql`${t.accessMode} IN ('normal','appeal','contact')`),
 ]);
 export const authCodes = pgTable('afilli_auth_codes', {
   id: uuid('id').primaryKey(), userId: text('user_id').notNull(),

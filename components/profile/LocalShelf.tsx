@@ -19,7 +19,8 @@ export function LocalShelf({ signedIn }: { signedIn: boolean }) {
     { icon: 'book-open', label: 'Kitaplık', value: Object.keys(library).length, path: '/library', testID: 'profile-local-library' },
     { icon: 'bookmark', label: 'Kayıtlı', value: saved.length, path: '/library', testID: 'profile-local-saved' },
     { icon: 'edit-3', label: 'Taslaklar', value: drafts.length, path: '/write', testID: 'profile-local-drafts' },
-    { icon: 'shopping-bag', label: 'Mağazam', value: store.length, path: '/store', testID: 'profile-store' },
+    { icon: 'shopping-cart', label: 'Sepetim', path: '/cart', testID: 'profile-cart' },
+    { icon: 'shopping-bag', label: 'Kişisel vitrin', value: store.length, path: '/storefront', testID: 'profile-store' },
     ...(signedIn ? [{ icon: 'message-circle' as const, label: 'Mesajlar', path: '/messages', testID: 'profile-local-messages' }] : []),
     { icon: 'users', label: 'Okurları keşfet', path: '/search?tab=people', testID: 'profile-local-people' },
   ];

@@ -5,10 +5,15 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CommunityPersonPremiumChatEffect } from './communityPersonPremiumChatEffect';
+import type { WriterAchievement } from './writerAchievement';
 
 export interface CommunityPerson {
   id: string;
   nickname: string;
   /** @nullable */
   avatar: string | null;
+  writerBadges?: WriterAchievement[];
+  /** @nullable */
+  premiumChatEffect?: CommunityPersonPremiumChatEffect;
 }

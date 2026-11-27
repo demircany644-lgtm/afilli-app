@@ -78,11 +78,15 @@ try {
 
   const thread = (await api('/conversations', root, 'POST', { peerId: users[1].id })).id;
   const send = (body, extras = {}, who = root, status = 201) => api(`/conversations/${thread}/messages`, who, 'POST', { clientId: randomUUID(), body, ...extras }, status);
-  await send('', { gif: { ...gif, id: bad.id } }, root, 422);
-  await send('', { gif: { ...gif, id: randomUUID() } }, root, 422);
-  const sent = await send('Keep this caption', { gif: { ...gif, url: 'https://evil.invalid/track', width: 1000, title: 'spoof' } });
-  assert.deepEqual(sent.gif, gif); // Canonical server fields, never untrusted URLs/dimensions.
-  assert.equal((await send(sent.body, { clientId: sent.clientId, gif: { ...gif, url: 'https://evil.invalid/track', width: 1000, title: 'spoof' } })).id, sent.id);
+  await send('', { gif }, root, 400); // The shared library remains intact but cannot be sent in private messages.
+  await send('', { gif: { ...gif, id: randomUUID() } }, root, 400);
+  const klipyGif = { provider: 'klipy', id: 'klipy-fixture-1', title: 'Synthetic KLIPY GIF', width: 270, height: 151,
+    url: 'https://static.klipy.com/ii/5d/9c/fixture.gif', sourceUrl: 'https://klipy.com/gifs/klipy-fixture-1',
+    attribution: 'Powered by KLIPY', license: null };
+  await send('Rejected remote URL', { gif: { ...klipyGif, url: 'https://evil.invalid/track' } }, root, 400);
+  const sent = await send('Keep this caption', { gif: klipyGif });
+  assert.deepEqual(sent.gif, klipyGif); // Valid KLIPY media is retained with its caption.
+  assert.equal((await send(sent.body, { clientId: sent.clientId, gif: klipyGif })).id, sent.id);
   const reply = await send('Keep this reply', { replyToId: sent.id }, reader);
   const text = await send('Written messages never expire');
   await pool.query("UPDATE direct_messages SET created_at=now()-interval '8 days' WHERE id=ANY($1::uuid[])", [[sent.id, text.id]]);
@@ -94,7 +98,7 @@ try {
   await api('/message-media/cleanup', reader, 'POST');
   assert.ok((await api('/gif-library', reader)).items.some(g => g.id === gif.id));
   await media(gif.id, reader); // Shared original survives private-message expiry.
-  const deletable = await send('', { gif });
+  const deletable = await send('', { gif: klipyGif });
   await api(`/conversations/${thread}/messages/${deletable.id}`, reader, 'DELETE', undefined, 403);
   const tombstone = await api(`/conversations/${thread}/messages/${deletable.id}`, root, 'DELETE');
   assert.ok(tombstone.deletedAt); assert.equal(tombstone.gif, null);

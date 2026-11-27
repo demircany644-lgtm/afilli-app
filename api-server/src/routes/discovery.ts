@@ -2,12 +2,13 @@ import { Router, type IRouter } from 'express';
 import { pool } from '@workspace/db';
 import { SetReadingPositionBody, GetReadingPositionResponse, SetReadingPositionResponse } from '@workspace/api-zod';
 import { route, uuid, requirePerson, parse, fail, transaction } from '../lib/community';
-import { bookCards, discoveryBooks } from '../lib/discovery';
+import { bookCards, discoveryBooks, readerReadBooks } from '../lib/discovery';
 import { writerRow, requirePublished } from '../lib/writer-service';
 import { legacyDocument } from '../lib/writer-document';
 
 const router: IRouter = Router();
-router.get('/discovery/books', route(async (req, res) => res.json(await discoveryBooks(req.query.sort, req.query.search, req.query.cursor))));
+router.get('/discovery/books', route(async (req, res) => res.json(await discoveryBooks(req.query.sort, req.query.search, req.query.cursor, req.query.category))));
+router.get('/reader/read-books', route(async (req, res) => res.json(await readerReadBooks((await requirePerson(req)).id))));
 router.get('/discovery/book-cards', route(async (req, res) => res.json(await bookCards(req.query.ids))));
 router.get('/authored-books/:id/reading-position', route(async (req, res) => {
   const actor = await requirePerson(req), id = uuid(req.params.id);

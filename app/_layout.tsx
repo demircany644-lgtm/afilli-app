@@ -9,7 +9,7 @@ import { ErrorFallback, type ErrorFallbackProps } from '@/components/ErrorFallba
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, useFonts } from '@expo-google-fonts/inter';
 import { GreatVibes_400Regular } from '@expo-google-fonts/great-vibes';
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold, PlayfairDisplay_400Regular_Italic } from '@expo-google-fonts/playfair-display';
-import { Stack, usePathname } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { AppProvider } from '@/context/AppContext';
@@ -24,6 +24,7 @@ import { DirectMessagesProvider } from '@/context/DirectMessagesContext';
 import { AppearanceProvider, useAppearance } from '@/context/AppearanceContext';
 import { useTheme } from '@/hooks/useTheme';
 import { isFullscreenChatPath } from '@/lib/fullscreen-chat';
+import { useAuth } from '@/context/AuthContext';
 
 const apiDomain = process.env.EXPO_PUBLIC_DOMAIN;
 if (apiDomain) setBaseUrl(`https://${apiDomain}`);
@@ -38,9 +39,15 @@ function StartupErrorFallback(props: ErrorFallbackProps) {
 function RootLayoutNav() {
   const pathname = usePathname();
   const fullscreenChat = isFullscreenChatPath(pathname);
+  const { accessMode } = useAuth();
   const { isLava } = useAppearance();
   const t = useTheme();
   const bg = isLava ? colors.lava.bg : t.light.background;
+  const appealPaths = ['/account-restricted', '/account-appeal', '/afilli-rules', '/saved', '/(tabs)/saved'];
+  const contactPaths = ['/account-restricted', '/prohibited-image-contact'];
+  if (accessMode === 'normal' && pathname === '/account-restricted') return <Redirect href="/" />;
+  if (accessMode === 'appeal' && !appealPaths.includes(pathname)) return <Redirect href="/account-restricted" />;
+  if (accessMode === 'contact' && !contactPaths.includes(pathname)) return <Redirect href="/account-restricted" />;
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
       <StatusBar style={t.isDark || (isLava && pathname === '/') ? 'light' : 'dark'} />
@@ -48,11 +55,15 @@ function RootLayoutNav() {
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: bg }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="search" options={{ animation: 'fade' }} />
+          <Stack.Screen name="account-restricted" />
+          <Stack.Screen name="account-appeal" />
+          <Stack.Screen name="afilli-rules" />
+          <Stack.Screen name="prohibited-image-contact" />
         </Stack>
       </View>
       {/* Full-screen chats (writer chat and private /chat/[id]) hide the five tabs; other screens keep them. */}
-      <SavedBookSync />
-      {!fullscreenChat ? <BottomNavigation /> : null}
+      {accessMode === 'normal' ? <SavedBookSync /> : null}
+      {accessMode === 'normal' && !fullscreenChat ? <BottomNavigation /> : null}
     </View>
   );
 }

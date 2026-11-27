@@ -46,6 +46,9 @@ try {
   let notifications = await inbox(a);
   assert.equal(notifications.unreadCount, 1); assert.equal(notifications.items.length, 1);
   assert.equal(notifications.items[0].kind, 'book_comment'); assert.equal(notifications.items[0].commentId, root.id);
+  assert.ok(notifications.items[0].body.includes(`YorumDenetim1-${tag}`));
+  assert.ok(notifications.items[0].body.includes(document.title));
+  assert.ok(notifications.items[0].body.includes(root.body));
   await api(`/book-notifications/${notifications.items[0].id}`, o, 'PATCH', undefined, 404);
   await api(`/book-notifications/${notifications.items[0].id}`, a, 'PATCH', undefined, 204);
   await comment(r, 'Kök yorum', null, chapter, clientId);
@@ -53,7 +56,9 @@ try {
   const replyClient = randomUUID(), reply = await comment(o, 'İlk yanıt', root.id, chapter, replyClient);
   const nested = await comment(a, 'İç içe yanıt', reply.id, null);
   assert.equal(nested.chapterId, chapter);
-  assert.equal((await inbox(r)).items[0].kind, 'comment_reply');
+  const replyNotice = (await inbox(r)).items[0];
+  assert.equal(replyNotice.kind, 'comment_reply'); assert.equal(replyNotice.commentId, reply.id);
+  assert.ok(replyNotice.body.includes(document.title)); assert.ok(replyNotice.body.includes(reply.body));
   assert.equal((await inbox(o)).items[0].commentId, nested.id);
   assert.equal((await inbox(a)).items.length, 1); // replies don't also spam the author
   const self = await comment(r, 'Kendi yorumuma yanıt', root.id);
@@ -119,11 +124,12 @@ try {
   assert.deepEqual(removed.author, { id: 'deleted', nickname: '', avatar: null });
   assert.ok(removed.reactions.every(reaction => reaction.count === 0 && !reaction.selected));
   assert.equal((await pool.query('SELECT id FROM writer_comments WHERE id=$1', [root.id])).rowCount, 0);
+  assert.equal((await pool.query('SELECT comment_id FROM writer_comment_reactions WHERE comment_id=$1', [root.id])).rowCount, 0);
   assert.equal((await pool.query('SELECT id FROM writer_comment_nodes WHERE id=$1', [root.id])).rowCount, 1);
   assert.equal((await pool.query('SELECT id FROM writer_comments WHERE id=ANY($1::uuid[])', [[reply.id, nested.id, self.id]])).rowCount, 3);
   const ghost = (await api(`/authored-books/${book}/comment-threads`, r)).items[0];
   assert.equal(ghost.id, root.id); assert.equal(ghost.deleted, true); assert.equal(ghost.replyCount, 2);
-  assert.ok(!JSON.stringify(ghost).includes('Kök yorum')); assert.equal(ghost.author.id, 'deleted');
+  assert.ok(!JSON.stringify(ghost).includes('Kök yorum')); assert.deepEqual(ghost.author, { id: 'deleted', nickname: '', avatar: null });
   assert.equal((await api(`/writer-comments/${root.id}/replies`, r)).items.length, 2);
   await comment(o, 'Deleted parent', root.id, chapter, randomUUID(), 404);
   await react(o, 'like', 404);
@@ -156,17 +162,29 @@ try {
   await pool.query('UPDATE social_notifications SET read=true WHERE id=ANY($1::uuid[])', [notificationIds.slice(0, 30)]);
   assert.equal((await inbox(a)).unreadCount, 15); // older-page unread still lights the shared badge
 
-  // Following, book reactions, bulletin activity and private messages do not
+  // Following, comment reactions, bulletin activity and private messages do not
   // enter the book inbox; DM unread remains separately authoritative.
   await api(`/profiles/${author}/follow`, f, 'PUT', { following: true });
   await api(`/authored-books/${book}/like`, r, 'PUT', { liked: true });
+  let likes = (await inbox(a)).items.filter(n => n.kind === 'book_like');
+  assert.equal(likes.length, 1); assert.equal(likes[0].bookId, book); assert.equal(likes[0].actorId, reader); assert.equal(likes[0].read, false);
+  assert.ok(likes[0].body.includes(`YorumDenetim1-${tag}`)); assert.ok(likes[0].body.includes(document.title));
+  await api(`/book-notifications/${likes[0].id}`, a, 'PATCH', undefined, 204);
+  assert.equal((await inbox(a)).items.find(n => n.kind === 'book_like').read, true);
+  await api(`/authored-books/${book}/like`, r, 'PUT', { liked: true }); // repeated like request is idempotent
+  assert.equal((await inbox(a)).items.filter(n => n.kind === 'book_like').length, 1);
+  await api(`/authored-books/${book}/like`, r, 'PUT', { liked: false });
+  await api(`/authored-books/${book}/like`, r, 'PUT', { liked: true }); // same liker/book event stays deduplicated
+  await api(`/authored-books/${book}/like`, a, 'PUT', { liked: true }); // an author never notifies themselves
+  likes = (await inbox(a)).items.filter(n => n.kind === 'book_like');
+  assert.equal(likes.length, 1);
   const thread = await api('/conversations', r, 'POST', { peerId: author });
   await api(`/conversations/${thread.id}/messages`, r, 'POST', { clientId: randomUUID(), body: 'Private test message' }, 201);
   assert.equal((await api('/conversations', a)).find(t => t.id === thread.id).unreadCount, 1);
   await pool.query(`INSERT INTO social_notifications(recipient_id,actor_id,kind,event_key,book_id)
     VALUES($1,$2,'follow',$3,$4),($1,$2,'message',$5,$4),($1,$2,'publication',$6,$4)`,
   [author, other, 'old-follow-'+tag, book, 'old-message-'+tag, 'old-publication-'+tag]);
-  assert.ok((await api('/social-notifications', a)).every(n => ['chapter','book_comment','comment_reply'].includes(n.kind)));
+  assert.ok((await api('/social-notifications', a)).every(n => ['chapter','book_like','book_comment','comment_reply'].includes(n.kind)));
   assert.deepEqual(await api('/bulletin-notifications', a), []);
 
   // Subscription merge is additive and scoped. No follower-only notifications.

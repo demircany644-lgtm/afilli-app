@@ -4,7 +4,8 @@ import { pool } from '@workspace/db';
 import { UpdateMyProfileBody, SetProfileFollowBody, UpdateSocialSettingsBody, UpdatePresenceBody, RequestProfileUploadBody, type ProfileBook } from '@workspace/api-zod';
 import { route, parse, fail, viewer, requirePerson, transaction, uuid, postData } from '../lib/community';
 import { PERSON, personId, profileData, getSettings, socialNotify, pageCursor } from '../lib/social';
-import { profileObject, profileUploadUrl, validateProfileObject } from '../lib/bulletin-storage';
+import { profileCanonicalObject, profileObject, profileSourceObject, profileUploadUrl, prepareProfileObject } from '../lib/bulletin-storage';
+import { checkAndRecordProhibitedImage, prohibitedImageFailure } from '../lib/prohibited-images';
 import { publicBook } from '../lib/book-access';
 import { adminWrite, saveAdminSettings } from '../lib/admin';
 import { UpdateMyVisibilityBody } from '@workspace/api-zod';
@@ -31,6 +32,7 @@ router.patch('/my-profile', route(async (req, res) => {
   const actor = await requirePerson(req), input = parse(UpdateMyProfileBody, req.body);
   const nickname = input.nickname.trim(), handle = input.handle.trim().replace(/^@/, '').toLowerCase();
   if (!nickname || !/^[a-z0-9_.]{3,30}$/.test(handle)) return fail(400, 'Takma adını ve 3–30 karakterlik kullanıcı adını kontrol et.');
+  const sourcesToDelete: string[] = [];
   try {
     await transaction(async (client) => {
       const before = (await client.query<{ avatar: string | null; cover: string | null }>('SELECT avatar,cover FROM community_users WHERE id=$1 FOR UPDATE', [actor.id])).rows[0];
@@ -40,11 +42,22 @@ router.patch('/my-profile', route(async (req, res) => {
         if (id === undefined) continue;
         let url: string | null = null;
         if (id !== null) {
-          const upload = (await client.query<{ content_type: string; size: number }>('SELECT content_type,size FROM profile_uploads WHERE id=$1 AND owner_id=$2 AND purpose=$3 FOR UPDATE', [uuid(id), actor.id, purpose])).rows[0];
+          const upload = (await client.query<{ content_type: string; size: number; source_upload: boolean; sealed: boolean }>(
+            'SELECT content_type,size,source_upload,sealed FROM profile_uploads WHERE id=$1 AND owner_id=$2 AND purpose=$3 FOR UPDATE',
+            [uuid(id), actor.id, purpose],
+          )).rows[0];
           if (!upload) return fail(403, 'Bu fotoğrafı kullanma yetkin yok.');
-          try { await validateProfileObject(id, upload.content_type, upload.size); }
+          let image: Buffer;
+          try { image = await prepareProfileObject(id, upload.content_type, upload.size, upload.source_upload, upload.sealed); }
           catch { return fail(400, 'Fotoğraf yüklenemedi veya dosya geçersiz. Tekrar dene.'); }
-          await client.query('UPDATE profile_uploads SET attached=true WHERE id=$1', [id]);
+          const hit = await checkAndRecordProhibitedImage(actor.id, 'profile', image);
+          if (hit) prohibitedImageFailure(hit.id);
+          await profileCanonicalObject(id).save(image, {
+            resumable: false, contentType: 'image/jpeg', metadata: { cacheControl: 'private,no-store' },
+          });
+          if (upload.source_upload) sourcesToDelete.push(id);
+          await client.query(`UPDATE profile_uploads SET attached=true,sealed=true,source_upload=false,
+            content_type='image/jpeg',size=$2 WHERE id=$1`, [id, image.length]);
           url = '/api/profile-media/' + id;
         }
         if (before[purpose] && before[purpose] !== url && before[purpose]?.startsWith('/api/profile-media/')) {
@@ -60,6 +73,7 @@ router.patch('/my-profile', route(async (req, res) => {
     if ((error as { code?: string }).code === '23505') return fail(409, 'Bu kullanıcı adı zaten kullanılıyor.');
     throw error;
   }
+  await Promise.all(sourcesToDelete.map(id => profileSourceObject(id).delete({ ignoreNotFound: true }).catch(() => {})));
   res.json(await profileData(actor.id, actor.id));
 }));
 router.get('/profiles', route(async (req, res) => {
@@ -126,15 +140,19 @@ router.post('/profile-uploads', route(async (req, res) => {
   const recent = await pool.query<{ count: number }>("SELECT count(*)::int AS count FROM profile_uploads WHERE owner_id=$1 AND created_at>now()-interval '1 hour'", [actor.id]);
   if (recent.rows[0].count >= 30) return fail(429, 'Fotoğraf yükleme sınırına ulaştın. Daha sonra tekrar dene.');
   const uploadURL = await profileUploadUrl(id);
-  await pool.query('INSERT INTO profile_uploads(id,owner_id,purpose,content_type,size) VALUES($1,$2,$3,$4,$5)', [id, actor.id, input.purpose, input.contentType, input.size]);
+  await pool.query(`INSERT INTO profile_uploads(id,owner_id,purpose,content_type,size,source_upload)
+    VALUES($1,$2,$3,$4,$5,true)`, [id, actor.id, input.purpose, input.contentType, input.size]);
   res.json({ id, uploadURL });
 }));
 router.get('/profile-media/:id', route(async (req, res) => {
   const id = uuid(req.params.id);
-  const image = (await pool.query<{ content_type: string }>('SELECT content_type FROM profile_uploads WHERE id=$1 AND attached', [id])).rows[0];
+  const image = (await pool.query<{ content_type: string; sealed: boolean }>(
+    'SELECT content_type,sealed FROM profile_uploads WHERE id=$1 AND attached', [id],
+  )).rows[0];
   if (!image) return fail(404, 'Fotoğraf bulunamadı.');
-  res.setHeader('Content-Type', image.content_type); res.setHeader('X-Content-Type-Options', 'nosniff');
-  const stream = profileObject(id).createReadStream();
+  res.setHeader('Content-Type', image.sealed ? 'image/jpeg' : image.content_type); res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'private,no-store');
+  const stream = (image.sealed ? profileCanonicalObject(id) : profileObject(id)).createReadStream();
   stream.on('error', () => { if (!res.headersSent) res.status(404).json({ error: 'Fotoğraf yüklenemedi.' }); else res.destroy(); });
   res.on('close', () => stream.destroy()); stream.pipe(res);
 }));

@@ -3,10 +3,12 @@ import { pool } from '@workspace/db';
 import type { ReaderProfile, SocialSettings } from '@workspace/api-zod';
 import { fail, type Transaction } from './community';
 import { publicBook } from './book-access';
+import { writerBadgesSql } from './writer-achievements';
 
 // The only default official handle. All clients receive it from this configuration.
 export const DEFAULT_SOCIAL_SETTINGS: SocialSettings = { instagramUrl: null, popularDays: 30, popularLimit: 10 };
 export const PERSON = `json_build_object('id',u.id,'nickname',u.nickname,'avatar',u.avatar)`;
+export { writerBadgesSql } from './writer-achievements';
 export function personId(value: unknown) {
   if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(value)) return fail(400, 'Geçersiz kullanıcı.');
   return value;
@@ -67,6 +69,7 @@ export async function profileData(id: string, viewer: string | null): Promise<Re
     (u.online_visible AND EXISTS(SELECT 1 FROM conversations c WHERE
       ((c.user_low=u.id AND c.user_high=$2) OR (c.user_high=u.id AND c.user_low=$2))
       AND (CASE WHEN c.user_low=u.id THEN c.low_typing_until ELSE c.high_typing_until END)>now())) AS typing,
+    ${writerBadgesSql('u.id')} AS "writerBadges",
     EXISTS(SELECT 1 FROM (SELECT b.author_id FROM book_reads r JOIN authored_books b ON b.id=r.book_id
       WHERE r.created_at>now()-make_interval(days=>$3) AND r.reader_id<>b.author_id
       GROUP BY b.author_id ORDER BY count(*) DESC,b.author_id LIMIT $4) ranking WHERE ranking.author_id=u.id) AS popular
@@ -75,12 +78,26 @@ export async function profileData(id: string, viewer: string | null): Promise<Re
   const isAdmin = row.isMe ? await isAdministrator(id) : false;
   const preference = isAdmin ? (await pool.query<{ online_visible: boolean }>(
     'SELECT online_visible FROM community_users WHERE id=$1', [id])).rows[0]?.online_visible ?? null : null;
+  const premiumState = await pool.query<{ source: 'free' | 'paid'; expiresAt: Date | null }>(`SELECT source,expires_at AS "expiresAt"
+    FROM premium_memberships WHERE user_id=$1 AND status='active'
+      AND (source='free' OR expires_at>now())`, [id]);
+  const premium = !!premiumState.rows[0];
+  const styles = premium ? (await pool.query<{
+    profileFrame: import('@workspace/api-zod').PremiumPreferences['profileFrame'];
+    profileBackground: import('@workspace/api-zod').PremiumPreferences['profileBackground'];
+    chatEffect: import('@workspace/api-zod').PremiumPreferences['chatEffect'];
+    storeDesign: import('@workspace/api-zod').PremiumPreferences['storeDesign']; updatedAt: Date;
+  }>(`SELECT profile_frame AS "profileFrame",profile_background AS "profileBackground",
+      chat_effect AS "chatEffect",store_design AS "storeDesign",updated_at AS "updatedAt"
+    FROM premium_style_preferences WHERE user_id=$1`, [id])).rows[0] : null;
   return { ...row, online: !!row.online, lastSeen: row.lastSeen ? new Date(row.lastSeen).toISOString() : null,
-    premium: false, isAdmin, onlineVisible: preference };
+    premium, writerBadges: row.writerBadges ?? [],
+    premiumPreferences: styles ? { ...styles, updatedAt: new Date(styles.updatedAt) } : null,
+    isAdmin, onlineVisible: preference };
 }
 export async function socialNotify(client: Transaction, recipient: string, actor: string, kind: string, event: string,
   threadId: string | null = null, bookId: string | null = null, commentId: string | null = null, chapterId: string | null = null) {
-  if (recipient === actor || !['chapter', 'book_comment', 'comment_reply'].includes(kind)) return;
+  if (recipient === actor || !['chapter', 'book_like', 'book_comment', 'comment_reply'].includes(kind)) return;
   await client.query(`INSERT INTO social_notifications(recipient_id,actor_id,kind,event_key,thread_id,book_id,comment_id,chapter_id)
     VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(recipient_id,event_key) DO NOTHING`,
   [recipient, actor, kind, event, threadId, bookId, commentId, chapterId]);

@@ -26,13 +26,18 @@ export function openBook(id: string) { router.push({ pathname: '/authored-book/[
 export function DiscoveryCover({ card, w, h }: { card: Pick<DiscoveryBookCard, 'title' | 'coverUrl' | 'author'>; w: number; h: number }) {
   const st = useStyles();
   const uri = useCoverUri(card.coverUrl ?? null, null, 'published');
-  if (uri) return <Image source={{ uri }} style={{ width: w, height: h }} resizeMode="cover" accessibilityIgnoresInvertColors />;
   return (
-    <View style={[st.plate, { width: w, height: h }]}>
-      <View style={st.plateRule} />
-      <Text style={[st.plateTitle, { fontSize: Math.max(11, Math.round(w / 9)) }]} numberOfLines={4}>{card.title}</Text>
-      <Text style={st.plateAuthor} numberOfLines={1}>{card.author.nickname}</Text>
-      <View style={st.plateRule} />
+    <View style={{ width: w, height: h, position: 'relative' }} accessibilityLabel={card.title + ' kapağı, telifli eser'}>
+      {uri ? <Image source={{ uri }} style={{ width: w, height: h }} resizeMode="cover" accessibilityIgnoresInvertColors /> :
+        <View style={[st.plate, { width: w, height: h }]}>
+          <View style={st.plateRule} />
+          <Text style={[st.plateTitle, { fontSize: Math.max(11, Math.round(w / 9)) }]} numberOfLines={4}>{card.title}</Text>
+          <Text style={st.plateAuthor} numberOfLines={1}>{card.author.nickname}</Text>
+          <View style={st.plateRule} />
+        </View>}
+      <View pointerEvents="none" accessibilityLabel="Telif koruması simgesi" style={st.copyrightBadge}>
+        <Text style={[st.copyrightMark, { fontSize: Math.max(11, Math.min(15, Math.round(w / 10))) }]}>©</Text>
+      </View>
     </View>
   );
 }
@@ -47,6 +52,7 @@ export function BookResultRow({ card, testID }: { card: DiscoveryBookCard; testI
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={st.title} numberOfLines={2}>{card.title}</Text>
         <Text style={st.sub} numberOfLines={1}>{card.author.nickname}</Text>
+        {card.author.writerBadges?.length ? <Text style={st.badges} numberOfLines={1}>{card.author.writerBadges.map((badge) => ({ successful: 'Afilli Başarılı Yazar', master: 'Afilli Usta Yazar', popular: 'Afilli Popüler Yazar' })[badge]).join(' · ')}</Text> : null}
         {card.genres.length ? <Text style={st.genre} numberOfLines={1}>{card.genres.join(' · ')}</Text> : null}
         <View style={st.stats}>
           <Feather name="eye" size={12} color={P.muted} /><Text style={st.stat}>{compactCount(card.readCount)}</Text>
@@ -67,6 +73,7 @@ export function PersonRow({ person }: { person: CommunityPerson }) {
       onPress={() => { tap(); router.push(('/people/' + person.id) as never); }} style={({ pressed }) => [st.row, { minHeight: 64, transform: [{ scale: pressed ? 0.99 : 1 }] }]}>
       <Avatar person={person} size={44} />
       <Text style={[st.title, { flex: 1, fontFamily: F.semi, fontSize: 15 }]} numberOfLines={1}>{person.nickname}</Text>
+      {person.writerBadges?.length ? <Text style={st.badges}>{person.writerBadges.map((badge) => ({ successful: 'Afilli Başarılı Yazar', master: 'Afilli Usta Yazar', popular: 'Afilli Popüler Yazar' })[badge]).join(' · ')}</Text> : null}
       <Feather name="chevron-right" size={18} color={P.muted} />
     </Pressable>
   );
@@ -92,6 +99,8 @@ const useStyles = makeStyles((t) => {
     plateRule: { width: '40%', height: 1, backgroundColor: t.social.foilMid },
     plateTitle: { fontFamily: F.serifBold, color: P.text, textAlign: 'center' },
     plateAuthor: { fontFamily: F.body, fontSize: 9.5, color: P.muted, letterSpacing: 0.6, textTransform: 'uppercase' },
+    copyrightBadge: { position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(22,12,13,0.72)', borderWidth: 1, borderColor: t.social.foilMid },
+    copyrightMark: { fontFamily: F.semi, color: '#F5DB9B' },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 18, marginBottom: 10, padding: 10, borderRadius: 16, borderWidth: 1, borderColor: P.border, backgroundColor: P.card },
     thumb: { borderRadius: 5, overflow: 'hidden' },
     title: { fontFamily: F.serifBold, fontSize: 16, color: P.text },
@@ -99,6 +108,7 @@ const useStyles = makeStyles((t) => {
     genre: { fontFamily: F.med, fontSize: 11.5, color: t.social.foilDeep },
     stats: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
     stat: { fontFamily: F.body, fontSize: 11.5, color: P.muted, marginRight: 8 },
+    badges: { fontFamily: F.semi, fontSize: 10, color: t.social.foilDeep, marginTop: 1 },
     note: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', paddingVertical: 10, paddingHorizontal: 4 },
     noteText: { flex: 1, fontFamily: F.body, fontSize: 11.5, lineHeight: 16, color: P.muted },
     more: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 18, marginVertical: 8, height: 44, borderRadius: 22, borderWidth: 1, borderColor: t.social.foilMid },

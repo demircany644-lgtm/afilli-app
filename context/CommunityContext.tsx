@@ -7,7 +7,7 @@ import { setLiveProgressOwner } from '@/lib/reading-progress';
 import { CommunityContext } from './community-session';
 
 export function CommunityProvider({ children }: { children: React.ReactNode }) {
-  const { isLoaded, userId, getToken, signOut: endSession } = useAuth();
+  const { isLoaded, userId, accessMode, getToken, signOut: endSession } = useAuth();
   const queryClient = useQueryClient();
   const [transportIdentity, setTransportIdentity] = useState<string | null | undefined>(undefined);
   const transportReady = !!isLoaded && transportIdentity === userId;
@@ -34,21 +34,21 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
   }, [getToken, isLoaded, userId, queryClient]);
 
   useEffect(() => {
-    if (!transportReady || !userId) { setPerson(null); return; }
+    if (!transportReady || !userId || accessMode !== 'normal') { setPerson(null); setError(null); return; }
     let active = true;
     getMyProfile().then((profile) => {
       if (active) { setPerson(profile); setError(null); }
     }).catch(() => { if (active) setError('Bağlantı yok, tekrar dene. Profil bilgilerin eşitlenemedi.'); });
     return () => { active = false; };
-  }, [transportReady, userId]);
+  }, [transportReady, userId, accessMode]);
   const refreshProfile = useCallback(async () => {
     const owner = userId;
-    if (!owner || !transportReady) return;
+    if (!owner || !transportReady || accessMode !== 'normal') return;
     const profile = await getMyProfile();
     if (currentIdentity.current === owner) { setPerson(profile); setError(null); }
-  }, [userId, transportReady]);
+  }, [userId, transportReady, accessMode]);
   useEffect(() => {
-    if (!transportReady || !userId) return;
+    if (!transportReady || !userId || accessMode !== 'normal') return;
     const owner = userId;
     const isForeground = () => AppState.currentState === 'active' && (Platform.OS !== 'web' || document.visibilityState === 'visible');
     const heartbeat = () => {
@@ -63,7 +63,7 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
       clearInterval(timer); subscription.remove();
       if (Platform.OS === 'web') document.removeEventListener('visibilitychange', heartbeat);
     };
-  }, [transportReady, userId]);
+  }, [transportReady, userId, accessMode]);
 
   return (
     <CommunityContext.Provider value={{
@@ -71,7 +71,7 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
       signOut: async (redirectTo = '/profile') => {
         const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 1800);
         try {
-          if (userId) await updatePresence({ active: false }, { headers: { 'X-Afilli-Actor': userId }, signal: controller.signal }).catch(() => {});
+          if (userId && accessMode === 'normal') await updatePresence({ active: false }, { headers: { 'X-Afilli-Actor': userId }, signal: controller.signal }).catch(() => {});
         } finally { clearTimeout(timeout); }
         await endSession(); setPerson(null); queryClient.clear();
       },

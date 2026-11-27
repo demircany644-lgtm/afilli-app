@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { F, tap } from '@/components/ui';
 
 
-/** Fixed top row: back on the left, centered title, search/messages/profile on the right. */
+/** Keşfet and Mesaj are home-only; non-home headers may keep the profile action. */
 export function TopBar({ title, backTo = '/', icons = true }: { title: string; backTo?: Href; icons?: boolean }) {
   const { magazine: b } = useTheme();
   const st = useStStyles();
@@ -29,7 +29,7 @@ export function TopBar({ title, backTo = '/', icons = true }: { title: string; b
       </View>
       <Text style={st.title} numberOfLines={1} accessibilityRole="header">{title}</Text>
       <View style={[st.side, { justifyContent: 'flex-end' }]}>
-        {icons ? [icon('search', '/search', 'Ara'), icon('message-circle', '/messages', 'Mesajlar'), icon('user', '/profile', 'Profil')] : null}
+        {icons ? icon('user', '/profile', 'Profil') : null}
       </View>
     </View>
   );

@@ -1,10 +1,13 @@
 import { pool } from '@workspace/db';
 import type { AuthoredBook, WriterDocument, WriterSaveInput, WriterDeltaInput, WriterSaveAck, WriterPublicationInput, WriterSummary } from '@workspace/api-zod';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { fail, type Transaction } from './community';
 import { publicBook } from './book-access';
 import { commentTree, publicCommentCount } from './book-comment-query';
+import { writerBadgesSql } from './writer-achievements';
 import { coverUrl, deltaMediaIds, legacyDocument, mediaIds, normalizeDocument, plain, validatePublication, writerBook, type WriterRow } from './writer-document';
+import { writerObject } from './bulletin-storage';
+import { checkAndRecordProhibitedImage, prohibitedImageFailure } from './prohibited-images';
 
 type Db = Transaction | typeof pool;
 export async function writerRow(id: string, db: Db = pool, lock = false): Promise<WriterRow> {
@@ -23,6 +26,16 @@ export async function syncMediaRefs(db: Transaction, bookId: string, owner: stri
   if (ids.length) {
     const result = await db.query<{ id: string }>('SELECT id FROM writer_uploads WHERE owner_id=$1 AND ready AND deleting_at IS NULL AND id=ANY($2::uuid[]) ORDER BY id FOR UPDATE', [owner, ids]);
     if (result.rowCount !== ids.length) return fail(403, 'Görsel yüklemesi tamamlanmadı veya bu görsel sana ait değil.');
+    const alreadyReferenced = await db.query<{ media_id: string }>(
+      'SELECT media_id FROM writer_media_refs WHERE book_id=$1 AND version=$2 AND media_id=ANY($3::uuid[])', [bookId, version, ids],
+    );
+    const existing = new Set(alreadyReferenced.rows.map(row => row.media_id));
+    for (const id of ids) {
+      if (existing.has(id)) continue;
+      const [image] = await writerObject(`${id}/image`).download();
+      const hit = await checkAndRecordProhibitedImage(owner, 'book', image);
+      if (hit) prohibitedImageFailure(hit.id);
+    }
     await db.query('UPDATE writer_uploads SET orphaned_at=NULL WHERE id=ANY($1::uuid[]) AND orphaned_at IS NOT NULL', [ids]);
   }
   await db.query('DELETE FROM writer_media_refs WHERE book_id=$1 AND version=$2', [bookId, version]);
@@ -36,6 +49,17 @@ async function syncDeltaMediaRefs(db: Transaction, row: WriterRow, owner: string
   if (nextIds.length) {
     const uploads = await db.query('SELECT id FROM writer_uploads WHERE owner_id=$1 AND ready AND deleting_at IS NULL AND id=ANY($2::uuid[]) ORDER BY id FOR UPDATE', [owner, nextIds]);
     if (uploads.rowCount !== nextIds.length) return fail(403, 'Görsel yüklemesi tamamlanmadı veya bu görsel sana ait değil.');
+    const alreadyReferenced = await db.query<{ media_id: string }>(
+      `SELECT media_id FROM writer_media_refs WHERE book_id=$1 AND version='draft' AND media_id=ANY($2::uuid[])`,
+      [row.id, nextIds],
+    );
+    const existing = new Set(alreadyReferenced.rows.map(item => item.media_id));
+    for (const mediaId of nextIds) {
+      if (existing.has(mediaId)) continue;
+      const [image] = await writerObject(`${mediaId}/image`).download();
+      const hit = await checkAndRecordProhibitedImage(owner, 'book', image);
+      if (hit) prohibitedImageFailure(hit.id);
+    }
     await db.query('UPDATE writer_uploads SET orphaned_at=NULL WHERE id=ANY($1::uuid[]) AND orphaned_at IS NOT NULL', [nextIds]);
   }
   if (removed.length) await db.query('DELETE FROM writer_media_refs WHERE book_id=$1 AND version=$2 AND media_id=ANY($3::uuid[])', [row.id, 'draft', removed]);
@@ -59,6 +83,41 @@ export async function saveWriter(db: Transaction, id: string, owner: string, inp
   }
   if (row.writer_revision !== input.expectedRevision) return fail(409, 'Başka bir cihazda değişiklik var. Yerel metnin korunuyor; sürümleri karşılaştır.');
   return persistWriter(db, row, owner, document, input.saveId, hash);
+}
+
+/** Copies only the owner's manuscript and owned media refs; all interaction tables remain attached to the source ID. */
+export async function copyWriterBook(db: Transaction, sourceId: string, owner: string, clientRequestId: string) {
+  await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`writer-book:${sourceId}`]);
+  const source = await ownWriter(sourceId, owner, db, true);
+  const previous = await db.query<{ copy_book_id: string | null }>(
+    `SELECT copy_book_id FROM writer_book_copies
+     WHERE owner_id=$1 AND source_book_id=$2 AND client_request_id=$3 FOR UPDATE`,
+    [owner, sourceId, clientRequestId]);
+  if (previous.rows[0]) {
+    if (!previous.rows[0].copy_book_id) return fail(410, 'Bu kopya daha önce oluşturulup silinmiş; kaynak kitap değişmedi.');
+    return writerBook(await writerRow(previous.rows[0].copy_book_id, db, true));
+  }
+
+  const original = source.writer_data ?? source.published_data ?? legacyDocument(source);
+  const document = normalizeDocument({
+    ...structuredClone(original),
+    chapters: original.chapters.map(chapter => ({ ...chapter, id: randomUUID(), status: 'draft' as const })),
+  });
+  const id = randomUUID();
+  const display = {
+    title: document.title,
+    body: document.chapters.map(chapter => plain(chapter.html)).join('\n\n'),
+    cover: coverUrl(document.cover),
+    genre: document.genres.join(' · ') || null,
+  };
+  await db.query(`INSERT INTO authored_books(
+    id,author_id,local_id,title,body,cover,genre,writer_data,published_data,writer_revision,publication,created_at,writer_updated_at
+  ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,NULL,1,'draft',now(),now())`,
+  [id, owner, id, display.title, display.body, display.cover, display.genre, document]);
+  await syncMediaRefs(db, id, owner, 'draft', document);
+  await db.query(`INSERT INTO writer_book_copies(owner_id,source_book_id,client_request_id,copy_book_id)
+    VALUES($1,$2,$3,$4)`, [owner, sourceId, clientRequestId, id]);
+  return writerBook(await writerRow(id, db, true));
 }
 
 /** The patch identity is hashed independently of the current document, so lost-response
@@ -160,7 +219,8 @@ export async function authoredCards(owner: string | null): Promise<AuthoredBook[
   // Project scalar metadata in SQL: a feed must never transfer entire manuscripts.
   const rows = await pool.query<AuthoredBook>(`SELECT b.id,
     b.title AS title,
-    '' AS body,json_build_object('id',u.id,'nickname',u.nickname,'avatar',u.avatar) AS author,
+    '' AS body,json_build_object('id',u.id,'nickname',u.nickname,'avatar',u.avatar,
+      'writerBadges',${writerBadgesSql('u.id')}) AS author,
     b.cover AS "coverUrl",(${publicBook()}) AS published,
     coalesce((CASE WHEN ${publicBook()} THEN b.published_data ELSE b.writer_data END)->>'cover',b.cover) AS cover,
     coalesce((CASE WHEN ${publicBook()} THEN b.published_data ELSE b.writer_data END)->>'description','') AS description,

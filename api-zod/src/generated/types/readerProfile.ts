@@ -5,6 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PremiumPreferences } from './premiumPreferences';
+import type { WriterAchievement } from './writerAchievement';
 
 export interface ReaderProfile {
   id: string;
@@ -33,4 +35,6 @@ export interface ReaderProfile {
   typing: boolean;
   popular: boolean;
   premium: boolean;
+  writerBadges: WriterAchievement[];
+  premiumPreferences: PremiumPreferences | null;
 }

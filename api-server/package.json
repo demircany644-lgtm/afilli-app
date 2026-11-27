@@ -19,7 +19,14 @@
     "test:gif-library": "node tests/gif-library-local.mjs && tsx --test tests/gif-library-schema.mjs && tsx tests/gif-library.mjs",
     "test:direct-messages-local": "node tests/direct-messages-local.mjs && node tests/klipy-client.mjs && node tests/direct-native-stream.mjs",
     "test:reading-local": "node tests/reading-progress.mjs && node tests/writer-clipboard.mjs",
+    "test:writer-copy-local": "tsx tests/writer-copy-local.mjs",
     "test:account-recovery": "node tests/auth-deletion-recovery.mjs && node tests/account-local-delete.mjs && node tests/chat-drafts.mjs",
+    "test:premium-revenuecat": "tsx --test tests/premium-revenuecat.mjs",
+    "test:account-appeals": "tsx --test tests/account-appeals-revenuecat.mjs",
+    "db:apply-account-appeals:dev": "tsx tools/apply-account-appeals.ts",
+    "test:store-orders": "tsx --test tests/store-orders-schema.mjs && tsx tests/store-orders.mjs",
+    "test:book-promotions": "tsx --test tests/book-promotions-schema.mjs && tsx tests/book-promotions.mjs",
+    "test:premium": "tsx --test tests/premium-revenuecat.mjs && tsx tests/writer-achievements-local.mjs && tsx tests/premium-applications-local.mjs",
     "test:writer": "tsx tests/writer.mjs",
     "test:writer-local": "node tests/writer-local.mjs",
     "test:writer-delta": "tsx tests/writer.mjs --delta-only",
@@ -27,7 +34,8 @@
     "bench:writer": "tsx tests/writer-performance.mjs --assert-optimized",
     "writer:cleanup": "tsx tools/writer-cleanup.ts",
     "test:writer-retention": "tsx tests/writer-retention.mjs",
-    "test:writer-retention-process": "tsx tests/writer-retention-process.mjs"
+    "test:writer-retention-process": "tsx tests/writer-retention-process.mjs",
+    "test:prohibited-images": "tsx --test tests/prohibited-images-local.mjs"
   },
   "dependencies": {
     "@google-cloud/storage": "^8.4.0",

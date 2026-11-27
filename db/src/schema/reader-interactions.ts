@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, uuid, text, timestamp, bigserial, foreignKey, unique, uniqueIndex, index, check } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, date, bigserial, foreignKey, unique, uniqueIndex, index, check, primaryKey } from 'drizzle-orm/pg-core';
 import { authoredBooks, communityUsers } from './community';
 import { writerCommentNodes } from './writer';
 import { createInsertSchema } from 'drizzle-zod';
@@ -31,6 +31,18 @@ export const readerLikes = pgTable('reader_likes', {
   foreignKey({ name: 'reader_likes_paragraph_id_fkey', columns: [t.paragraphId], foreignColumns: [readerParagraphs.id] }).onDelete('cascade'),
   foreignKey({ name: 'reader_likes_user_id_fkey', columns: [t.userId], foreignColumns: [communityUsers.id] }).onDelete('cascade'),
 ]);
+export const readerChapterReads = pgTable('reader_chapter_reads', {
+  bookId: uuid('book_id').notNull(),
+  chapterId: uuid('chapter_id').notNull(),
+  readerId: text('reader_id').notNull(),
+  day: date('day').notNull().default(sql`CURRENT_DATE`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  primaryKey({ columns: [t.bookId, t.chapterId, t.readerId, t.day] }),
+  foreignKey({ name: 'reader_chapter_reads_book_id_fkey', columns: [t.bookId], foreignColumns: [authoredBooks.id] }).onDelete('cascade'),
+  foreignKey({ name: 'reader_chapter_reads_reader_id_fkey', columns: [t.readerId], foreignColumns: [communityUsers.id] }).onDelete('cascade'),
+  index('reader_chapter_reads_count').on(t.bookId, t.chapterId, t.day),
+]);
 export const readerCommentEvents = pgTable('reader_comment_events', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   userId: text('user_id').notNull(),
@@ -54,10 +66,12 @@ export const readerReports = pgTable('reader_reports', {
 export const insertReaderParagraphSchema = createInsertSchema(readerParagraphs).omit({ id: true, createdAt: true });
 export const insertReaderCommentTargetSchema = createInsertSchema(readerCommentTargets);
 export const insertReaderLikeSchema = createInsertSchema(readerLikes).omit({ id: true });
+export const insertReaderChapterReadSchema = createInsertSchema(readerChapterReads).omit({ createdAt: true });
 export const insertReaderCommentEventSchema = createInsertSchema(readerCommentEvents).omit({ id: true, createdAt: true });
 export const insertReaderReportSchema = createInsertSchema(readerReports).omit({ id: true, createdAt: true });
 export type InsertReaderParagraph = z.infer<typeof insertReaderParagraphSchema>;
 export type InsertReaderCommentTarget = z.infer<typeof insertReaderCommentTargetSchema>;
 export type InsertReaderLike = z.infer<typeof insertReaderLikeSchema>;
+export type InsertReaderChapterRead = z.infer<typeof insertReaderChapterReadSchema>;
 export type InsertReaderCommentEvent = z.infer<typeof insertReaderCommentEventSchema>;
 export type InsertReaderReport = z.infer<typeof insertReaderReportSchema>;

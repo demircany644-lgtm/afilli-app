@@ -9,6 +9,7 @@ async function cleanup(fixture) {
   for (const id of fixture.users) assert.match(id, /^af_test_[a-f0-9]{32}$/);
   await pool.query('DELETE FROM social_notifications WHERE recipient_id=ANY($1::text[]) OR actor_id=ANY($1::text[])', [fixture.users]);
   await pool.query('DELETE FROM admin_audit WHERE actor_id=ANY($1::text[])', [fixture.users]);
+    if (fixture.copyIds?.length) await pool.query('DELETE FROM authored_books WHERE id=ANY($1::uuid[]) AND author_id=ANY($2::text[])', [fixture.copyIds, fixture.users]);
   await pool.query('DELETE FROM authored_books WHERE id=$1 AND author_id=ANY($2::text[])', [fixture.bookId, fixture.users]);
   await pool.query('DELETE FROM writer_book_deletions WHERE owner_id=ANY($1::text[])', [fixture.users]);
   for (const table of ['afilli_auth_codes','afilli_auth_sessions','afilli_auth_accounts'])
@@ -27,7 +28,7 @@ if (fileIndex >= 0) {
   const users = Array.from({ length: 5 }, () => 'af_test_' + randomUUID().replaceAll('-', ''));
   const [author, reader, other, admin, spammer] = users, bookId = randomUUID(), chapterId = randomUUID(), secondId = randomUUID(), draftId = randomUUID();
   const tag = randomUUID(), password = `Synthetic-${randomUUID()}`, emails = users.map((_, i) => `reader-social-${i}-${tag}@example.com`);
-  const fixture = { users, bookId, author, reader, admin, email: emails[1], adminEmail: emails[3], password, chapterId, secondId };
+  const fixture = { users, bookId, author, reader, admin, email: emails[1], adminEmail: emails[3], password, chapterId, secondId, copyIds: [] };
   let keep = false, checks = 0;
   async function api(path, token = null, method = 'GET', data, expected = 200, extra = {}) {
     const response = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json', 'X-Afilli-Client': 'native',
@@ -59,6 +60,8 @@ if (fileIndex >= 0) {
     };
     await publish();
     const chapter = (id = chapterId, token = r) => api(`/authored-books/${bookId}/chapters/${id}/interactions`, token);
+    const readChapter = (id = chapterId, token = r, expected = 200) =>
+      api(`/authored-books/${bookId}/chapters/${id}/read`, token, 'POST', undefined, expected);
     const like = (token, paragraphId, liked = true, expected = 200, id = chapterId) =>
       api(`/authored-books/${bookId}/chapters/${id}/interactions`, token, 'PUT', { paragraphId, liked }, expected);
     const add = (token, body, chapter = chapterId, paragraphId = null, parentId = null, clientId = randomUUID(), expected = 200) =>
@@ -67,6 +70,13 @@ if (fileIndex >= 0) {
       new URLSearchParams({ scope, ...(id ? { chapterId: id } : {}), ...(paragraphId ? { paragraphId } : {}), ...(cursor ? { cursor } : {}) }), r);
     let meta = await chapter();
     assert.equal(meta.contentHash, createHash('sha256').update(document.chapters[0].html).digest('hex'));
+    await readChapter(chapterId, null, 401);
+    assert.equal((await readChapter()).readCount, 1);
+    assert.equal((await readChapter()).readCount, 1);
+    assert.equal((await readChapter(chapterId, o)).readCount, 2);
+    assert.equal((await readChapter(chapterId, a)).readCount, 2, 'book author reads are excluded');
+    assert.equal((await readChapter(secondId)).readCount, 1, 'each chapter has an independent daily count');
+    assert.equal((await chapter()).readCount, 2);
     assert.equal(meta.paragraphs.length, 5);
     const p = meta.paragraphs.find(p => p.quote === 'İlk paragraf.'), dup = meta.paragraphs.find(p => p.quote === 'Tekrar.');
     assert.ok(p?.id && dup?.id);
@@ -94,6 +104,39 @@ if (fileIndex >= 0) {
     assert.deepEqual((await list('paragraph', chapterId, p.id)).items.map(x => x.id), [root.id]);
     assert.deepEqual((await list('book', null)).items.map(x => x.id), [general.id]);
     assert.equal((await chapter()).commentCount, 5); assert.equal((await chapter()).chapterCommentCount, 1);
+    const originalSnapshot = await api(`/authored-books/${bookId}`, r);
+    await api(`/writer-books/${bookId}/copy`, o, 'POST', { clientRequestId: randomUUID() }, 404);
+    await api(`/writer-books/${bookId}/copy`, null, 'POST', { clientRequestId: randomUUID() }, 401);
+    const copyRequestId = randomUUID();
+    const copied = await api(`/writer-books/${bookId}/copy`, a, 'POST', { clientRequestId: copyRequestId });
+    fixture.copyIds.push(copied.id);
+    const retriedCopy = await api(`/writer-books/${bookId}/copy`, a, 'POST', { clientRequestId: copyRequestId });
+    assert.equal(retriedCopy.id, copied.id, 'retry returns the same independent copy');
+    assert.notEqual(copied.id, bookId);
+    assert.equal(copied.publication, 'draft');
+    assert.equal(copied.document.title, document.title);
+    assert.equal(copied.document.chapters.length, document.chapters.length);
+    assert.deepEqual(copied.document.chapters.map(ch => ch.html), document.chapters.map(ch => ch.html));
+    assert.ok(copied.document.chapters.every(ch => ch.status === 'draft'));
+    assert.equal(new Set(copied.document.chapters.map(ch => ch.id)).size, copied.document.chapters.length);
+    assert.ok(copied.document.chapters.every(ch => !document.chapters.some(old => old.id === ch.id)));
+    await api(`/writer-books/${copied.id}`, o, 'GET', undefined, 404);
+    await api(`/authored-books/${copied.id}`, r, 'GET', undefined, 404);
+    await api(`/authored-books/${copied.id}/chapters/${copied.document.chapters[0].id}/interactions`, r, 'GET', undefined, 404);
+    const editedCopyDocument = structuredClone(copied.document);
+    editedCopyDocument.title = 'Bağımsız kopya düzenlendi';
+    const editedCopy = await api(`/writer-books/${copied.id}`, a, 'PUT', {
+      document: editedCopyDocument, expectedRevision: copied.revision, saveId: randomUUID(), localId: copied.id,
+    });
+    assert.equal(editedCopy.document.title, 'Bağımsız kopya düzenlendi');
+    const retriedAfterEdit = await api(`/writer-books/${bookId}/copy`, a, 'POST', { clientRequestId: copyRequestId });
+    assert.equal(retriedAfterEdit.id, copied.id);
+    assert.equal(retriedAfterEdit.document.title, 'Bağımsız kopya düzenlendi', 'a late retry does not overwrite copy edits');
+    const stillOriginal = await api(`/authored-books/${bookId}`, r);
+    assert.deepEqual(stillOriginal.chapters.map(ch => ch.id), originalSnapshot.chapters.map(ch => ch.id));
+    assert.equal(stillOriginal.title, originalSnapshot.title);
+    assert.equal((await chapter()).likeCount, meta.likeCount);
+    assert.equal((await chapter()).commentCount, 5);
     await api(`/authored-books/${bookId}/comment-threads?` + new URLSearchParams({
       scope: 'paragraph', chapterId: secondId, paragraphId: p.id,
     }), r, 'GET', undefined, 404);
