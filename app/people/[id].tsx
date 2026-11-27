@@ -81,7 +81,7 @@ function PublicProfile({ id }: { id: string }) {
             <FoilButton variant="outline" label="Mesaj" icon="message-circle" testID="public-profile-message" busy={start.isPending} onPress={message} />
           </>)} />
         <View onLayout={(e) => { tabsY.current = e.nativeEvent.layout.y; }}>
-          <ProfileTabs profileId={p.id} isMe={p.isMe} tab={tab} onTab={setTab} />
+          <ProfileTabs profileId={p.id} isMe={p.isMe} tab={tab} onTab={setTab} onRules={() => go('/afilli-rules')} />
         </View>
       </>
     );

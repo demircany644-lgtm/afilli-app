@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { removeLibraryEntry } from '../lib/library.ts';
+import { FEATURED_BOOK_INTERVAL_MS, featuredBookIndex } from '../lib/library.ts';
 import { parseSampleChat, sampleChatKey } from '../lib/sample-chat.ts';
 
 test('removing one reader entry preserves other books and all authored content', () => {
@@ -18,6 +19,18 @@ test('removing one reader entry preserves other books and all authored content',
 test('removing an unknown reader entry cannot delete authored drafts', () => {
   const old = { saved: ['one'], library: {}, drafts: [{ id: 'same-id' }] };
   assert.deepEqual(removeLibraryEntry(old, 'same-id'), old);
+});
+
+test('the featured new-book slot advances by seven-day windows and resets for new releases', () => {
+  const published = Date.parse('2026-11-20T12:00:00.000Z');
+  assert.equal(FEATURED_BOOK_INTERVAL_MS, 7 * 24 * 60 * 60 * 1000);
+  assert.equal(featuredBookIndex(published, published), 0);
+  assert.equal(featuredBookIndex(published, published + FEATURED_BOOK_INTERVAL_MS - 1), 0);
+  assert.equal(featuredBookIndex(published, published + FEATURED_BOOK_INTERVAL_MS), 1);
+  assert.equal(featuredBookIndex(published, published + FEATURED_BOOK_INTERVAL_MS * 3), 3);
+  assert.equal(featuredBookIndex(published, published - 1), 0);
+  assert.equal(featuredBookIndex('not-a-date', published), 0);
+  assert.equal(featuredBookIndex(published + FEATURED_BOOK_INTERVAL_MS, published + FEATURED_BOOK_INTERVAL_MS), 0);
 });
 
 test('demo conversations are isolated by both account and thread', () => {
@@ -42,11 +55,20 @@ test('home cards, discovery and saving retain their working route contracts', as
   const base = new URL('../', import.meta.url);
   const home = await readFile(new URL('app/(tabs)/index.tsx', base), 'utf8');
   const search = await readFile(new URL('app/search.tsx', base), 'utf8');
+  const discoveryParts = await readFile(new URL('components/discovery/parts.tsx', base), 'utf8');
   const library = await readFile(new URL('app/(tabs)/library.tsx', base), 'utf8');
-  assert.match(home, /pathname: '\/search', params: \{ section: sec.id \}/);
-  assert.match(home, /pathname: '\/book\/\[id\]'/);
-  assert.match(search, /b\.alias, b\.genre/);
-  assert.match(search, /useGetPublishedBooks/);
-  assert.match(library, /\.\.\.saved, \.\.\.Object\.keys\(library\)/);
-  assert.match(library, /library-remove-confirm/);
+  assert.match(home, /pathname: '\/search', params: \{ section: sec\.routeSection \?\? sec\.id, sort: sec\.sort \}/);
+  assert.match(home, /openBook\(b\.id\)/);
+  assert.match(discoveryParts, /pathname: '\/authored-book\/\[id\]'/);
+  assert.match(discoveryParts, /card\.genres\.join\(' · '\)/);
+  assert.match(search, /useGetDiscoveryBooks/);
+  assert.match(library, /title="Kaydettiklerim" ids=\{saved\} mode="saved"/);
+  assert.match(library, /title="Okuduklarım" ids=\{readIds\} mode="read"/);
+  assert.match(library, /title="En Çok Okunan Kitap" sort="read"/);
+  assert.match(library, /<RotatingLatestBookShelf/);
+  assert.match(library, /useGetReaderReadBooks/);
+  const shelf = await readFile(new URL('components/discovery/SavedBooks.tsx', base), 'utf8');
+  assert.match(shelf, /<ScrollView horizontal/);
+  assert.match(shelf, /library-remove-confirm-/);
+  assert.match(shelf, /openBook\(id\)/);
 });

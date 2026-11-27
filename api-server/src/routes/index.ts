@@ -12,12 +12,24 @@ import writerMediaRouter from './writer-media';
 import writerToolsRouter from './writer-tools';
 import authRouter from './auth';
 import adminRouter from './admin';
+import premiumRouter from './premium';
+import storeOrdersRouter from './store-orders';
+import storeProductsRouter from './store-products';
+import bookPromotionsRouter from './book-promotions';
+import accountAppealsRouter from './account-appeals';
+import prohibitedImagesRouter from './prohibited-images';
 
 const router: IRouter = Router();
 router.use(gifLibraryRouter);
 
 router.use(authRouter);
 router.use(adminRouter);
+router.use(accountAppealsRouter);
+router.use(prohibitedImagesRouter);
+router.use(premiumRouter);
+router.use(storeOrdersRouter);
+router.use(storeProductsRouter);
+router.use(bookPromotionsRouter);
 router.use(healthRouter);
 router.use(bulletinRouter);
 router.use(profileRouter);

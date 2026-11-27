@@ -1,7 +1,7 @@
-# Afilli 1.2.3 — inceleme dalı
+# Afilli 1.2.4 — inceleme dalı
 
-Bu dal mevcut main (88f4bb074813b2aac3b7c8de6137345b6d849a4a) üzerine hazırlandı. Ana dal ve canlı uygulama değiştirilmedi.
-Android paket kimliği ve mevcut Expo proje bağlantısı korundu. Sürüm kodu 8.
+Bu dal mevcut main (6717a5325b90faf42da8f8cc466c9944a5f55f38) üzerine hazırlandı. Ana dal ve canlı uygulama değiştirilmedi.
+Android paket kimliği ve mevcut Expo proje bağlantısı korundu. Sürüm kodu 9.
 
 ## Kontroller
 - pnpm sürümü: pnpm@10.26.1

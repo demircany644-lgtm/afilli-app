@@ -22,7 +22,9 @@ async function api(path, token = null, method = 'GET', data, expected = 200, ext
   return r.status === 204 ? null : r.json();
 }
 const login = i => api('/auth/login', null, 'POST', { email: `discover-${tag}-${i}@example.com`, password });
-const discovery = (sort = 'new', cursor) => '/discovery/books?' + new URLSearchParams({ sort, search: tag, ...(cursor ? { cursor } : {}) });
+const discovery = (sort = 'new', cursor, category) => '/discovery/books?' + new URLSearchParams({
+  sort, search: tag, ...(cursor ? { cursor } : {}), ...(category ? { category } : {}),
+});
 try {
   const hash = await hashPassword(password);
   for (const [i, id] of ids.entries()) {
@@ -52,6 +54,31 @@ try {
   assert.equal(found.length, books.length);
   assert.equal(new Set(found.map(b => b.id)).size, books.length);
   assert.ok(found.every(b => books.includes(b.id) && b.author.id === author && b.genres.includes('Polisiye')));
+  assert.ok(found.every(b => b.description === 'Released description'));
+  const categoryFound = [], categoryFirst = await api(discovery('new', undefined, 'gerilim-polisiye-gizem'));
+  categoryFound.push(...categoryFirst.items);
+  let categoryCursor = categoryFirst.nextCursor;
+  while (categoryCursor) {
+    const page = await api(discovery('new', categoryCursor, 'gerilim-polisiye-gizem'));
+    categoryFound.push(...page.items);
+    categoryCursor = page.nextCursor;
+  }
+  assert.equal(categoryFound.length, books.length);
+  assert.ok(categoryFound.every(b => b.genres.some(g => ['Gerilim', 'Polisiye', 'Gizem'].includes(g))));
+  const homePolice = await api(discovery('new', undefined, 'polisiye-gerilim'));
+  assert.equal(homePolice.items.length, 20);
+  assert.ok(homePolice.items.every(b => b.genres.some(g => ['Polisiye', 'Gerilim'].includes(g))));
+  assert.equal((await api(discovery('new', undefined, 'romantik'))).items.length, 0);
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[0], { ...document, genres: ['Mafya', 'Yeraltı Dünyası'] }]);
+  assert.deepEqual((await api(discovery('new', undefined, 'mafya-yeralti'))).items.map(b => b.id), [books[0]]);
+  assert.deepEqual((await api(discovery('new', undefined, 'mafya'))).items.map(b => b.id), [books[0]]);
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[0], { ...document, genres: ['Aşk'] }]);
+  assert.deepEqual((await api(discovery('new', undefined, 'ask-romani'))).items.map(b => b.id), [books[0]]);
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[0], { ...document, genres: ['Psikoloji'] }]);
+  assert.deepEqual((await api(discovery('new', undefined, 'psikolojik-iliskiler'))).items.map(b => b.id), [books[0]]);
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[0], { ...document, genres: ['Dram'] }]);
+  assert.deepEqual((await api(discovery('new', undefined, 'dram-hayat-hikayeleri'))).items.map(b => b.id), [books[0]]);
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[0], document]);
   const wire = JSON.stringify(found);
   for (const secret of ['SECRET', 'PRIVATE METADATA', 'PRIVATE MANUSCRIPT', 'PRIVATE LEGACY BODY', privateChapter]) assert.ok(!wire.includes(secret));
   assert.ok(!('body' in found[0]) && !('chapters' in found[0]));
@@ -60,7 +87,9 @@ try {
   assert.equal((await api('/profiles?' + new URLSearchParams({ search: `isil ${tag}` }))).items.length, 3);
   assert.equal((await api('/discovery/books?' + new URLSearchParams({ search: `%${tag}` }))).items.length, 0);
   await api(discovery('popular', first.nextCursor), null, 'GET', undefined, 400);
+  await api(discovery('new', first.nextCursor, 'romantik'), null, 'GET', undefined, 400);
   await api('/discovery/books?sort=bad', null, 'GET', undefined, 400);
+  await api('/discovery/books?category=unknown', null, 'GET', undefined, 400);
   await api('/discovery/books?cursor=broken', null, 'GET', undefined, 400);
   const badCursor = JSON.parse(Buffer.from(first.nextCursor, 'base64url').toString());
   badCursor.time = '0';
@@ -70,10 +99,20 @@ try {
   await api('/discovery/book-cards?ids=bad', null, 'GET', undefined, 400);
   await api('/discovery/book-cards?' + new URLSearchParams({ ids: books.join(',') }), null, 'GET', undefined, 400);
   await pool.query('INSERT INTO book_reads(book_id,reader_id) VALUES($1,$2),($1,$3)', [books[1], reader, other]);
+  await pool.query('INSERT INTO book_reads(book_id,reader_id) VALUES($1,$2),($3,$2)', [hidden, reader, draft]);
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[0], { ...document, genres: ['Fantastik'] }]);
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[1], { ...document, genres: ['Bilim Kurgu'] }]);
+  const fantasyScience = await api(discovery('read', undefined, 'fantastik-bilim-kurgu'));
+  assert.equal(fantasyScience.items[0].id, books[1]);
+  assert.deepEqual(new Set(fantasyScience.items.map(b => b.id)), new Set([books[0], books[1]]));
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[0], document]);
+  await pool.query('UPDATE authored_books SET published_data=$2 WHERE id=$1', [books[1], document]);
   await pool.query('INSERT INTO writer_likes(book_id,user_id) VALUES($1,$2),($1,$3),($1,$4)', [books[0], author, reader, other]);
   assert.equal((await api(discovery('read'))).items[0].id, books[1]);
   assert.equal((await api(discovery('popular'))).items[0].id, books[0]);
   assert.equal((await api(discovery('new'))).items[0].id, books.at(-1));
+  await api('/reader/read-books', null, 'GET', undefined, 401);
+  assert.deepEqual((await api('/reader/read-books', r.token)).map(book => book.id), [books[1]]);
   // Released content, not newer private metadata, is reader truth.
   const publicDetail = await api(`/authored-books/${books[0]}`, r.token);
   assert.equal(publicDetail.chapters.length, 2); assert.ok(!JSON.stringify(publicDetail).includes('SECRET'));
@@ -98,7 +137,7 @@ try {
   await api(path, r.token, 'PUT', { chapterId: chapters[1] }, 404);
   await api(path, r.token, 'PUT', { chapterId: chapters[0] });
   assert.equal((await api(path, r.token)).chapterMissing, false);
-  for (const genres of [['Roman', 'Hikaye'], ['Polisiye', 'Macera', 'Eğitim']]) {
+  for (const genres of [['Roman', 'Hikaye'], ['Polisiye', 'Macera', 'Eğitim'], ['Distopya', 'Mafya', 'Hayat Hikâyeleri']]) {
     const input = SaveWriterBookBody.parse({ document: { ...document, genres }, expectedRevision: 0, saveId: randomUUID(), localId: 'synthetic' });
     assert.deepEqual(normalizeDocument(input.document).genres, genres);
   }

@@ -5,6 +5,7 @@ import { route, requirePerson, parse, uuid, viewer, transaction, fail } from '..
 import { commentNode, commentScope, commentPage, commentPath, editComment, deleteComment } from '../lib/book-comments';
 import { publicBook } from '../lib/book-access';
 import { bookNotifications, readBookNotification } from '../lib/book-notifications';
+import { authenticatedAccessMode } from '../lib/auth-session';
 import readerInteractions from './reader-interactions';
 
 const router: IRouter = Router();
@@ -65,10 +66,12 @@ router.put('/authored-books/:id/saved', route(async (req, res) => {
   res.status(204).end();
 }));
 router.get('/book-notifications', route(async (req, res) => {
-  res.json(await bookNotifications((await requirePerson(req)).id, req.query.cursor));
+  const actor = await requirePerson(req), appealOnly = authenticatedAccessMode(req) === 'appeal';
+  res.json(await bookNotifications(actor.id, req.query.cursor, appealOnly));
 }));
 router.patch('/book-notifications/:id', route(async (req, res) => {
-  await readBookNotification((await requirePerson(req)).id, uuid(req.params.id));
+  const actor = await requirePerson(req), appealOnly = authenticatedAccessMode(req) === 'appeal';
+  await readBookNotification(actor.id, uuid(req.params.id), appealOnly);
   res.status(204).end();
 }));
 export default router;

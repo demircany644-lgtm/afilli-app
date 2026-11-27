@@ -8,7 +8,7 @@ import { legacyDocument } from './writer-document';
 import { commentTree } from './book-comment-query';
 
 type Db = Transaction | typeof pool;
-export type ReaderContext = { bookId: string; chapterId: string; html: string; chapters: string[] };
+export type ReaderContext = { bookId: string; chapterId: string; html: string; chapters: string[]; authorId: string };
 const digest = (text: string) => createHash('sha256').update(text).digest('hex');
 
 export async function readerContext(bookId: string, chapterId: string, db: Db = pool, lock = false): Promise<ReaderContext> {
@@ -17,7 +17,7 @@ export async function readerContext(bookId: string, chapterId: string, db: Db = 
   const doc = book.published_data ?? legacyDocument(book);
   const chapter = doc.chapters.find(item => item.id === chapterId);
   if (!chapter) return fail(404, 'Bu bölüm henüz yayında değil.');
-  return { bookId, chapterId, html: chapter.html, chapters: doc.chapters.map(item => item.id) };
+  return { bookId, chapterId, html: chapter.html, chapters: doc.chapters.map(item => item.id), authorId: book.author_id };
 }
 
 /** Unique unchanged text survives insertions elsewhere. Duplicate text is tied to
@@ -66,6 +66,9 @@ export async function readerChapter(context: ReaderContext, actor: string | null
   const likes = (await db.query<{ paragraph_id: string | null; count: number; liked: boolean }>(`SELECT paragraph_id,
     count(*)::int AS count,coalesce(bool_or(user_id=$3),false) AS liked FROM reader_likes
     WHERE book_id=$1 AND chapter_id=$2 GROUP BY paragraph_id`, [context.bookId, context.chapterId, actor])).rows;
+  const reads = await db.query<{ count: number }>(
+    'SELECT count(*)::int AS count FROM reader_chapter_reads WHERE book_id=$1 AND chapter_id=$2',
+    [context.bookId, context.chapterId]);
   const countMap = new Map(counts.map(row => [row.paragraph_id, row.count]));
   const likeMap = new Map(likes.map(row => [row.paragraph_id, row]));
   const item = (row: { id: string; quote: string; path?: string }, archived: boolean): ReaderParagraph => ({
@@ -76,11 +79,19 @@ export async function readerChapter(context: ReaderContext, actor: string | null
   return {
     bookId: context.bookId, chapterId: context.chapterId, contentHash: registry.contentHash,
     likeCount: likeMap.get(null)?.count ?? 0, liked: likeMap.get(null)?.liked ?? false,
+    readCount: reads.rows[0]?.count ?? 0,
     commentCount: counts.reduce((sum, row) => sum + row.count, 0), chapterCommentCount: countMap.get(null) ?? 0,
     paragraphs: registry.current.map(row => item(row, false)),
     archived: registry.rows.filter(row => !currentIds.has(row.id) && ((countMap.get(row.id) ?? 0) > 0 || (likeMap.get(row.id)?.count ?? 0) > 0))
       .map(row => item(row, true)),
   };
+}
+
+/** Counts a published chapter once per reader and day; authors' own reads stay out of public totals. */
+export async function recordChapterRead(db: Transaction, context: ReaderContext, actor: string) {
+  if (context.authorId !== actor) await db.query(`INSERT INTO reader_chapter_reads(book_id,chapter_id,reader_id)
+    VALUES($1,$2,$3) ON CONFLICT DO NOTHING`, [context.bookId, context.chapterId, actor]);
+  return readerChapter(context, actor, db);
 }
 
 export async function readerLike(db: Transaction, book: string, chapter: string, actor: string, liked: boolean, paragraph: string | null) {

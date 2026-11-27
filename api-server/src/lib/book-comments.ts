@@ -30,8 +30,8 @@ async function nodes(scope: Scope, who: string | null, where: string, extra: unk
   const result = await db.query<NodeRow>(`WITH RECURSIVE ${commentTree()}
     SELECT n.id,n.book_id AS "bookId",n.parent_id AS "parentId",n.chapter_id AS "chapterId",rt.paragraph_id AS "paragraphId",n.created_at AS "createdAt",
     to_char(n.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "cursorDate",
-    c.id IS NULL AS deleted,coalesce(c.body,'Bu yorum kaldırıldı.') AS body,
-    CASE WHEN c.id IS NULL THEN json_build_object('id','deleted','nickname','Kaldırılan yorum','avatar',NULL)
+     c.id IS NULL AS deleted,coalesce(c.body,'') AS body,
+     CASE WHEN c.id IS NULL THEN json_build_object('id','deleted','nickname','','avatar',NULL)
       ELSE json_build_object('id',u.id,'nickname',u.nickname,'avatar',u.avatar) END AS author,
     (SELECT count(*)::int FROM visible_comment_nodes child JOIN live_comment_nodes l ON l.id=child.id WHERE child.parent_id=n.id) AS "replyCount",
     (SELECT json_build_array(

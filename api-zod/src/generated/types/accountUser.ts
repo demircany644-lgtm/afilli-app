@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AccountUserAccessMode } from './accountUserAccessMode';
 import type { AdminRole } from './adminRole';
 
 export interface AccountUser {
@@ -12,4 +13,5 @@ export interface AccountUser {
   nickname: string;
   email: string;
   role?: AdminRole;
+  accessMode: AccountUserAccessMode;
 }

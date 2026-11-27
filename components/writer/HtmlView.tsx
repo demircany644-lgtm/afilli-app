@@ -41,7 +41,10 @@ function styleOf(attrs: Record<string, string>): TextStyle & { align?: 'left' | 
   return out;
 }
 
-export function HtmlView({ html, night, owner, privatePreview = false, fontSize = 17, annotate }: { html: string; night?: boolean; owner: string | null; privatePreview?: boolean; fontSize?: number; annotate?: (path: string, text: React.ReactNode) => React.ReactNode }) {
+export function HtmlView({ html, night, owner, privatePreview = false, fontSize = 17, annotate, onParagraphLongPress }: {
+  html: string; night?: boolean; owner: string | null; privatePreview?: boolean; fontSize?: number;
+  annotate?: (path: string, text: React.ReactNode) => React.ReactNode; onParagraphLongPress?: (path: string) => void;
+}) {
   const W = useWriterPalette();
   const rs = useRsStyles();
   const [link, setLink] = useState<string | null>(null);
@@ -76,7 +79,10 @@ export function HtmlView({ html, night, owner, privatePreview = false, fontSize 
   const flowText = (nodes: Node[], k: string, style: TextStyle[], align?: string) => {
     const parts = nodes.map((c, i) => inline(c, k + '.' + i));
     const txt = nodes.length === 0 ? '' : null;
-    const el = <Text key={k} selectable={false} style={[base, ...style.map(scaleStyle), align ? { textAlign: align as TextStyle['textAlign'] } : null]}>{txt ?? parts}</Text>;
+    const el = <Text key={k} testID={onParagraphLongPress ? 'reader-paragraph-' + k : undefined}
+      selectable={false} onLongPress={onParagraphLongPress ? () => onParagraphLongPress(k) : undefined}
+      accessibilityHint={onParagraphLongPress ? 'Paragraf yorum seçeneğini açmak için basılı tut.' : undefined}
+      style={[base, ...style.map(scaleStyle), align ? { textAlign: align as TextStyle['textAlign'] } : null]}>{txt ?? parts}</Text>;
     // Paragraph discussion controls attach by the same path reader-core reports.
     return annotate ? <React.Fragment key={k}>{annotate(k, el)}</React.Fragment> : el;
   };

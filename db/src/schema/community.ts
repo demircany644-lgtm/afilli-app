@@ -46,6 +46,8 @@ export const bulletinUploads = pgTable('bulletin_uploads', {
   postId: uuid('post_id').references(() => bulletins.id, { onDelete: 'cascade' }),
   objectPath: text('object_path').notNull(), contentType: text('content_type').notNull(),
   size: integer('size').notNull(),
+  sourceUpload: boolean('source_upload').notNull().default(false),
+  sealed: boolean('sealed').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 export const bulletinLikes = pgTable('bulletin_likes', {

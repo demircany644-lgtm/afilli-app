@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { pool } from '@workspace/db';
 import { hashPassword } from '../src/lib/auth-crypto.ts';
 import { directPhotoObject } from '../src/lib/bulletin-storage.ts';
+import { sweepExpiredDirectMedia } from '../src/lib/direct-media.ts';
 
 if (process.env.NODE_ENV === 'production' || !process.env.REPLIT_DEV_DOMAIN) throw Error('Synthetic development data only');
 const tag = randomUUID().replaceAll('-', ''), base = `https://${process.env.REPLIT_DEV_DOMAIN}/api`;
@@ -126,6 +127,18 @@ try {
   const textOnly = await send('Seven-day text is NOT ephemeral');
   await pool.query("UPDATE direct_messages SET created_at=now()-interval '8 days' WHERE id=ANY($1::uuid[])", [[oldGif.id, textOnly.id]]);
   await pool.query("UPDATE direct_messages SET created_at=now()-interval '7 days'+interval '1 minute' WHERE id=$1", [youngGif.id]);
+  // Exercise the server-side sweep on only this synthetic thread. No user
+  // needs to open the app for the expired GIF metadata to be cleared.
+  let storedOldGif;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await sweepExpiredDirectMedia([thread]);
+    storedOldGif = (await pool.query('SELECT gif,media_expired_at FROM direct_messages WHERE id=$1', [oldGif.id])).rows[0];
+    if (storedOldGif?.media_expired_at) break;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.equal(storedOldGif.gif, null); assert.ok(storedOldGif.media_expired_at);
+  const storedText = (await pool.query('SELECT body,gif,media_expired_at FROM direct_messages WHERE id=$1', [textOnly.id])).rows[0];
+  assert.equal(storedText.body, textOnly.body); assert.equal(storedText.gif, null); assert.equal(storedText.media_expired_at, null);
   expired = (await head()).items.find(m => m.id === oldGif.id);
   assert.equal(expired.gif, null); assert.equal(expired.body, oldGif.body); assert.ok(expired.mediaExpired);
   await api('/message-media/cleanup', b, 'POST');

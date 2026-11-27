@@ -25,6 +25,54 @@ export async function expireDirectMedia(actor: string) {
   return !!(await pool.query(`SELECT 1 FROM conversations c JOIN direct_messages m ON m.thread_id=c.id
     WHERE (c.user_low=$1 OR c.user_high=$1) AND ${due} LIMIT 1`, [actor])).rowCount;
 }
+
+/**
+ * System sweep for expired media. It runs independently of user sessions, so
+ * messages and photo files are cleaned even when neither participant opens
+ * the app. A bounded batch and transaction-scoped advisory lock make this
+ * safe across multiple API instances.
+ */
+export async function sweepExpiredDirectMedia(threadIds?: string[]) {
+  const expired = await transaction(async client => {
+    const lock = await client.query<{ acquired: boolean }>(
+      "SELECT pg_try_advisory_xact_lock(hashtext('afilli:direct-media-expiry')) AS acquired");
+    if (!lock.rows[0]?.acquired) return null;
+
+    const rows = (await client.query<{ id: string; thread_id: string; photo_id: string | null }>(`WITH due_messages AS (
+      SELECT m.id FROM direct_messages m
+      WHERE ${due} AND ($1::uuid[] IS NULL OR m.thread_id=ANY($1::uuid[]))
+      ORDER BY m.created_at,m.id LIMIT 500 FOR UPDATE SKIP LOCKED
+    )
+    UPDATE direct_messages m SET gif=NULL,media_expired_at=clock_timestamp(),
+      change_sequence=nextval('direct_message_change_seq')
+    FROM due_messages d WHERE m.id=d.id RETURNING m.id,m.thread_id,m.photo_id`, [threadIds ?? null])).rows;
+
+    const byThread = new Map<string, typeof rows>();
+    for (const row of rows) {
+      const current = byThread.get(row.thread_id) ?? [];
+      current.push(row);
+      byThread.set(row.thread_id, current);
+    }
+    for (const [threadId, messages] of byThread) {
+      const messageIds = messages.map(message => message.id);
+      await client.query('UPDATE direct_messages SET change_sequence=nextval(\'direct_message_change_seq\') WHERE thread_id=$1 AND reply_to_id=ANY($2::uuid[])',
+        [threadId, messageIds]);
+      const photoIds = messages.map(message => message.photo_id).filter((id): id is string => !!id);
+      if (photoIds.length) await client.query(
+        'UPDATE direct_message_uploads SET delete_requested_at=coalesce(delete_requested_at,clock_timestamp()) WHERE id=ANY($1::uuid[])',
+        [photoIds]);
+      const pair = (await client.query<{ user_low: string; user_high: string }>(
+        'SELECT user_low,user_high FROM conversations WHERE id=$1', [threadId])).rows[0];
+      if (pair) await directEvent(client, pair, threadId, 'sync');
+    }
+    return rows;
+  });
+
+  if (expired === null) return { processed: 0, hasMore: true, locked: false };
+  const more = await pool.query(`SELECT 1 FROM direct_messages m
+    WHERE ${due} AND ($1::uuid[] IS NULL OR m.thread_id=ANY($1::uuid[])) LIMIT 1`, [threadIds ?? null]);
+  return { processed: expired.length, hasMore: !!more.rowCount, locked: true };
+}
 const cleanupDue = `(delete_requested_at IS NOT NULL OR thread_id IS NULL OR owner_id IS NULL OR
   attached_at IS NULL AND created_at<=now()-interval '7 days')
   AND (purged_at IS NULL OR purged_at<source_put_until AND now()>source_put_until)`;

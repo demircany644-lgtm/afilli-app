@@ -5,7 +5,12 @@ export const STORAGE_FAILURE_RUNS = 3;
 const LOCK_KEY = 17423005;
 const countKeys = ['processed', 'observed', 'deleted', 'expired', 'skipped', 'waiting',
   'retry_required', 'storage_retry_required'] as const;
+const warningCodes = new Set([
+  'never_succeeded', 'cleanup_overdue', 'retry_required', 'last_run_failed',
+  'run_incomplete', 'persistent_storage_failure',
+]);
 type Counts = Record<typeof countKeys[number], number>;
+export type CleanupAlertTransition = 'alert' | 'recovered' | 'initial' | 'unchanged';
 export type CleanupResult = {
   outcome: 'observed' | 'deleted' | 'expired' | 'skipped' | 'waiting' | 'retry_required';
   retryReason?: 'storage' | 'database';
@@ -52,6 +57,47 @@ export async function getWriterCleanupHealth(now = new Date()) {
     thresholds: { staleHours: CLEANUP_STALE_HOURS, storageFailureRuns: STORAGE_FAILURE_RUNS },
     warnings,
   };
+}
+
+/**
+ * Persist only a warning-code signature. The caller emits an alert when the
+ * warning set changes, and one recovery event when it clears. This is event
+ * driven; it does not add a polling interval or cleanup schedule.
+ */
+export async function recordWriterCleanupAlertTransition(
+  warnings: readonly string[],
+): Promise<{ transition: CleanupAlertTransition; warnings: string[] }> {
+  const normalized = [...new Set(warnings)].sort();
+  if (normalized.some(code => !warningCodes.has(code))) {
+    throw new Error('Invalid cleanup warning code');
+  }
+  const nextState = normalized.join(',');
+  const db = await pool.connect();
+  try {
+    await db.query('BEGIN');
+    await db.query(`INSERT INTO writer_cleanup_alert_state(id,warning_state)
+      VALUES(1,NULL) ON CONFLICT(id) DO NOTHING`);
+    const current = (await db.query<{ warning_state: string | null }>(
+      'SELECT warning_state FROM writer_cleanup_alert_state WHERE id=1 FOR UPDATE',
+    )).rows[0];
+    if (!current) throw new Error('Cleanup alert state unavailable');
+    const previousState = current.warning_state;
+    if (previousState === nextState) {
+      await db.query('COMMIT');
+      return { transition: 'unchanged', warnings: normalized };
+    }
+    await db.query('UPDATE writer_cleanup_alert_state SET warning_state=$1 WHERE id=1', [nextState]);
+    await db.query('COMMIT');
+    if (previousState === null) {
+      return { transition: nextState ? 'alert' : 'initial', warnings: normalized };
+    }
+    return { transition: nextState ? 'alert' : 'recovered', warnings: normalized };
+  } catch (error) {
+    await db.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    db.release();
+  }
 }
 
 export async function monitorWriterCleanup<T>(

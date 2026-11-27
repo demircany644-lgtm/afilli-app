@@ -3,9 +3,11 @@
 ## Safe migration
 
 `reader-interactions.sql` is an additive transaction. It creates only the paragraph
-registry, comment-to-paragraph associations, chapter/paragraph likes, short
-anti-spam counters and reader reports. It does not change or copy existing users,
-books, chapter manuscripts, comments or sessions.
+registry, comment-to-paragraph associations, chapter/paragraph likes, daily-
+deduplicated chapter reads, short anti-spam counters and reader reports. The
+separate `writer-book-copies.sql` adds an idempotency ledger for author-owned
+manuscript copies. Neither migration rewrites existing users, books, manuscripts,
+comments, likes, reads or sessions.
 
 The existing `book-community.sql` discussion schema and moderation trigger are
 prerequisites. New paragraph associations reference the anonymous thread nodes,
@@ -34,6 +36,12 @@ trigger is missing. No production migration is performed by this application.
 
 - Each chapter and paragraph has an independent discussion and reversible like.
   Unique indexes prevent duplicate likes even across concurrent requests.
+- A signed-in reader contributes at most one chapter read per chapter per day.
+  Authors' own reads do not inflate public counts; the existing book-level read
+  ledger remains separate.
+- Copying is restricted to the source-book owner. The new draft gets a new book ID
+  and fresh chapter IDs; it shares only verified owner media references, and reader
+  interactions remain attached to the original.
 - Unchanged, unambiguous text retains its discussion after insertions elsewhere.
   Changed or ambiguous duplicate passages keep their old discussion in an archive
   instead of assigning readers' writing to different text.
@@ -59,6 +67,7 @@ trigger is missing. No production migration is performed by this application.
 
 ```sh
 pnpm --filter @workspace/api-server exec tsx tests/reader-interactions.mjs
+pnpm --filter @workspace/api-server run test:writer-copy-local
 pnpm --filter @workspace/api-server exec tsx tests/book-community.mjs
 pnpm --filter @workspace/api-server exec tsx --test tests/release-schema.mjs
 node artifacts/api-server/tests/book-community-local.mjs

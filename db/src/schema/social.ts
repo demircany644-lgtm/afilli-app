@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { pgTable, pgSequence, text, uuid, timestamp, date, integer, bigint, jsonb, boolean, primaryKey, uniqueIndex, index, check, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { communityUsers, authoredBooks } from './community';
 import { writerCommentNodes } from './writer';
+import { premiumApplications } from './premium';
 
 export const socialSettings = pgTable('social_settings', {
   id: boolean('id').primaryKey().default(true),
@@ -28,6 +29,7 @@ export const profileUploads = pgTable('profile_uploads', {
   id: uuid('id').primaryKey().defaultRandom(),
   ownerId: text('owner_id').notNull().references(() => communityUsers.id),
   purpose: text('purpose').notNull(), contentType: text('content_type').notNull(), size: integer('size').notNull(),
+  sourceUpload: boolean('source_upload').notNull().default(false), sealed: boolean('sealed').notNull().default(false),
   attached: boolean('attached').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [check('profile_upload_purpose', sql`${t.purpose} IN ('avatar','cover')`)]);
@@ -95,6 +97,8 @@ export const socialNotifications = pgTable('social_notifications', {
   bookId: uuid('book_id').references(() => authoredBooks.id, { onDelete: 'cascade' }),
   commentId: uuid('comment_id').references(() => writerCommentNodes.id, { onDelete: 'cascade' }),
   chapterId: uuid('chapter_id'),
+  applicationId: uuid('application_id').references(() => premiumApplications.id, { onDelete: 'cascade' }),
+  notificationBody: text('notification_body'),
   read: boolean('read').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex('social_notification_event').on(t.recipientId, t.eventKey)]);

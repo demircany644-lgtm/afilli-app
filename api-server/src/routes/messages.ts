@@ -4,11 +4,12 @@ import { pool } from '@workspace/db';
 import { StartConversationBody, SendConversationMessageBody, SetConversationTypingBody, ReadConversationBody } from '@workspace/api-zod';
 import { route, requirePerson, parse, fail, uuid, transaction } from '../lib/community';
 import { personId, pageCursor } from '../lib/social';
+import { directPhotoObject } from '../lib/bulletin-storage';
+import { checkAndRecordProhibitedImage, prohibitedImageFailure } from '../lib/prohibited-images';
 import { bookNotifications, readBookNotification } from '../lib/book-notifications';
 import { member, threads, messageData, sequence, validateGif } from '../lib/direct-messages';
 import { directEvent, openDirectEvents } from '../lib/direct-events';
 import { purgeDirectPhotoQueue } from '../lib/direct-media';
-import { resolveLibraryGif } from '../lib/gif-library';
 
 const router: IRouter = Router();
 router.get('/message-events', route(async (req, res) => {
@@ -86,6 +87,9 @@ router.post('/conversations/:id/messages', route(async (req, res) => {
   const body = input.body.trim(), reply = input.replyToId ?? null;
   if (!body && !input.gif && !input.photoId) return fail(400, 'Boş mesaj gönderilemez.');
   if (input.gif && input.photoId) return fail(400, 'Tek gönderimde bir fotoğraf veya GIF seç.');
+  // Afilli's shared GIF library remains available to its administrators, but
+  // private messages now accept only recipient-consented KLIPY selections.
+  const gif = validateGif(input.gif);
   const payload = [body, reply, input.gif?.provider ?? null, input.gif?.id ?? null, input.gif?.url ?? null];
   if (input.photoId) payload.push(input.photoId); // Preserve legacy text/GIF retry hashes.
   const hash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
@@ -103,9 +107,11 @@ router.post('/conversations/:id/messages', route(async (req, res) => {
       const photo = (await client.query(`SELECT id FROM direct_message_uploads WHERE id=$1 AND thread_id=$2 AND owner_id=$3 AND client_id=$4
         AND ready AND attached_at IS NULL AND delete_requested_at IS NULL AND purged_at IS NULL FOR UPDATE`, [input.photoId, id, actor.id, input.clientId])).rows[0];
       if (!photo) return fail(422, 'Fotoğraf hazır değil veya bu gönderime ait değil.', 'PHOTO_UNAVAILABLE');
+      const [image] = await directPhotoObject(`${input.photoId}/image`).download();
+      const hit = await checkAndRecordProhibitedImage(actor.id, 'private_message', image);
+      if (hit) prohibitedImageFailure(hit.id);
       await client.query('UPDATE direct_message_uploads SET attached_at=clock_timestamp() WHERE id=$1', [input.photoId]);
     }
-    const gif = input.gif?.provider === 'afilli' ? await resolveLibraryGif(input.gif, client) : validateGif(input.gif);
     const recent = (await client.query<{ count: number }>("SELECT count(*)::int AS count FROM direct_messages WHERE sender_id=$1 AND created_at>now()-interval '1 minute'", [actor.id])).rows[0];
     if (recent.count >= 60) return fail(429, 'Çok hızlı mesaj gönderiyorsun. Biraz bekleyip tekrar dene.');
     const row = (await client.query<{ id: string }>(`INSERT INTO direct_messages(thread_id,sender_id,client_id,body,payload_hash,reply_to_id,has_reply,gif,photo_id)

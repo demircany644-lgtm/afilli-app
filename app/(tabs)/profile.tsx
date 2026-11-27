@@ -58,7 +58,7 @@ function Profile() {
           </>} />
         {p.isAdmin ? <OnlineVisibility profile={p} /> : null}
         <View onLayout={(e) => { tabsY.current = e.nativeEvent.layout.y; }}>
-          <ProfileTabs profileId={p.id} isMe tab={tab} onTab={setTab} />
+          <ProfileTabs profileId={p.id} isMe tab={tab} onTab={setTab} onRules={() => go('/afilli-rules')} />
         </View>
         <LocalShelf signedIn />
       </>

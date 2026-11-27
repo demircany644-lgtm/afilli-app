@@ -11,6 +11,65 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /visual-collections:
+    get:
+      operationId: getVisualCollections
+      responses:
+        "200": { description: Published monthly Premium artwork, content: { application/json: { schema: { $ref: "#/components/schemas/VisualCollection" } } } }
+  /visual-collections/me:
+    get:
+      operationId: getMyVisualCollection
+      responses:
+        "200": { description: Own saved artwork and preferences, content: { application/json: { schema: { $ref: "#/components/schemas/VisualCollectionAccount" } } } }
+  /visual-collections/{id}/save:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: saveVisualCollectionItem
+      responses:
+        "200": { description: Idempotently added to own collection, content: { application/json: { schema: { $ref: "#/components/schemas/VisualCollectionAccount" } } } }
+  /visual-collections/selection:
+    put:
+      operationId: setVisualCollectionSelection
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/VisualSelectionInput" } } }
+      responses:
+        "200": { description: Saved owner-authorized selection or disabled it without deleting saved items, content: { application/json: { schema: { $ref: "#/components/schemas/VisualCollectionAccount" } } } }
+  /visual-collections/active:
+    get:
+      operationId: getActiveVisualCollection
+      parameters:
+        - { name: userId, in: query, required: true, schema: { type: string, maxLength: 100 } }
+        - { name: targetId, in: query, schema: { type: string, maxLength: 100, default: profile } }
+      responses:
+        "200": { description: Publicly visible artwork only while owner's Premium is active, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/VisualSelection" } } } } }
+  /admin/visual-collections:
+    get:
+      operationId: getAdminVisualCollections
+      responses:
+        "200": { description: Artwork publishing and saved counts, content: { application/json: { schema: { $ref: "#/components/schemas/VisualCollection" } } } }
+    post:
+      operationId: requestVisualAssetUpload
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/VisualAssetUploadInput" } } }
+      responses:
+        "201": { description: Administrator-bound staged upload, content: { application/json: { schema: { $ref: "#/components/schemas/VisualAssetUpload" } } } }
+  /admin/visual-collections/{id}/complete:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: completeVisualAssetUpload
+      responses:
+        "200": { description: Validated immutable artwork, content: { application/json: { schema: { $ref: "#/components/schemas/VisualAsset" } } } }
+  /admin/visual-collections/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    patch:
+      operationId: updateVisualAsset
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/VisualAssetUpdate" } } }
+      responses:
+        "200": { description: Audited artwork publication update, content: { application/json: { schema: { $ref: "#/components/schemas/VisualAsset" } } } }
   /gif-library:
     get:
       operationId: getGifLibrary
@@ -32,6 +91,205 @@ paths:
       operationId: completeLibraryGifUpload
       responses:
         "200": { description: Validated immutable animated GIF, content: { application/json: { schema: { $ref: "#/components/schemas/MessageGif" } } } }
+  /premium/config:
+    get:
+      operationId: getPremiumConfig
+      responses:
+        "200": { description: Current RevenueCat offering and public mobile SDK keys; empty when not configured, content: { application/json: { schema: { $ref: "#/components/schemas/PremiumConfig" } } } }
+  /account-appeals/config:
+    get:
+      operationId: getAccountAppealConfig
+      responses:
+        "200": { description: Dedicated one-time RevenueCat appeal product configuration; empty until configured, content: { application/json: { schema: { $ref: "#/components/schemas/AccountAppealConfig" } } } }
+  /account-appeals/me:
+    get:
+      operationId: getMyAccountAppeal
+      responses:
+        "200": { description: Own disabled-account appeal state and latest payment review, content: { application/json: { schema: { $ref: "#/components/schemas/AccountAppealSelf" } } } }
+  /prohibited-image-contact/me:
+    get:
+      operationId: getProhibitedImageContactMe
+      responses:
+        "200": { description: Current restricted image-moderation case and the user's messages, content: { application/json: { schema: { $ref: "#/components/schemas/ProhibitedImageContactSelf" } } } }
+  /prohibited-image-contact/messages:
+    post:
+      operationId: sendProhibitedImageContactMessage
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ProhibitedImageContactMessageInput" } } }
+      responses:
+        "201": { description: Message sent to the moderation review inbox, content: { application/json: { schema: { $ref: "#/components/schemas/ProhibitedImageContactMessageCreated" } } } }
+  /account-appeals/verify:
+    post:
+      operationId: verifyAccountAppealPurchase
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AccountAppealVerificationInput" } } }
+      responses:
+        "201": { description: Appeal created only after server-side RevenueCat transaction verification, content: { application/json: { schema: { $ref: "#/components/schemas/AccountAppeal" } } } }
+        "200": { description: Idempotent replay of the same verified transaction, content: { application/json: { schema: { $ref: "#/components/schemas/AccountAppeal" } } } }
+  /premium/me:
+    get:
+      operationId: getMyPremium
+      responses:
+        "200": { description: "Current user's application, membership, and appearance settings", content: { application/json: { schema: { $ref: "#/components/schemas/PremiumAccount" } } } }
+  /premium/applications:
+    post:
+      operationId: createPremiumApplication
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PremiumApplicationInput" } } }
+      responses:
+        "201": { description: Submitted one pending membership application, content: { application/json: { schema: { $ref: "#/components/schemas/PremiumApplication" } } } }
+  /premium/applications/{id}/verify:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: verifyPremiumPurchase
+      responses:
+        "200": { description: Premium activated only after the server confirms an active matching RevenueCat entitlement, content: { application/json: { schema: { $ref: "#/components/schemas/PremiumAccount" } } } }
+  /premium/restore:
+    post:
+      operationId: restorePremiumPurchase
+      responses:
+        "200": { description: Restored only after the server confirms an active matching RevenueCat entitlement, content: { application/json: { schema: { $ref: "#/components/schemas/PremiumAccount" } } } }
+        "409": { description: No active paid entitlement could be verified }
+  /premium/preferences:
+    put:
+      operationId: updatePremiumPreferences
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PremiumPreferencesInput" } } }
+      responses:
+        "200": { description: Saved premium-only appearance preferences, content: { application/json: { schema: { $ref: "#/components/schemas/PremiumPreferences" } } } }
+  /store/catalog:
+    get:
+      operationId: getStoreCatalog
+      responses:
+        "200": { description: Current store products and whether order requests are open, content: { application/json: { schema: { $ref: "#/components/schemas/StoreCatalog" } } } }
+  /store/cart:
+    get:
+      operationId: getMyStoreCart
+      responses:
+        "200": { description: The signed-in user's saved cart, content: { application/json: { schema: { $ref: "#/components/schemas/StoreCart" } } } }
+  /store/cart/items:
+    post:
+      operationId: addStoreCartItem
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/StoreCartAddInput" } } }
+      responses:
+        "200": { description: Added one item to the signed-in user's cart, content: { application/json: { schema: { $ref: "#/components/schemas/StoreCart" } } } }
+  /store/cart/items/{productId}:
+    parameters: [{ name: productId, in: path, required: true, schema: { type: string, maxLength: 80 } }]
+    patch:
+      operationId: updateStoreCartItem
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/StoreCartUpdateInput" } } }
+      responses:
+        "200": { description: Updated quantity in the signed-in user's cart, content: { application/json: { schema: { $ref: "#/components/schemas/StoreCart" } } } }
+    delete:
+      operationId: removeStoreCartItem
+      responses:
+        "200": { description: Removed an item from the signed-in user's cart, content: { application/json: { schema: { $ref: "#/components/schemas/StoreCart" } } } }
+  /store/orders:
+    get:
+      operationId: getMyStoreOrders
+      responses:
+        "200": { description: The signed-in user's order requests, content: { application/json: { schema: { $ref: "#/components/schemas/StoreOrderPage" } } } }
+    post:
+      operationId: createStoreOrder
+      responses:
+        "201": { description: Submitted the user's cart as an unpaid order request, content: { application/json: { schema: { $ref: "#/components/schemas/StoreOrder" } } } }
+  /admin/store-orders:
+    get:
+      operationId: getAdminStoreOrders
+      parameters:
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200": { description: Order requests for administrators, content: { application/json: { schema: { $ref: "#/components/schemas/AdminStoreOrderPage" } } } }
+  /admin/store-orders/{id}/decision:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: decideAdminStoreOrder
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminStoreOrderDecisionInput" } } }
+      responses:
+        "200": { description: Recorded the administrator's order decision without taking payment, content: { application/json: { schema: { $ref: "#/components/schemas/AdminStoreOrderDecisionResult" } } } }
+  /admin/store-settings:
+    get:
+      operationId: getAdminStoreSettings
+      responses:
+        "200": { description: Current order-request availability, content: { application/json: { schema: { $ref: "#/components/schemas/StoreSettings" } } } }
+    put:
+      operationId: updateAdminStoreSettings
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminStoreSettingsInput" } } }
+      responses:
+        "200": { description: Updated whether the store accepts new order requests, content: { application/json: { schema: { $ref: "#/components/schemas/StoreSettings" } } } }
+  /admin/store-products:
+    get:
+      operationId: getAdminStoreProducts
+      responses:
+        "200": { description: Products currently available in the store catalog, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/StoreProduct" } } } } }
+    post:
+      operationId: createAdminStoreProduct
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminStoreProductCreateInput" } } }
+      responses:
+        "201": { description: Added a catalog product after validating the administrator's completed image upload, content: { application/json: { schema: { $ref: "#/components/schemas/StoreProduct" } } } }
+  /admin/store-product-uploads:
+    post:
+      operationId: requestAdminStoreProductUpload
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminStoreProductUploadInput" } } }
+      responses:
+        "200": { description: Short-lived direct upload target for a store product image, content: { application/json: { schema: { $ref: "#/components/schemas/AdminStoreProductUpload" } } } }
+  /admin/store-product-uploads/{id}/complete:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: completeAdminStoreProductUpload
+      responses:
+        "200": { description: Validated and optimized product image, content: { application/json: { schema: { $ref: "#/components/schemas/AdminStoreProductUploadComplete" } } } }
+  /admin/book-promotion-settings:
+    get:
+      operationId: getAdminBookPromotionSettings
+      responses:
+        "200": { description: Free book promotion availability, content: { application/json: { schema: { $ref: "#/components/schemas/BookPromotionSettings" } } } }
+    put:
+      operationId: updateAdminBookPromotionSettings
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminBookPromotionSettingsInput" } } }
+      responses:
+        "200": { description: Updated free request availability and supported durations, content: { application/json: { schema: { $ref: "#/components/schemas/BookPromotionSettings" } } } }
+  /admin/book-promotion-requests:
+    get:
+      operationId: getAdminBookPromotionRequests
+      parameters:
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: status, in: query, schema: { type: string, enum: [all, pending, active, rejected, expired], default: pending } }
+      responses:
+        "200": { description: Book promotion requests for administrators, content: { application/json: { schema: { $ref: "#/components/schemas/AdminBookPromotionRequestPage" } } } }
+  /admin/book-promotion-requests/{id}/decision:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: decideAdminBookPromotionRequest
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminBookPromotionDecisionInput" } } }
+      responses:
+        "200": { description: Recorded free approval or rejection, content: { application/json: { schema: { $ref: "#/components/schemas/BookPromotionRequest" } } } }
+  /store-product-media/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      operationId: getStoreProductMedia
+      responses:
+        "200": { description: Optimized public image of a listed store product, content: { image/jpeg: { schema: { type: string, format: binary } } } }
   /gif-library/{id}/media:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
@@ -44,9 +302,20 @@ paths:
       parameters:
         - { name: sort, in: query, schema: { type: string, enum: [new, read, popular], default: new } }
         - { name: search, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: category, in: query, schema: { type: string, enum: [romantik, gerilim-polisiye-gizem, fantastik, mafya-yeralti, bilim-kurgu-distopya, dram-hayat-hikayeleri, ask-romani, fantastik-bilim-kurgu, polisiye-gerilim, mafya, psikolojik-iliskiler] } }
         - { name: cursor, in: query, schema: { type: string, maxLength: 2048 } }
       responses:
         "200": { description: Visible released book cards in stable ranked pages, content: { application/json: { schema: { $ref: "#/components/schemas/DiscoveryBookPage" } } } }
+  /discovery/promoted-books:
+    get:
+      operationId: getPromotedBooks
+      responses:
+        "200": { description: Currently active and publicly visible promoted books, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/DiscoveryBookCard" } } } } }
+  /reader/read-books:
+    get:
+      operationId: getReaderReadBooks
+      responses:
+        "200": { description: "Books previously read by the authenticated reader, ordered by latest reading activity", content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/DiscoveryBookCard" } } } } }
   /discovery/book-cards:
     get:
       operationId: getBookCards
@@ -72,6 +341,79 @@ paths:
       operationId: getAdminOverview
       responses:
         "200": { description: Authorized administration overview, content: { application/json: { schema: { $ref: "#/components/schemas/AdminOverview" } } } }
+  /admin/premium-applications:
+    get:
+      operationId: getAdminPremiumApplications
+      parameters:
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200": { description: Membership applications for administrators, content: { application/json: { schema: { $ref: "#/components/schemas/AdminPremiumApplicationPage" } } } }
+  /admin/premium-applications/{id}/decision:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: decideAdminPremiumApplication
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminPremiumDecisionInput" } } }
+      responses:
+        "200": { description: Audited paid/free approval or rejection, content: { application/json: { schema: { $ref: "#/components/schemas/AdminPremiumApplication" } } } }
+  /admin/account-appeals:
+    get:
+      operationId: getAdminAccountAppeals
+      parameters:
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200": { description: Verified paid account-appeal requests for upper administrators, content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccountAppealPage" } } } }
+  /admin/account-appeals/{id}/decision:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: decideAdminAccountAppeal
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccountAppealDecisionInput" } } }
+      responses:
+        "200": { description: Audited account unblocking or rejection with user notification, content: { application/json: { schema: { $ref: "#/components/schemas/AdminAccountAppeal" } } } }
+  /admin/prohibited-images:
+    get:
+      operationId: getAdminProhibitedImages
+      responses:
+        "200": { description: Private reference images and the active minimum, content: { application/json: { schema: { $ref: "#/components/schemas/AdminProhibitedImageCollection" } } } }
+  /admin/prohibited-image-uploads:
+    post:
+      operationId: requestProhibitedImageUpload
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ProhibitedImageUploadInput" } } }
+      responses:
+        "200": { description: Short-lived private image upload for a superadmin, content: { application/json: { schema: { $ref: "#/components/schemas/ProhibitedImageUpload" } } } }
+  /admin/prohibited-image-uploads/{id}/complete:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: completeProhibitedImageUpload
+      responses:
+        "200": { description: Validated private reference image, content: { application/json: { schema: { $ref: "#/components/schemas/ProhibitedImageUploadStatus" } } } }
+  /admin/prohibited-images/{id}:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    delete:
+      operationId: deleteAdminProhibitedImage
+      responses:
+        "204": { description: Reference image removed; active minimum is protected }
+  /admin/prohibited-image-attempts:
+    get:
+      operationId: getAdminProhibitedImageAttempts
+      parameters:
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, maximum: 1000000, default: 0 } }
+      responses:
+        "200": { description: "Restricted users, private evidence and contact messages", content: { application/json: { schema: { $ref: "#/components/schemas/AdminProhibitedImageAttemptPage" } } } }
+  /admin/prohibited-image-attempts/{id}/decision:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    patch:
+      operationId: decideProhibitedImageAttempt
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ProhibitedImageDecisionInput" } } }
+      responses:
+        "200": { description: Account restriction confirmed or released by a superadmin, content: { application/json: { schema: { $ref: "#/components/schemas/ProhibitedImageDecisionResult" } } } }
   /admin/accounts:
     get:
       operationId: getAdminAccounts
@@ -554,6 +896,21 @@ paths:
       operationId: getAuthoredBook
       responses:
         "200": { description: Book, content: { application/json: { schema: { $ref: "#/components/schemas/AuthoredBook" } } } }
+  /authored-books/{id}/promotion:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      operationId: getMyBookPromotion
+      responses:
+        "200": { description: Own published book promotion status and current free options, content: { application/json: { schema: { $ref: "#/components/schemas/MyBookPromotion" } } } }
+  /authored-books/{id}/promotion-requests:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: createBookPromotionRequest
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/BookPromotionRequestInput" } } }
+      responses:
+        "201": { description: Created a free request for the book's owner, content: { application/json: { schema: { $ref: "#/components/schemas/BookPromotionRequest" } } } }
   /bulletin-notifications:
     get:
       operationId: getBulletinNotifications
@@ -606,6 +963,17 @@ paths:
       responses:
         "200": { description: Saved with revision, content: { application/json: { schema: { $ref: "#/components/schemas/WriterBook" } } } }
         "409": { description: Conflicting device revision; fetch current document before resolving }
+  /writer-books/{id}/copy:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    post:
+      operationId: copyWriterBook
+      description: Copy an author's own current manuscript into an independent, unpublished draft with fresh chapter IDs. The clientRequestId makes retries idempotent.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CopyWriterBookInput" } } }
+      responses:
+        "200": { description: Existing retry or newly copied draft, content: { application/json: { schema: { $ref: "#/components/schemas/WriterBook" } } } }
+        "404": { description: Source book is not owned by this user }
     delete:
       operationId: deleteWriterBook
       requestBody:
@@ -710,7 +1078,7 @@ paths:
       operationId: getBookNotifications
       parameters: [{ name: cursor, in: query, schema: { type: string } }]
       responses:
-        "200": { description: "Only saved-book chapters, authored-book comments and comment replies", content: { application/json: { schema: { $ref: "#/components/schemas/BookNotificationPage" } } } }
+        "200": { description: "Saved-book chapters, authored-book likes and comments, and comment replies", content: { application/json: { schema: { $ref: "#/components/schemas/BookNotificationPage" } } } }
   /book-notifications/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     patch:
@@ -800,6 +1168,15 @@ paths:
         content: { application/json: { schema: { $ref: "#/components/schemas/ReaderLikeInput" } } }
       responses:
         "200": { description: Authoritative chapter and paragraph counts after an idempotent like or unlike, content: { application/json: { schema: { $ref: "#/components/schemas/ReaderChapter" } } } }
+  /authored-books/{id}/chapters/{chapterId}/read:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+      - { name: chapterId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      operationId: recordReaderChapterRead
+      description: Count an authenticated non-author reader once per published chapter per day and return current chapter interactions.
+      responses:
+        "200": { description: Daily-deduplicated chapter read and current interactions, content: { application/json: { schema: { $ref: "#/components/schemas/ReaderChapter" } } } }
   /writer-comments/{id}/reports:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
@@ -844,12 +1221,82 @@ components:
   parameters:
     Id: { name: id, in: path, required: true, schema: { type: string } }
   schemas:
+    VisualCategory:
+      type: string
+      enum: [frame, background, badge, effect, book_frame, divider, signature, banner, animation]
+    VisualAsset:
+      type: object
+      required: [id, category, name, description, month, contentType, width, height, published, ready, savedCount]
+      properties:
+        id: { type: string, format: uuid }
+        category: { $ref: "#/components/schemas/VisualCategory" }
+        name: { type: string }
+        description: { type: string }
+        month: { type: string }
+        contentType: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        published: { type: boolean }
+        ready: { type: boolean }
+        savedCount: { type: integer }
+    VisualCollection:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/VisualAsset" } }
+    VisualSelection:
+      type: object
+      required: [category, targetId, asset, caption]
+      properties:
+        category: { $ref: "#/components/schemas/VisualCategory" }
+        targetId: { type: string }
+        asset: { $ref: "#/components/schemas/VisualAsset" }
+        caption: { type: string }
+    VisualCollectionAccount:
+      type: object
+      required: [active, savedIds, selections]
+      properties:
+        active: { type: boolean }
+        savedIds: { type: array, items: { type: string } }
+        selections: { type: array, items: { $ref: "#/components/schemas/VisualSelection" } }
+    VisualSelectionInput:
+      type: object
+      required: [category, assetId]
+      properties:
+        category: { $ref: "#/components/schemas/VisualCategory" }
+        assetId: { type: [string, "null"], format: uuid }
+        targetId: { type: string, maxLength: 100, default: profile }
+        caption: { type: string, maxLength: 240, default: "" }
+    VisualAssetUpdate:
+      type: object
+      required: [name, description, category, month, published]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, maxLength: 1000 }
+        category: { $ref: "#/components/schemas/VisualCategory" }
+        month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        published: { type: boolean }
+    VisualAssetUploadInput:
+      allOf:
+        - { $ref: "#/components/schemas/VisualAssetUpdate" }
+        - type: object
+          required: [contentType, size]
+          properties:
+            contentType: { type: string, enum: [image/png, image/webp, image/gif] }
+            size: { type: integer, minimum: 1, maximum: 8388608 }
+    VisualAssetUpload:
+      type: object
+      required: [id, uploadUrl]
+      properties:
+        id: { type: string }
+        uploadUrl: { type: string }
     DiscoveryBookCard:
       type: object
-      required: [id, title, author, genres, readCount, likeCount, commentCount, publishedAt]
+      required: [id, title, description, author, genres, readCount, likeCount, commentCount, publishedAt]
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
+        description: { type: string }
         author: { $ref: "#/components/schemas/CommunityPerson" }
         coverUrl: { type: [string, "null"] }
         genres: { type: array, items: { type: string } }
@@ -863,6 +1310,64 @@ components:
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/DiscoveryBookCard" } }
         nextCursor: { type: [string, "null"] }
+    BookPromotionRequest:
+      type: object
+      required: [id, bookId, authorId, bookTitle, coverUrl, authorNickname, authorAvatar, durationDays, status, decision, decisionNote, requestedAt, decidedAt, startsAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        bookId: { type: [string, "null"], format: uuid }
+        authorId: { type: [string, "null"] }
+        bookTitle: { type: string }
+        coverUrl: { type: [string, "null"] }
+        authorNickname: { type: string }
+        authorAvatar: { type: [string, "null"] }
+        durationDays: { type: integer, enum: [3, 7, 15, 30] }
+        status: { type: string, enum: [pending, active, rejected, expired] }
+        decision: { type: [string, "null"], enum: [free, reject, null] }
+        decisionNote: { type: [string, "null"] }
+        requestedAt: { type: string, format: date-time }
+        decidedAt: { type: [string, "null"], format: date-time }
+        startsAt: { type: [string, "null"], format: date-time }
+        expiresAt: { type: [string, "null"], format: date-time }
+    MyBookPromotion:
+      type: object
+      required: [enabled, allowedDurations, latestRequest]
+      properties:
+        enabled: { type: boolean }
+        allowedDurations: { type: array, items: { type: integer, enum: [3, 7, 15, 30] } }
+        latestRequest: { oneOf: [{ $ref: "#/components/schemas/BookPromotionRequest" }, { type: "null" }] }
+    BookPromotionSettings:
+      type: object
+      required: [enabled, allowedDurations, updatedAt]
+      properties:
+        enabled: { type: boolean }
+        allowedDurations: { type: array, items: { type: integer, enum: [3, 7, 15, 30] } }
+        updatedAt: { type: string, format: date-time }
+    AdminBookPromotionSettingsInput:
+      type: object
+      required: [enabled, allowedDurations]
+      properties:
+        enabled: { type: boolean }
+        allowedDurations: { type: array, minItems: 1, maxItems: 4, items: { type: integer, enum: [3, 7, 15, 30] } }
+    BookPromotionRequestInput:
+      type: object
+      required: [durationDays, clientRequestId]
+      properties:
+        durationDays: { type: integer, enum: [3, 7, 15, 30] }
+        clientRequestId: { type: string, format: uuid }
+    AdminBookPromotionDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approve_free, reject] }
+        reason: { type: string, maxLength: 300 }
+    AdminBookPromotionRequestPage:
+      type: object
+      required: [items, total, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/BookPromotionRequest" } }
+        total: { type: integer }
+        nextOffset: { type: [integer, "null"] }
     ReadingPositionInput:
       type: object
       required: [chapterId]
@@ -882,6 +1387,209 @@ components:
         instagramUrl: { type: string, nullable: true, maxLength: 120 }
         popularDays: { type: integer, minimum: 1, maximum: 365 }
         popularLimit: { type: integer, minimum: 1, maximum: 100 }
+    PremiumConfig:
+      type: object
+      required: [configured, message, iosPublicKey, androidPublicKey, packages]
+      properties:
+        configured: { type: boolean }
+        message: { type: string, nullable: true }
+        iosPublicKey: { type: string, nullable: true }
+        androidPublicKey: { type: string, nullable: true }
+        packages: { type: array, items: { $ref: "#/components/schemas/PremiumPackage" } }
+    PremiumPackage:
+      type: object
+      required: [packageIdentifier, productIdentifier, productName, platform]
+      properties:
+        packageIdentifier: { type: string }
+        productIdentifier: { type: string }
+        productName: { type: string }
+        platform: { type: string, enum: [ios, android] }
+    PremiumApplicationStatus:
+      type: string
+      enum: [pending, paid_approved, active, rejected, expired]
+    PremiumApplication:
+      type: object
+      required: [id, packageIdentifier, productIdentifier, planName, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        packageIdentifier: { type: string }
+        productIdentifier: { type: string }
+        planName: { type: string }
+        status: { $ref: "#/components/schemas/PremiumApplicationStatus" }
+        createdAt: { type: string, format: date-time }
+    PremiumPreferences:
+      type: object
+      required: [profileFrame, profileBackground, chatEffect, storeDesign, updatedAt]
+      properties:
+        profileFrame: { type: string, enum: [classic, gold, rose, midnight] }
+        profileBackground: { type: string, enum: [classic, linen, wine, starlight] }
+        chatEffect: { type: string, enum: [none, gold, rose, violet] }
+        storeDesign: { type: string, enum: [classic, gold, wine, night] }
+        updatedAt: { type: string, format: date-time }
+    PremiumAccount:
+      type: object
+      required: [active, source, expiresAt, application, preferences]
+      properties:
+        active: { type: boolean }
+        source: { type: string, enum: [free, paid], nullable: true }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        application: { allOf: [{ $ref: "#/components/schemas/PremiumApplication" }], nullable: true }
+        preferences: { $ref: "#/components/schemas/PremiumPreferences" }
+    PremiumApplicationInput:
+      type: object
+      required: [packageIdentifier, productIdentifier, platform]
+      properties:
+        packageIdentifier: { type: string, minLength: 1, maxLength: 200 }
+        productIdentifier: { type: string, minLength: 1, maxLength: 255 }
+        platform: { type: string, enum: [ios, android] }
+    PremiumPreferencesInput:
+      type: object
+      required: [profileFrame, profileBackground, chatEffect, storeDesign]
+      properties:
+        profileFrame: { type: string, enum: [classic, gold, rose, midnight] }
+        profileBackground: { type: string, enum: [classic, linen, wine, starlight] }
+        chatEffect: { type: string, enum: [none, gold, rose, violet] }
+        storeDesign: { type: string, enum: [classic, gold, wine, night] }
+    StoreProduct:
+      type: object
+      required: [id, name, category, categoryLabel, productType, sizeLabel, priceKurus, currency, imageKey]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        category: { type: string, enum: [perfume, accessory, gift, other] }
+        categoryLabel: { type: string }
+        productType: { type: string }
+        sizeLabel: { type: string }
+        priceKurus: { type: integer, minimum: 0 }
+        currency: { type: string, enum: [TRY] }
+        imageKey: { type: string }
+    StoreCatalog:
+      type: object
+      required: [active, products]
+      properties:
+        active: { type: boolean, description: "Whether order requests are currently accepted; not a payment or checkout state." }
+        products: { type: array, items: { $ref: "#/components/schemas/StoreProduct" } }
+    AdminStoreProductCreateInput:
+      type: object
+      required: [name, category, productType, sizeLabel, priceKurus, imageKey]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 120 }
+        category: { type: string, enum: [perfume, accessory, gift, other] }
+        productType: { type: string, minLength: 1, maxLength: 80 }
+        sizeLabel: { type: string, minLength: 1, maxLength: 60 }
+        priceKurus: { type: integer, minimum: 0, maximum: 100000000 }
+        imageKey: { type: string, pattern: '^upload:[0-9a-fA-F-]{36}$' }
+    AdminStoreProductUploadInput:
+      type: object
+      required: [clientId, contentType, size]
+      properties:
+        clientId: { type: string, format: uuid }
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+        size: { type: integer, minimum: 1, maximum: 10485760 }
+    AdminStoreProductUpload:
+      type: object
+      required: [id, uploadUrl]
+      properties:
+        id: { type: string, format: uuid }
+        uploadUrl: { type: string, format: uri }
+    AdminStoreProductUploadComplete:
+      type: object
+      required: [id, imageKey]
+      properties:
+        id: { type: string, format: uuid }
+        imageKey: { type: string }
+    StoreSettings:
+      type: object
+      required: [active, updatedAt]
+      properties:
+        active: { type: boolean }
+        updatedAt: { type: string, nullable: true }
+    StoreCartItem:
+      type: object
+      required: [product, quantity, subtotalKurus]
+      properties:
+        product: { $ref: "#/components/schemas/StoreProduct" }
+        quantity: { type: integer, minimum: 1 }
+        subtotalKurus: { type: integer, minimum: 0 }
+    StoreCart:
+      type: object
+      required: [items, totalKurus]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/StoreCartItem" } }
+        totalKurus: { type: integer, minimum: 0 }
+    StoreCartAddInput:
+      type: object
+      required: [productId]
+      properties: { productId: { type: string, maxLength: 80 } }
+    StoreCartUpdateInput:
+      type: object
+      required: [quantity]
+      properties: { quantity: { type: integer, minimum: 1, maximum: 99 } }
+    StoreOrderStatus:
+      type: string
+      enum: [pending, payment_pending, approved_free, rejected]
+    StoreOrderItem:
+      type: object
+      required: [productId, name, category, productType, sizeLabel, priceKurus, imageKey, quantity]
+      properties:
+        productId: { type: string }
+        name: { type: string }
+        category: { type: string, enum: [perfume, accessory, gift, other] }
+        productType: { type: string }
+        sizeLabel: { type: string }
+        priceKurus: { type: integer, minimum: 0 }
+        imageKey: { type: string }
+        quantity: { type: integer, minimum: 1 }
+    StoreOrder:
+      type: object
+      required: [id, status, items, totalKurus, createdAt, updatedAt, decisionNote]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/StoreOrderStatus" }
+        items: { type: array, items: { $ref: "#/components/schemas/StoreOrderItem" } }
+        totalKurus: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        decisionNote: { type: string, nullable: true }
+    StoreOrderPage:
+      type: object
+      required: [items]
+      properties: { items: { type: array, items: { $ref: "#/components/schemas/StoreOrder" } } }
+    AdminStoreOrder:
+      allOf:
+        - { $ref: "#/components/schemas/StoreOrder" }
+        - type: object
+          required: [userId, nickname, avatar]
+          properties:
+            userId: { type: string }
+            nickname: { type: string }
+            avatar: { type: string, nullable: true }
+    AdminStoreOrderPage:
+      type: object
+      required: [items, total, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminStoreOrder" } }
+        total: { type: integer }
+        nextOffset: { type: integer, nullable: true }
+    AdminStoreOrderDecisionInput:
+      type: object
+      required: [decision, reason]
+      properties:
+        decision: { type: string, enum: [paid, free, reject, pending] }
+        reason: { type: string, minLength: 3, maxLength: 300 }
+    AdminStoreOrderDecisionResult:
+      type: object
+      required: [orderId, userId, status]
+      properties:
+        orderId: { type: string, format: uuid }
+        userId: { type: string }
+        status: { $ref: "#/components/schemas/StoreOrderStatus" }
+    AdminStoreSettingsInput:
+      type: object
+      required: [active, reason]
+      properties:
+        active: { type: boolean }
+        reason: { type: string, minLength: 3, maxLength: 300 }
     OfficialInstagramInput:
       type: object
       required: [instagramUrl]
@@ -889,7 +1597,7 @@ components:
         instagramUrl: { type: string, nullable: true, maxLength: 120 }
     ReaderProfile:
       type: object
-      required: [id, nickname, handle, avatar, cover, bio, quote, bookCount, followersCount, followingCount, following, isMe, isAdmin, online, lastSeen, typing, popular, premium]
+      required: [id, nickname, handle, avatar, cover, bio, quote, bookCount, followersCount, followingCount, following, isMe, isAdmin, online, lastSeen, typing, popular, premium, writerBadges, premiumPreferences]
       properties:
         id: { type: string }
         nickname: { type: string }
@@ -910,6 +1618,8 @@ components:
         typing: { type: boolean }
         popular: { type: boolean }
         premium: { type: boolean }
+        writerBadges: { type: array, items: { $ref: "#/components/schemas/WriterAchievement" } }
+        premiumPreferences: { allOf: [{ $ref: "#/components/schemas/PremiumPreferences" }], nullable: true }
     ProfileEditInput:
       type: object
       required: [nickname, handle, bio, quote]
@@ -1123,11 +1833,12 @@ components:
         changeCursor: { type: string }
     SocialNotification:
       type: object
-      required: [id, body, read, createdAt, actorId, threadId, bookId, kind, commentId, chapterId]
+      required: [id, body, read, createdAt, actorId, threadId, bookId, kind, commentId, chapterId, applicationId]
       properties:
-        kind: { type: string, enum: [chapter, book_comment, comment_reply] }
+        kind: { type: string, enum: [chapter, book_like, book_comment, comment_reply, premium_status, store_order, account_appeal] }
         commentId: { type: string, nullable: true }
         chapterId: { type: string, nullable: true }
+        applicationId: { type: string, nullable: true }
         id: { type: string }
         body: { type: string }
         read: { type: boolean }
@@ -1157,6 +1868,11 @@ components:
         localId: { type: string }
         title: { type: string, minLength: 1, maxLength: 200 }
         body: { type: string, maxLength: 200000 }
+    CopyWriterBookInput:
+      type: object
+      required: [clientRequestId]
+      properties:
+        clientRequestId: { type: string, format: uuid }
     BulletinUploadInput:
       type: object
       required: [contentType, size]
@@ -1170,6 +1886,11 @@ components:
         id: { type: string }
         nickname: { type: string }
         avatar: { type: string, nullable: true }
+        writerBadges: { type: array, items: { $ref: "#/components/schemas/WriterAchievement" } }
+        premiumChatEffect: { type: string, enum: [none, gold, rose, violet], nullable: true }
+    WriterAchievement:
+      type: string
+      enum: [successful, master, popular]
     AuthoredBook:
       type: object
       required: [id, title, body, author]
@@ -1211,7 +1932,7 @@ components:
           type: array
           maxItems: 3
           uniqueItems: true
-          items: { type: string, enum: [Roman, Hikaye, Şiir, Fantastik, Bilim Kurgu, Korku, Aşk, Tarihi, Kişisel Gelişim, Polisiye, Gerilim, Gizem, Macera, Mizah, Dram, Romantik, Gençlik, Çocuk, Masal, Deneme, Anı, Biyografi, Gezi, Felsefe, Psikoloji, Bilim, Sanat, Eğitim] }
+          items: { type: string, enum: [Roman, Hikaye, Şiir, Fantastik, Bilim Kurgu, Korku, Aşk, Tarihi, Kişisel Gelişim, Polisiye, Gerilim, Gizem, Macera, Mizah, Dram, Romantik, Mafya, Yeraltı Dünyası, Distopya, Hayat Hikâyeleri, Gençlik, Çocuk, Masal, Deneme, Anı, Biyografi, Gezi, Felsefe, Psikoloji, Bilim, Sanat, Eğitim] }
         ageRating: { type: string, enum: [all, "13", "18"] }
         language: { type: string, minLength: 2, maxLength: 40 }
         completion: { type: string, enum: [ongoing, completed] }
@@ -1263,7 +1984,7 @@ components:
           type: array
           maxItems: 3
           uniqueItems: true
-          items: { type: string, enum: [Roman, Hikaye, Şiir, Fantastik, Bilim Kurgu, Korku, Aşk, Tarihi, Kişisel Gelişim, Polisiye, Gerilim, Gizem, Macera, Mizah, Dram, Romantik, Gençlik, Çocuk, Masal, Deneme, Anı, Biyografi, Gezi, Felsefe, Psikoloji, Bilim, Sanat, Eğitim] }
+          items: { type: string, enum: [Roman, Hikaye, Şiir, Fantastik, Bilim Kurgu, Korku, Aşk, Tarihi, Kişisel Gelişim, Polisiye, Gerilim, Gizem, Macera, Mizah, Dram, Romantik, Mafya, Yeraltı Dünyası, Distopya, Hayat Hikâyeleri, Gençlik, Çocuk, Masal, Deneme, Anı, Biyografi, Gezi, Felsefe, Psikoloji, Bilim, Sanat, Eğitim] }
         ageRating: { type: string, enum: [all, "13", "18"] }
         language: { type: string, minLength: 2, maxLength: 40 }
         completion: { type: string, enum: [ongoing, completed] }
@@ -1360,11 +2081,12 @@ components:
         archived: { type: boolean }
     ReaderChapter:
       type: object
-      required: [bookId, chapterId, contentHash, likeCount, liked, commentCount, chapterCommentCount, paragraphs, archived]
+      required: [bookId, chapterId, contentHash, readCount, likeCount, liked, commentCount, chapterCommentCount, paragraphs, archived]
       properties:
         bookId: { type: string, format: uuid }
         chapterId: { type: string, format: uuid }
         contentHash: { type: string }
+        readCount: { type: integer }
         likeCount: { type: integer }
         liked: { type: boolean }
         commentCount: { type: integer }
@@ -1551,12 +2273,120 @@ components:
         - status
     AccountUser:
       type: object
-      required: [id, nickname, email]
+      required: [id, nickname, email, accessMode]
       properties:
         id: { type: string }
         nickname: { type: string }
         email: { type: string, format: email }
         role: { $ref: "#/components/schemas/AdminRole" }
+        accessMode: { type: string, enum: [normal, appeal, contact] }
+    ProhibitedImageArea:
+      type: string
+      enum: [profile, bulletin, book, private_message]
+    ProhibitedImageStatus:
+      type: string
+      enum: [pending, confirmed, released]
+    ProhibitedImageUploadInput:
+      type: object
+      required: [contentType, size]
+      properties:
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+        size: { type: integer, minimum: 1, maximum: 10485760 }
+    ProhibitedImageUpload:
+      type: object
+      required: [id, uploadUrl]
+      properties:
+        id: { type: string, format: uuid }
+        uploadUrl: { type: string, format: uri }
+    ProhibitedImageUploadStatus:
+      type: object
+      required: [id, ready]
+      properties:
+        id: { type: string, format: uuid }
+        ready: { type: boolean }
+    AdminProhibitedImageReference:
+      type: object
+      required: [id, ready, createdAt, imageUrl]
+      properties:
+        id: { type: string, format: uuid }
+        ready: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        imageUrl: { type: string, format: uri, nullable: true }
+    AdminProhibitedImageCollection:
+      type: object
+      required: [items, readyCount, minimum, maximum]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminProhibitedImageReference" } }
+        readyCount: { type: integer }
+        minimum: { type: integer }
+        maximum: { type: integer }
+    ProhibitedImageContactMessage:
+      type: object
+      required: [id, body, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+    AdminProhibitedImageAttempt:
+      type: object
+      required: [id, userId, nickname, avatar, referenceId, area, distance, threshold, autoBlockApplied, status, createdAt, decidedAt, decisionReason, evidenceUrl, referenceUrl, messages]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, nullable: true }
+        nickname: { type: string }
+        avatar: { type: string, nullable: true }
+        referenceId: { type: string, format: uuid, nullable: true }
+        area: { $ref: "#/components/schemas/ProhibitedImageArea" }
+        distance: { type: integer }
+        threshold: { type: integer }
+        autoBlockApplied: { type: boolean }
+        status: { $ref: "#/components/schemas/ProhibitedImageStatus" }
+        createdAt: { type: string, format: date-time }
+        decidedAt: { type: string, format: date-time, nullable: true }
+        decisionReason: { type: string, nullable: true }
+        evidenceUrl: { type: string, format: uri }
+        referenceUrl: { type: string, format: uri, nullable: true }
+        messages: { type: array, items: { $ref: "#/components/schemas/ProhibitedImageContactMessage" } }
+    AdminProhibitedImageAttemptPage:
+      type: object
+      required: [items, total, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminProhibitedImageAttempt" } }
+        total: { type: integer }
+        nextOffset: { type: integer, nullable: true }
+    ProhibitedImageDecisionInput:
+      type: object
+      required: [decision, reason]
+      properties:
+        decision: { type: string, enum: [keep, release] }
+        reason: { type: string, minLength: 3, maxLength: 300 }
+    ProhibitedImageDecisionResult:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/ProhibitedImageStatus" }
+        accountReleased: { type: boolean }
+    ProhibitedImageContactSelf:
+      type: object
+      required: [id, status, area, createdAt, decisionReason, messages]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/ProhibitedImageStatus" }
+        area: { $ref: "#/components/schemas/ProhibitedImageArea" }
+        createdAt: { type: string, format: date-time }
+        decisionReason: { type: string, nullable: true }
+        messages: { type: array, items: { $ref: "#/components/schemas/ProhibitedImageContactMessage" } }
+    ProhibitedImageContactMessageInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 2000 }
+    ProhibitedImageContactMessageCreated:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
     AdminRole:
       type: string
       enum: [user, admin, superadmin]
@@ -1574,6 +2404,100 @@ components:
         bulletins: { type: integer }
         comments: { type: integer }
         hiddenContent: { type: integer }
+    AdminPremiumApplication:
+      type: object
+      required: [id, userId, nickname, email, packageIdentifier, productIdentifier, planName, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string }
+        nickname: { type: string }
+        email: { type: string }
+        packageIdentifier: { type: string }
+        productIdentifier: { type: string }
+        planName: { type: string }
+        status: { $ref: "#/components/schemas/PremiumApplicationStatus" }
+        createdAt: { type: string, format: date-time }
+    AdminPremiumApplicationPage:
+      type: object
+      required: [items, total, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminPremiumApplication" } }
+        total: { type: integer }
+        nextOffset: { type: integer, nullable: true }
+    AdminPremiumDecisionInput:
+      type: object
+      required: [decision, reason]
+      properties:
+        decision: { type: string, enum: [paid, free, reject] }
+        reason: { type: string, minLength: 3, maxLength: 300 }
+    AccountAppeal:
+      type: object
+      required: [id, status, productIdentifier, packageIdentifier, platform, paymentStatus, paymentVerifiedAt, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [pending, approved, rejected] }
+        productIdentifier: { type: string }
+        packageIdentifier: { type: string }
+        platform: { type: string, enum: [ios, android] }
+        transactionId: { type: string, nullable: true }
+        paymentStatus: { type: string, enum: [verified] }
+        paymentVerifiedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        decidedAt: { type: string, format: date-time, nullable: true }
+        decisionReason: { type: string, nullable: true }
+    AccountAppealConfig:
+      type: object
+      required: [configured, message, iosPublicKey, androidPublicKey, packages, priceAmount, currency]
+      properties:
+        configured: { type: boolean }
+        message: { type: string, nullable: true }
+        iosPublicKey: { type: string, nullable: true }
+        androidPublicKey: { type: string, nullable: true }
+        packages: { type: array, items: { $ref: "#/components/schemas/PremiumPackage" } }
+        priceAmount: { type: number, enum: [200] }
+        currency: { type: string, enum: [TRY] }
+    AccountAppealSelf:
+      type: object
+      required: [blocked, appeal, blockReason, blockedAt]
+      properties:
+        blocked: { type: boolean }
+        appeal: { allOf: [{ $ref: "#/components/schemas/AccountAppeal" }], nullable: true }
+        blockReason: { type: string, nullable: true }
+        blockedAt: { type: string, format: date-time, nullable: true }
+    AccountAppealVerificationInput:
+      type: object
+      required: [productIdentifier, packageIdentifier, platform, transactionId]
+      properties:
+        productIdentifier: { type: string, minLength: 1, maxLength: 160 }
+        packageIdentifier: { type: string, minLength: 1, maxLength: 160 }
+        platform: { type: string, enum: [ios, android] }
+        transactionId: { type: string, minLength: 1, maxLength: 200 }
+    AdminAccountAppeal:
+      allOf:
+        - { $ref: "#/components/schemas/AccountAppeal" }
+        - type: object
+          required: [userId, nickname, email, avatar, cover, blockReason, blockedAt]
+          properties:
+            userId: { type: string }
+            nickname: { type: string }
+            email: { type: string }
+            avatar: { type: string, nullable: true }
+            cover: { type: string, nullable: true }
+            blockReason: { type: string }
+            blockedAt: { type: string, format: date-time }
+    AdminAccountAppealPage:
+      type: object
+      required: [items, total, nextOffset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminAccountAppeal" } }
+        total: { type: integer }
+        nextOffset: { type: integer, nullable: true }
+    AdminAccountAppealDecisionInput:
+      type: object
+      required: [decision, reason]
+      properties:
+        decision: { type: string, enum: [approve, reject] }
+        reason: { type: string, minLength: 3, maxLength: 300 }
     AdminAccount:
       type: object
       required: [id, nickname, email, role, disabled, emailVerified, createdAt]

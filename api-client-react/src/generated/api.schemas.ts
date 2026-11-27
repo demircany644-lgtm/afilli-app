@@ -5,16 +5,135 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type VisualCategory = typeof VisualCategory[keyof typeof VisualCategory];
+
+
+export const VisualCategory = {
+  frame: 'frame',
+  background: 'background',
+  badge: 'badge',
+  effect: 'effect',
+  book_frame: 'book_frame',
+  divider: 'divider',
+  signature: 'signature',
+  banner: 'banner',
+  animation: 'animation',
+} as const;
+
+export interface VisualAsset {
+  id: string;
+  category: VisualCategory;
+  name: string;
+  description: string;
+  month: string;
+  contentType: string;
+  width: number;
+  height: number;
+  published: boolean;
+  ready: boolean;
+  savedCount: number;
+}
+
+export interface VisualCollection {
+  items: VisualAsset[];
+}
+
+export interface VisualSelection {
+  category: VisualCategory;
+  targetId: string;
+  asset: VisualAsset;
+  caption: string;
+}
+
+export interface VisualCollectionAccount {
+  active: boolean;
+  savedIds: string[];
+  selections: VisualSelection[];
+}
+
+export interface VisualSelectionInput {
+  category: VisualCategory;
+  /** @nullable */
+  assetId: string | null;
+  /** @maxLength 100 */
+  targetId?: string;
+  /** @maxLength 240 */
+  caption?: string;
+}
+
+export interface VisualAssetUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  /** @maxLength 1000 */
+  description: string;
+  category: VisualCategory;
+  /** @pattern ^\d{4}-(0[1-9]|1[0-2])$ */
+  month: string;
+  published: boolean;
+}
+
+export type VisualAssetUploadInputContentType = typeof VisualAssetUploadInputContentType[keyof typeof VisualAssetUploadInputContentType];
+
+
+export const VisualAssetUploadInputContentType = {
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+  'image/gif': 'image/gif',
+} as const;
+
+export type VisualAssetUploadInput = VisualAssetUpdate & {
+  contentType: VisualAssetUploadInputContentType;
+  /**
+     * @minimum 1
+     * @maximum 8388608
+     */
+  size: number;
+};
+
+export interface VisualAssetUpload {
+  id: string;
+  uploadUrl: string;
+}
+
+export type WriterAchievement = typeof WriterAchievement[keyof typeof WriterAchievement];
+
+
+export const WriterAchievement = {
+  successful: 'successful',
+  master: 'master',
+  popular: 'popular',
+} as const;
+
+/**
+ * @nullable
+ */
+export type CommunityPersonPremiumChatEffect = typeof CommunityPersonPremiumChatEffect[keyof typeof CommunityPersonPremiumChatEffect] | null;
+
+
+export const CommunityPersonPremiumChatEffect = {
+  none: 'none',
+  gold: 'gold',
+  rose: 'rose',
+  violet: 'violet',
+} as const;
+
 export interface CommunityPerson {
   id: string;
   nickname: string;
   /** @nullable */
   avatar: string | null;
+  writerBadges?: WriterAchievement[];
+  /** @nullable */
+  premiumChatEffect?: CommunityPersonPremiumChatEffect;
 }
 
 export interface DiscoveryBookCard {
   id: string;
   title: string;
+  description: string;
   author: CommunityPerson;
   /** @nullable */
   coverUrl?: string | null;
@@ -29,6 +148,151 @@ export interface DiscoveryBookPage {
   items: DiscoveryBookCard[];
   /** @nullable */
   nextCursor: string | null;
+}
+
+export type BookPromotionRequestDurationDays = typeof BookPromotionRequestDurationDays[keyof typeof BookPromotionRequestDurationDays];
+
+
+export const BookPromotionRequestDurationDays = {
+  NUMBER_3: 3,
+  NUMBER_7: 7,
+  NUMBER_15: 15,
+  NUMBER_30: 30,
+} as const;
+
+export type BookPromotionRequestStatus = typeof BookPromotionRequestStatus[keyof typeof BookPromotionRequestStatus];
+
+
+export const BookPromotionRequestStatus = {
+  pending: 'pending',
+  active: 'active',
+  rejected: 'rejected',
+  expired: 'expired',
+} as const;
+
+/**
+ * @nullable
+ */
+export type BookPromotionRequestDecision = typeof BookPromotionRequestDecision[keyof typeof BookPromotionRequestDecision] | null;
+
+
+export const BookPromotionRequestDecision = {
+  free: 'free',
+  reject: 'reject',
+} as const;
+
+export interface BookPromotionRequest {
+  id: string;
+  /** @nullable */
+  bookId: string | null;
+  /** @nullable */
+  authorId: string | null;
+  bookTitle: string;
+  /** @nullable */
+  coverUrl: string | null;
+  authorNickname: string;
+  /** @nullable */
+  authorAvatar: string | null;
+  durationDays: BookPromotionRequestDurationDays;
+  status: BookPromotionRequestStatus;
+  /** @nullable */
+  decision: BookPromotionRequestDecision;
+  /** @nullable */
+  decisionNote: string | null;
+  requestedAt: string;
+  /** @nullable */
+  decidedAt: string | null;
+  /** @nullable */
+  startsAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+}
+
+export type MyBookPromotionAllowedDurationsItem = typeof MyBookPromotionAllowedDurationsItem[keyof typeof MyBookPromotionAllowedDurationsItem];
+
+
+export const MyBookPromotionAllowedDurationsItem = {
+  NUMBER_3: 3,
+  NUMBER_7: 7,
+  NUMBER_15: 15,
+  NUMBER_30: 30,
+} as const;
+
+export interface MyBookPromotion {
+  enabled: boolean;
+  allowedDurations: MyBookPromotionAllowedDurationsItem[];
+  latestRequest: BookPromotionRequest | null;
+}
+
+export type BookPromotionSettingsAllowedDurationsItem = typeof BookPromotionSettingsAllowedDurationsItem[keyof typeof BookPromotionSettingsAllowedDurationsItem];
+
+
+export const BookPromotionSettingsAllowedDurationsItem = {
+  NUMBER_3: 3,
+  NUMBER_7: 7,
+  NUMBER_15: 15,
+  NUMBER_30: 30,
+} as const;
+
+export interface BookPromotionSettings {
+  enabled: boolean;
+  allowedDurations: BookPromotionSettingsAllowedDurationsItem[];
+  updatedAt: string;
+}
+
+export type AdminBookPromotionSettingsInputAllowedDurationsItem = typeof AdminBookPromotionSettingsInputAllowedDurationsItem[keyof typeof AdminBookPromotionSettingsInputAllowedDurationsItem];
+
+
+export const AdminBookPromotionSettingsInputAllowedDurationsItem = {
+  NUMBER_3: 3,
+  NUMBER_7: 7,
+  NUMBER_15: 15,
+  NUMBER_30: 30,
+} as const;
+
+export interface AdminBookPromotionSettingsInput {
+  enabled: boolean;
+  /**
+     * @minItems 1
+     * @maxItems 4
+     */
+  allowedDurations: AdminBookPromotionSettingsInputAllowedDurationsItem[];
+}
+
+export type BookPromotionRequestInputDurationDays = typeof BookPromotionRequestInputDurationDays[keyof typeof BookPromotionRequestInputDurationDays];
+
+
+export const BookPromotionRequestInputDurationDays = {
+  NUMBER_3: 3,
+  NUMBER_7: 7,
+  NUMBER_15: 15,
+  NUMBER_30: 30,
+} as const;
+
+export interface BookPromotionRequestInput {
+  durationDays: BookPromotionRequestInputDurationDays;
+  clientRequestId: string;
+}
+
+export type AdminBookPromotionDecisionInputDecision = typeof AdminBookPromotionDecisionInputDecision[keyof typeof AdminBookPromotionDecisionInputDecision];
+
+
+export const AdminBookPromotionDecisionInputDecision = {
+  approve_free: 'approve_free',
+  reject: 'reject',
+} as const;
+
+export interface AdminBookPromotionDecisionInput {
+  decision: AdminBookPromotionDecisionInputDecision;
+  /** @maxLength 300 */
+  reason?: string;
+}
+
+export interface AdminBookPromotionRequestPage {
+  items: BookPromotionRequest[];
+  total: number;
+  /** @nullable */
+  nextOffset: number | null;
 }
 
 export interface ReadingPositionInput {
@@ -58,6 +322,421 @@ export interface SocialSettings {
      * @maximum 100
      */
   popularLimit: number;
+}
+
+export type PremiumPackagePlatform = typeof PremiumPackagePlatform[keyof typeof PremiumPackagePlatform];
+
+
+export const PremiumPackagePlatform = {
+  ios: 'ios',
+  android: 'android',
+} as const;
+
+export interface PremiumPackage {
+  packageIdentifier: string;
+  productIdentifier: string;
+  productName: string;
+  platform: PremiumPackagePlatform;
+}
+
+export interface PremiumConfig {
+  configured: boolean;
+  /** @nullable */
+  message: string | null;
+  /** @nullable */
+  iosPublicKey: string | null;
+  /** @nullable */
+  androidPublicKey: string | null;
+  packages: PremiumPackage[];
+}
+
+export type PremiumApplicationStatus = typeof PremiumApplicationStatus[keyof typeof PremiumApplicationStatus];
+
+
+export const PremiumApplicationStatus = {
+  pending: 'pending',
+  paid_approved: 'paid_approved',
+  active: 'active',
+  rejected: 'rejected',
+  expired: 'expired',
+} as const;
+
+export interface PremiumApplication {
+  id: string;
+  packageIdentifier: string;
+  productIdentifier: string;
+  planName: string;
+  status: PremiumApplicationStatus;
+  createdAt: string;
+}
+
+export type PremiumPreferencesProfileFrame = typeof PremiumPreferencesProfileFrame[keyof typeof PremiumPreferencesProfileFrame];
+
+
+export const PremiumPreferencesProfileFrame = {
+  classic: 'classic',
+  gold: 'gold',
+  rose: 'rose',
+  midnight: 'midnight',
+} as const;
+
+export type PremiumPreferencesProfileBackground = typeof PremiumPreferencesProfileBackground[keyof typeof PremiumPreferencesProfileBackground];
+
+
+export const PremiumPreferencesProfileBackground = {
+  classic: 'classic',
+  linen: 'linen',
+  wine: 'wine',
+  starlight: 'starlight',
+} as const;
+
+export type PremiumPreferencesChatEffect = typeof PremiumPreferencesChatEffect[keyof typeof PremiumPreferencesChatEffect];
+
+
+export const PremiumPreferencesChatEffect = {
+  none: 'none',
+  gold: 'gold',
+  rose: 'rose',
+  violet: 'violet',
+} as const;
+
+export type PremiumPreferencesStoreDesign = typeof PremiumPreferencesStoreDesign[keyof typeof PremiumPreferencesStoreDesign];
+
+
+export const PremiumPreferencesStoreDesign = {
+  classic: 'classic',
+  gold: 'gold',
+  wine: 'wine',
+  night: 'night',
+} as const;
+
+export interface PremiumPreferences {
+  profileFrame: PremiumPreferencesProfileFrame;
+  profileBackground: PremiumPreferencesProfileBackground;
+  chatEffect: PremiumPreferencesChatEffect;
+  storeDesign: PremiumPreferencesStoreDesign;
+  updatedAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type PremiumAccountSource = typeof PremiumAccountSource[keyof typeof PremiumAccountSource] | null;
+
+
+export const PremiumAccountSource = {
+  free: 'free',
+  paid: 'paid',
+} as const;
+
+export interface PremiumAccount {
+  active: boolean;
+  /** @nullable */
+  source: PremiumAccountSource;
+  /** @nullable */
+  expiresAt: string | null;
+  application: PremiumApplication | null;
+  preferences: PremiumPreferences;
+}
+
+export type PremiumApplicationInputPlatform = typeof PremiumApplicationInputPlatform[keyof typeof PremiumApplicationInputPlatform];
+
+
+export const PremiumApplicationInputPlatform = {
+  ios: 'ios',
+  android: 'android',
+} as const;
+
+export interface PremiumApplicationInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  packageIdentifier: string;
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  productIdentifier: string;
+  platform: PremiumApplicationInputPlatform;
+}
+
+export type PremiumPreferencesInputProfileFrame = typeof PremiumPreferencesInputProfileFrame[keyof typeof PremiumPreferencesInputProfileFrame];
+
+
+export const PremiumPreferencesInputProfileFrame = {
+  classic: 'classic',
+  gold: 'gold',
+  rose: 'rose',
+  midnight: 'midnight',
+} as const;
+
+export type PremiumPreferencesInputProfileBackground = typeof PremiumPreferencesInputProfileBackground[keyof typeof PremiumPreferencesInputProfileBackground];
+
+
+export const PremiumPreferencesInputProfileBackground = {
+  classic: 'classic',
+  linen: 'linen',
+  wine: 'wine',
+  starlight: 'starlight',
+} as const;
+
+export type PremiumPreferencesInputChatEffect = typeof PremiumPreferencesInputChatEffect[keyof typeof PremiumPreferencesInputChatEffect];
+
+
+export const PremiumPreferencesInputChatEffect = {
+  none: 'none',
+  gold: 'gold',
+  rose: 'rose',
+  violet: 'violet',
+} as const;
+
+export type PremiumPreferencesInputStoreDesign = typeof PremiumPreferencesInputStoreDesign[keyof typeof PremiumPreferencesInputStoreDesign];
+
+
+export const PremiumPreferencesInputStoreDesign = {
+  classic: 'classic',
+  gold: 'gold',
+  wine: 'wine',
+  night: 'night',
+} as const;
+
+export interface PremiumPreferencesInput {
+  profileFrame: PremiumPreferencesInputProfileFrame;
+  profileBackground: PremiumPreferencesInputProfileBackground;
+  chatEffect: PremiumPreferencesInputChatEffect;
+  storeDesign: PremiumPreferencesInputStoreDesign;
+}
+
+export type StoreProductCategory = typeof StoreProductCategory[keyof typeof StoreProductCategory];
+
+
+export const StoreProductCategory = {
+  perfume: 'perfume',
+  accessory: 'accessory',
+  gift: 'gift',
+  other: 'other',
+} as const;
+
+export type StoreProductCurrency = typeof StoreProductCurrency[keyof typeof StoreProductCurrency];
+
+
+export const StoreProductCurrency = {
+  TRY: 'TRY',
+} as const;
+
+export interface StoreProduct {
+  id: string;
+  name: string;
+  category: StoreProductCategory;
+  categoryLabel: string;
+  productType: string;
+  sizeLabel: string;
+  /** @minimum 0 */
+  priceKurus: number;
+  currency: StoreProductCurrency;
+  imageKey: string;
+}
+
+export interface StoreCatalog {
+  /** Whether order requests are currently accepted; not a payment or checkout state. */
+  active: boolean;
+  products: StoreProduct[];
+}
+
+export type AdminStoreProductCreateInputCategory = typeof AdminStoreProductCreateInputCategory[keyof typeof AdminStoreProductCreateInputCategory];
+
+
+export const AdminStoreProductCreateInputCategory = {
+  perfume: 'perfume',
+  accessory: 'accessory',
+  gift: 'gift',
+  other: 'other',
+} as const;
+
+export interface AdminStoreProductCreateInput {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  name: string;
+  category: AdminStoreProductCreateInputCategory;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  productType: string;
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
+  sizeLabel: string;
+  /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  priceKurus: number;
+  /** @pattern ^upload:[0-9a-fA-F-]{36}$ */
+  imageKey: string;
+}
+
+export type AdminStoreProductUploadInputContentType = typeof AdminStoreProductUploadInputContentType[keyof typeof AdminStoreProductUploadInputContentType];
+
+
+export const AdminStoreProductUploadInputContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+export interface AdminStoreProductUploadInput {
+  clientId: string;
+  contentType: AdminStoreProductUploadInputContentType;
+  /**
+     * @minimum 1
+     * @maximum 10485760
+     */
+  size: number;
+}
+
+export interface AdminStoreProductUpload {
+  id: string;
+  uploadUrl: string;
+}
+
+export interface AdminStoreProductUploadComplete {
+  id: string;
+  imageKey: string;
+}
+
+export interface StoreSettings {
+  active: boolean;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export interface StoreCartItem {
+  product: StoreProduct;
+  /** @minimum 1 */
+  quantity: number;
+  /** @minimum 0 */
+  subtotalKurus: number;
+}
+
+export interface StoreCart {
+  items: StoreCartItem[];
+  /** @minimum 0 */
+  totalKurus: number;
+}
+
+export interface StoreCartAddInput {
+  /** @maxLength 80 */
+  productId: string;
+}
+
+export interface StoreCartUpdateInput {
+  /**
+     * @minimum 1
+     * @maximum 99
+     */
+  quantity: number;
+}
+
+export type StoreOrderStatus = typeof StoreOrderStatus[keyof typeof StoreOrderStatus];
+
+
+export const StoreOrderStatus = {
+  pending: 'pending',
+  payment_pending: 'payment_pending',
+  approved_free: 'approved_free',
+  rejected: 'rejected',
+} as const;
+
+export type StoreOrderItemCategory = typeof StoreOrderItemCategory[keyof typeof StoreOrderItemCategory];
+
+
+export const StoreOrderItemCategory = {
+  perfume: 'perfume',
+  accessory: 'accessory',
+  gift: 'gift',
+  other: 'other',
+} as const;
+
+export interface StoreOrderItem {
+  productId: string;
+  name: string;
+  category: StoreOrderItemCategory;
+  productType: string;
+  sizeLabel: string;
+  /** @minimum 0 */
+  priceKurus: number;
+  imageKey: string;
+  /** @minimum 1 */
+  quantity: number;
+}
+
+export interface StoreOrder {
+  id: string;
+  status: StoreOrderStatus;
+  items: StoreOrderItem[];
+  /** @minimum 0 */
+  totalKurus: number;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  decisionNote: string | null;
+}
+
+export interface StoreOrderPage {
+  items: StoreOrder[];
+}
+
+export type AdminStoreOrder = StoreOrder & ({
+  userId: string;
+  nickname: string;
+  /** @nullable */
+  avatar: string | null;
+});
+
+export interface AdminStoreOrderPage {
+  items: AdminStoreOrder[];
+  total: number;
+  /** @nullable */
+  nextOffset: number | null;
+}
+
+export type AdminStoreOrderDecisionInputDecision = typeof AdminStoreOrderDecisionInputDecision[keyof typeof AdminStoreOrderDecisionInputDecision];
+
+
+export const AdminStoreOrderDecisionInputDecision = {
+  paid: 'paid',
+  free: 'free',
+  reject: 'reject',
+  pending: 'pending',
+} as const;
+
+export interface AdminStoreOrderDecisionInput {
+  decision: AdminStoreOrderDecisionInputDecision;
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  reason: string;
+}
+
+export interface AdminStoreOrderDecisionResult {
+  orderId: string;
+  userId: string;
+  status: StoreOrderStatus;
+}
+
+export interface AdminStoreSettingsInput {
+  active: boolean;
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  reason: string;
 }
 
 export interface OfficialInstagramInput {
@@ -95,6 +774,8 @@ export interface ReaderProfile {
   typing: boolean;
   popular: boolean;
   premium: boolean;
+  writerBadges: WriterAchievement[];
+  premiumPreferences: PremiumPreferences | null;
 }
 
 export interface ProfileEditInput {
@@ -461,8 +1142,12 @@ export type SocialNotificationKind = typeof SocialNotificationKind[keyof typeof 
 
 export const SocialNotificationKind = {
   chapter: 'chapter',
+  book_like: 'book_like',
   book_comment: 'book_comment',
   comment_reply: 'comment_reply',
+  premium_status: 'premium_status',
+  store_order: 'store_order',
+  account_appeal: 'account_appeal',
 } as const;
 
 export interface SocialNotification {
@@ -471,6 +1156,8 @@ export interface SocialNotification {
   commentId: string | null;
   /** @nullable */
   chapterId: string | null;
+  /** @nullable */
+  applicationId: string | null;
   id: string;
   body: string;
   read: boolean;
@@ -520,6 +1207,10 @@ export interface AuthoredBookInput {
   body: string;
 }
 
+export interface CopyWriterBookInput {
+  clientRequestId: string;
+}
+
 export type BulletinUploadInputContentType = typeof BulletinUploadInputContentType[keyof typeof BulletinUploadInputContentType];
 
 
@@ -558,6 +1249,10 @@ export const WriterDocumentGenresItem = {
   Mizah: 'Mizah',
   Dram: 'Dram',
   Romantik: 'Romantik',
+  Mafya: 'Mafya',
+  Yeraltı_Dünyası: 'Yeraltı Dünyası',
+  Distopya: 'Distopya',
+  Hayat_Hikâyeleri: 'Hayat Hikâyeleri',
   Gençlik: 'Gençlik',
   Çocuk: 'Çocuk',
   Masal: 'Masal',
@@ -683,6 +1378,10 @@ export const WriterMetadataGenresItem = {
   Mizah: 'Mizah',
   Dram: 'Dram',
   Romantik: 'Romantik',
+  Mafya: 'Mafya',
+  Yeraltı_Dünyası: 'Yeraltı Dünyası',
+  Distopya: 'Distopya',
+  Hayat_Hikâyeleri: 'Hayat Hikâyeleri',
   Gençlik: 'Gençlik',
   Çocuk: 'Çocuk',
   Masal: 'Masal',
@@ -846,6 +1545,7 @@ export interface ReaderChapter {
   bookId: string;
   chapterId: string;
   contentHash: string;
+  readCount: number;
   likeCount: number;
   liked: boolean;
   commentCount: number;
@@ -1078,6 +1778,15 @@ export interface HealthStatus {
   status: string;
 }
 
+export type AccountUserAccessMode = typeof AccountUserAccessMode[keyof typeof AccountUserAccessMode];
+
+
+export const AccountUserAccessMode = {
+  normal: 'normal',
+  appeal: 'appeal',
+  contact: 'contact',
+} as const;
+
 export type AdminRole = typeof AdminRole[keyof typeof AdminRole];
 
 
@@ -1092,6 +1801,152 @@ export interface AccountUser {
   nickname: string;
   email: string;
   role?: AdminRole;
+  accessMode: AccountUserAccessMode;
+}
+
+export type ProhibitedImageArea = typeof ProhibitedImageArea[keyof typeof ProhibitedImageArea];
+
+
+export const ProhibitedImageArea = {
+  profile: 'profile',
+  bulletin: 'bulletin',
+  book: 'book',
+  private_message: 'private_message',
+} as const;
+
+export type ProhibitedImageStatus = typeof ProhibitedImageStatus[keyof typeof ProhibitedImageStatus];
+
+
+export const ProhibitedImageStatus = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+  released: 'released',
+} as const;
+
+export type ProhibitedImageUploadInputContentType = typeof ProhibitedImageUploadInputContentType[keyof typeof ProhibitedImageUploadInputContentType];
+
+
+export const ProhibitedImageUploadInputContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+export interface ProhibitedImageUploadInput {
+  contentType: ProhibitedImageUploadInputContentType;
+  /**
+     * @minimum 1
+     * @maximum 10485760
+     */
+  size: number;
+}
+
+export interface ProhibitedImageUpload {
+  id: string;
+  uploadUrl: string;
+}
+
+export interface ProhibitedImageUploadStatus {
+  id: string;
+  ready: boolean;
+}
+
+export interface AdminProhibitedImageReference {
+  id: string;
+  ready: boolean;
+  createdAt: string;
+  /** @nullable */
+  imageUrl: string | null;
+}
+
+export interface AdminProhibitedImageCollection {
+  items: AdminProhibitedImageReference[];
+  readyCount: number;
+  minimum: number;
+  maximum: number;
+}
+
+export interface ProhibitedImageContactMessage {
+  id: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface AdminProhibitedImageAttempt {
+  id: string;
+  /** @nullable */
+  userId: string | null;
+  nickname: string;
+  /** @nullable */
+  avatar: string | null;
+  /** @nullable */
+  referenceId: string | null;
+  area: ProhibitedImageArea;
+  distance: number;
+  threshold: number;
+  autoBlockApplied: boolean;
+  status: ProhibitedImageStatus;
+  createdAt: string;
+  /** @nullable */
+  decidedAt: string | null;
+  /** @nullable */
+  decisionReason: string | null;
+  evidenceUrl: string;
+  /** @nullable */
+  referenceUrl: string | null;
+  messages: ProhibitedImageContactMessage[];
+}
+
+export interface AdminProhibitedImageAttemptPage {
+  items: AdminProhibitedImageAttempt[];
+  total: number;
+  /** @nullable */
+  nextOffset: number | null;
+}
+
+export type ProhibitedImageDecisionInputDecision = typeof ProhibitedImageDecisionInputDecision[keyof typeof ProhibitedImageDecisionInputDecision];
+
+
+export const ProhibitedImageDecisionInputDecision = {
+  keep: 'keep',
+  release: 'release',
+} as const;
+
+export interface ProhibitedImageDecisionInput {
+  decision: ProhibitedImageDecisionInputDecision;
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  reason: string;
+}
+
+export interface ProhibitedImageDecisionResult {
+  id: string;
+  status: ProhibitedImageStatus;
+  accountReleased?: boolean;
+}
+
+export interface ProhibitedImageContactSelf {
+  id: string;
+  status: ProhibitedImageStatus;
+  area: ProhibitedImageArea;
+  createdAt: string;
+  /** @nullable */
+  decisionReason: string | null;
+  messages: ProhibitedImageContactMessage[];
+}
+
+export interface ProhibitedImageContactMessageInput {
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  body: string;
+}
+
+export interface ProhibitedImageContactMessageCreated {
+  id: string;
 }
 
 export type AdminContentKind = typeof AdminContentKind[keyof typeof AdminContentKind];
@@ -1112,6 +1967,183 @@ export interface AdminOverview {
   bulletins: number;
   comments: number;
   hiddenContent: number;
+}
+
+export interface AdminPremiumApplication {
+  id: string;
+  userId: string;
+  nickname: string;
+  email: string;
+  packageIdentifier: string;
+  productIdentifier: string;
+  planName: string;
+  status: PremiumApplicationStatus;
+  createdAt: string;
+}
+
+export interface AdminPremiumApplicationPage {
+  items: AdminPremiumApplication[];
+  total: number;
+  /** @nullable */
+  nextOffset: number | null;
+}
+
+export type AdminPremiumDecisionInputDecision = typeof AdminPremiumDecisionInputDecision[keyof typeof AdminPremiumDecisionInputDecision];
+
+
+export const AdminPremiumDecisionInputDecision = {
+  paid: 'paid',
+  free: 'free',
+  reject: 'reject',
+} as const;
+
+export interface AdminPremiumDecisionInput {
+  decision: AdminPremiumDecisionInputDecision;
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  reason: string;
+}
+
+export type AccountAppealStatus = typeof AccountAppealStatus[keyof typeof AccountAppealStatus];
+
+
+export const AccountAppealStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export type AccountAppealPlatform = typeof AccountAppealPlatform[keyof typeof AccountAppealPlatform];
+
+
+export const AccountAppealPlatform = {
+  ios: 'ios',
+  android: 'android',
+} as const;
+
+export type AccountAppealPaymentStatus = typeof AccountAppealPaymentStatus[keyof typeof AccountAppealPaymentStatus];
+
+
+export const AccountAppealPaymentStatus = {
+  verified: 'verified',
+} as const;
+
+export interface AccountAppeal {
+  id: string;
+  status: AccountAppealStatus;
+  productIdentifier: string;
+  packageIdentifier: string;
+  platform: AccountAppealPlatform;
+  /** @nullable */
+  transactionId?: string | null;
+  paymentStatus: AccountAppealPaymentStatus;
+  paymentVerifiedAt: string;
+  createdAt: string;
+  /** @nullable */
+  decidedAt?: string | null;
+  /** @nullable */
+  decisionReason?: string | null;
+}
+
+export type AccountAppealConfigPriceAmount = typeof AccountAppealConfigPriceAmount[keyof typeof AccountAppealConfigPriceAmount];
+
+
+export const AccountAppealConfigPriceAmount = {
+  NUMBER_200: 200,
+} as const;
+
+export type AccountAppealConfigCurrency = typeof AccountAppealConfigCurrency[keyof typeof AccountAppealConfigCurrency];
+
+
+export const AccountAppealConfigCurrency = {
+  TRY: 'TRY',
+} as const;
+
+export interface AccountAppealConfig {
+  configured: boolean;
+  /** @nullable */
+  message: string | null;
+  /** @nullable */
+  iosPublicKey: string | null;
+  /** @nullable */
+  androidPublicKey: string | null;
+  packages: PremiumPackage[];
+  priceAmount: AccountAppealConfigPriceAmount;
+  currency: AccountAppealConfigCurrency;
+}
+
+export interface AccountAppealSelf {
+  blocked: boolean;
+  appeal: AccountAppeal | null;
+  /** @nullable */
+  blockReason: string | null;
+  /** @nullable */
+  blockedAt: string | null;
+}
+
+export type AccountAppealVerificationInputPlatform = typeof AccountAppealVerificationInputPlatform[keyof typeof AccountAppealVerificationInputPlatform];
+
+
+export const AccountAppealVerificationInputPlatform = {
+  ios: 'ios',
+  android: 'android',
+} as const;
+
+export interface AccountAppealVerificationInput {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  productIdentifier: string;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  packageIdentifier: string;
+  platform: AccountAppealVerificationInputPlatform;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  transactionId: string;
+}
+
+export type AdminAccountAppeal = AccountAppeal & ({
+  userId: string;
+  nickname: string;
+  email: string;
+  /** @nullable */
+  avatar: string | null;
+  /** @nullable */
+  cover: string | null;
+  blockReason: string;
+  blockedAt: string;
+});
+
+export interface AdminAccountAppealPage {
+  items: AdminAccountAppeal[];
+  total: number;
+  /** @nullable */
+  nextOffset: number | null;
+}
+
+export type AdminAccountAppealDecisionInputDecision = typeof AdminAccountAppealDecisionInputDecision[keyof typeof AdminAccountAppealDecisionInputDecision];
+
+
+export const AdminAccountAppealDecisionInputDecision = {
+  approve: 'approve',
+  reject: 'reject',
+} as const;
+
+export interface AdminAccountAppealDecisionInput {
+  decision: AdminAccountAppealDecisionInputDecision;
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  reason: string;
 }
 
 export interface AdminAccount {
@@ -1259,6 +2291,17 @@ export interface AccountRegistration {
   acceptedRules: true;
 }
 
+export type GetActiveVisualCollectionParams = {
+/**
+ * @maxLength 100
+ */
+userId: string;
+/**
+ * @maxLength 100
+ */
+targetId?: string;
+};
+
 export type GetGifLibraryParams = {
 /**
  * @minimum 0
@@ -1267,12 +2310,39 @@ export type GetGifLibraryParams = {
 offset?: number;
 };
 
+export type GetAdminStoreOrdersParams = {
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type GetAdminBookPromotionRequestsParams = {
+/**
+ * @minimum 0
+ */
+offset?: number;
+status?: GetAdminBookPromotionRequestsStatus;
+};
+
+export type GetAdminBookPromotionRequestsStatus = typeof GetAdminBookPromotionRequestsStatus[keyof typeof GetAdminBookPromotionRequestsStatus];
+
+
+export const GetAdminBookPromotionRequestsStatus = {
+  all: 'all',
+  pending: 'pending',
+  active: 'active',
+  rejected: 'rejected',
+  expired: 'expired',
+} as const;
+
 export type GetDiscoveryBooksParams = {
 sort?: GetDiscoveryBooksSort;
 /**
  * @maxLength 100
  */
 search?: string;
+category?: GetDiscoveryBooksCategory;
 /**
  * @maxLength 2048
  */
@@ -1288,11 +2358,50 @@ export const GetDiscoveryBooksSort = {
   popular: 'popular',
 } as const;
 
+export type GetDiscoveryBooksCategory = typeof GetDiscoveryBooksCategory[keyof typeof GetDiscoveryBooksCategory];
+
+
+export const GetDiscoveryBooksCategory = {
+  romantik: 'romantik',
+  'gerilim-polisiye-gizem': 'gerilim-polisiye-gizem',
+  fantastik: 'fantastik',
+  'mafya-yeralti': 'mafya-yeralti',
+  'bilim-kurgu-distopya': 'bilim-kurgu-distopya',
+  'dram-hayat-hikayeleri': 'dram-hayat-hikayeleri',
+  'ask-romani': 'ask-romani',
+  'fantastik-bilim-kurgu': 'fantastik-bilim-kurgu',
+  'polisiye-gerilim': 'polisiye-gerilim',
+  mafya: 'mafya',
+  'psikolojik-iliskiler': 'psikolojik-iliskiler',
+} as const;
+
 export type GetBookCardsParams = {
 /**
  * @maxLength 1200
  */
 ids: string;
+};
+
+export type GetAdminPremiumApplicationsParams = {
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type GetAdminAccountAppealsParams = {
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type GetAdminProhibitedImageAttemptsParams = {
+/**
+ * @minimum 0
+ * @maximum 1000000
+ */
+offset?: number;
 };
 
 export type GetAdminAccountsParams = {

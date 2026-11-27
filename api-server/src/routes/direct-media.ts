@@ -7,6 +7,7 @@ import { route, requirePerson, parse, fail, uuid, transaction } from '../lib/com
 import { member } from '../lib/direct-messages';
 import { directPhotoObject, directPhotoUploadUrl } from '../lib/bulletin-storage';
 import { expireDirectMedia, purgeDirectPhotoQueue } from '../lib/direct-media';
+import { checkAndRecordProhibitedImage, prohibitedImageFailure } from '../lib/prohibited-images';
 
 const router: IRouter = Router();
 router.post('/conversations/:id/photo-uploads', route(async (req, res) => {
@@ -50,6 +51,8 @@ router.post('/direct-photo-uploads/:id/complete', route(async (req, res) => {
     if (bytes.length !== row.size || bytes.length > 2097152) return fail(400, 'Fotoğraf boyutu geçersiz.');
     const image = sharp(bytes, { limitInputPixels: 16_000_000, animated: false }).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 76 });
     const { data, info } = await image.toBuffer({ resolveWithObject: true });
+    const hit = await checkAndRecordProhibitedImage(actor.id, 'private_message', data);
+    if (hit) prohibitedImageFailure(hit.id);
     await directPhotoObject(`${id}/image`).save(data, { resumable: false, contentType: 'image/jpeg', metadata: { cacheControl: 'private, no-store' } });
     await client.query('UPDATE direct_message_uploads SET ready=true,width=$2,height=$3 WHERE id=$1', [id, info.width, info.height]);
     return { id, width: info.width, height: info.height };

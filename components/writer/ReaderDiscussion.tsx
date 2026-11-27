@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { digestStringAsync, CryptoDigestAlgorithm } from 'expo-crypto';
@@ -143,8 +143,9 @@ export function ParagraphBar({ p, open, night, busy, error, onToggle, onLike }: 
 }
 
 /** The expanded discussion right below its paragraph. */
-export function ParagraphThread({ bookId, chapterId, p, night, onClose, onCount, locked, focusId }: {
+export function ParagraphThread({ bookId, chapterId, p, night, onClose, onCount, locked, focusId, onFocusTarget }: {
   bookId: string; chapterId: string; p: ReaderParagraph; night: boolean; onClose: () => void; onCount: () => void; locked?: boolean; focusId?: string | null;
+  onFocusTarget?: (target: ViewInstance | null) => void;
 }) {
   const W = useWriterPalette();
   const st = useStyles();
@@ -157,18 +158,19 @@ export function ParagraphThread({ bookId, chapterId, p, night, onClose, onCount,
           <Feather name="x" size={16} color={W.muted} />
         </Pressable>
       </View>
-      <CommentThreads bookId={bookId} context={{ scope: 'paragraph', chapterId, paragraphId: p.id }} onCount={onCount} locked={locked} focusId={focusId}
+      <CommentThreads bookId={bookId} context={{ scope: 'paragraph', chapterId, paragraphId: p.id }} onCount={onCount} locked={locked} focusId={focusId} onFocusTarget={onFocusTarget}
         placeholder="Bu satırlar sana ne düşündürdü?" testID={'para-comment-' + p.id} empty="Bu paragrafta henüz yorum yok. İlk düşünceyi sen bırak." />
     </View>
   );
 }
 
 /** Chapter end: chapter like, authoritative totals, chapter-only comments and archived paragraph discussions. */
-export function ChapterEnd({ bookId, chapterId, chapterTitle, disc, likes, onCount, chapterOpen, setChapterOpen, archivedOpen, setArchivedOpen, openArchived, setOpenArchived, night, focusId }: {
+export function ChapterEnd({ bookId, chapterId, chapterTitle, disc, likes, onCount, chapterOpen, setChapterOpen, archivedOpen, setArchivedOpen, openArchived, setOpenArchived, night, focusId, onFocusTarget, readError, onRetryRead }: {
   bookId: string; chapterId: string; chapterTitle: string; disc: ReturnType<typeof useChapterDiscussion>; likes: ReturnType<typeof useReaderLike>;
   onCount: () => void; chapterOpen: boolean; setChapterOpen: (v: boolean) => void; archivedOpen: boolean; setArchivedOpen: (v: boolean) => void;
   openArchived: string | null; setOpenArchived: (id: string | null) => void; night: boolean;
-  focusId?: string | null;
+  focusId?: string | null; onFocusTarget?: (target: ViewInstance | null) => void;
+  readError?: string | null; onRetryRead?: () => void;
 }) {
   const W = useWriterPalette();
   const st = useStyles();
@@ -205,9 +207,17 @@ export function ChapterEnd({ bookId, chapterId, chapterTitle, disc, likes, onCou
           <Text style={st.meta} accessibilityLabel={meta.commentCount + ' toplam yorum, paragraf yanıtları dahil'}>
             Bu bölümde toplam {meta.commentCount.toLocaleString('tr-TR')} yorum (paragraflar dahil)
           </Text>
+          <View style={st.row} accessibilityLabel={meta.readCount + ' bölüm okuması'}>
+            <Feather name="eye" size={14} color={W.muted} />
+            <Text style={st.meta}>{compactCount(meta.readCount)} bölüm okuması</Text>
+          </View>
+          {readError ? <View style={st.row}>
+            <Text style={st.err} accessibilityLiveRegion="polite">{readError}</Text>
+            {onRetryRead ? <Btn label="Tekrar dene" ghost onPress={onRetryRead} /> : null}
+          </View> : null}
           {chapterOpen ? (
             <View style={st.endThread}>
-              <CommentThreads bookId={bookId} context={{ scope: 'chapter', chapterId }} onCount={onCount} focusId={focusId}
+              <CommentThreads bookId={bookId} context={{ scope: 'chapter', chapterId }} onCount={onCount} focusId={focusId} onFocusTarget={onFocusTarget}
                 placeholder={(chapterTitle || 'Bu bölüm') + ' hakkında ne düşündün?'} testID="chapter-comment" empty="Bu bölüm hakkında henüz yorum yok." />
             </View>
           ) : null}
@@ -235,7 +245,7 @@ export function ChapterEnd({ bookId, chapterId, chapterTitle, disc, likes, onCou
                     </Pressable>
                   ) : null}
                   {likes.err?.id === p.id ? <Text style={st.err} accessibilityLiveRegion="polite">{likes.err.text}</Text> : null}
-                  {openArchived === p.id ? <ParagraphThread bookId={bookId} chapterId={chapterId} p={p} night={night} locked onClose={() => setOpenArchived(null)} onCount={onCount} focusId={focusId} /> : null}
+                  {openArchived === p.id ? <ParagraphThread bookId={bookId} chapterId={chapterId} p={p} night={night} locked onClose={() => setOpenArchived(null)} onCount={onCount} focusId={focusId} onFocusTarget={onFocusTarget} /> : null}
                 </View>
               )) : null}
             </View>

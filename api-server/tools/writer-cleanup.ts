@@ -1,6 +1,6 @@
 import { pool } from '@workspace/db';
 import { applyWriterCleanup, previewWriterCleanup } from '../src/lib/writer-retention';
-import { getWriterCleanupHealth } from '../src/lib/writer-cleanup-health';
+import { getWriterCleanupHealth, recordWriterCleanupAlertTransition } from '../src/lib/writer-cleanup-health';
 
 try {
   const args = process.argv.slice(2);
@@ -25,6 +25,19 @@ try {
       }
     }
     const health = await getWriterCleanupHealth();
+    if (apply) {
+      try {
+        const alert = await recordWriterCleanupAlertTransition(health.warnings);
+        if (alert.transition === 'alert') {
+          console.error(`UYARI: Yazar temizliği durumu değişti (${alert.warnings.join(', ')}).`);
+        } else if (alert.transition === 'recovered') {
+          console.error('BİLGİ: Yazar temizliği uyarıları giderildi.');
+        }
+      } catch {
+        // Alert delivery must not change cleanup results or hide its health.
+        console.error('Temizlik uyarısı kaydedilemedi; durum şeması eşitlemesini denetleyin.');
+      }
+    }
     console.log(JSON.stringify({ mode: args.includes('--status') ? 'status' : apply ? 'apply' : 'read-only',
       ...(args.includes('--status') ? {} : { limit }), ...(preview ? { preview } : {}), health }, null, 2));
     if (health.warnings.length) {

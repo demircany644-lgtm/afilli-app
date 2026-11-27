@@ -6,7 +6,7 @@ import { setMediaReservation, previewWriterCleanup, applyWriterCleanup } from '.
 import { syncMediaRefs } from '../src/lib/writer-service.ts';
 import { transcribeVoice } from '../src/lib/writer-voice.ts';
 import { writerObject } from '../src/lib/bulletin-storage.ts';
-import { getWriterCleanupHealth, monitorWriterCleanup } from '../src/lib/writer-cleanup-health.ts';
+import { getWriterCleanupHealth, recordWriterCleanupAlertTransition, monitorWriterCleanup } from '../src/lib/writer-cleanup-health.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -54,8 +54,20 @@ try {
     CREATE TABLE writer_cleanup_health (
       id int PRIMARY KEY CHECK(id=1),started_at timestamptz NOT NULL,finished_at timestamptz,
       last_success_at timestamptz,outcome text NOT NULL,counts jsonb NOT NULL,
-      storage_failure_runs int NOT NULL DEFAULT 0);`);
+      storage_failure_runs int NOT NULL DEFAULT 0);
+    CREATE TABLE writer_cleanup_alert_state (
+      id int PRIMARY KEY CHECK(id=1),warning_state text);`);
   assert.deepEqual((await getWriterCleanupHealth()).warnings, ['never_succeeded']);
+  assert.equal((await recordWriterCleanupAlertTransition(['never_succeeded'])).transition, 'alert');
+  assert.equal((await recordWriterCleanupAlertTransition(['never_succeeded'])).transition, 'unchanged');
+  assert.equal((await recordWriterCleanupAlertTransition(['cleanup_overdue'])).transition, 'alert');
+  assert.equal((await recordWriterCleanupAlertTransition([])).transition, 'recovered');
+  assert.equal((await recordWriterCleanupAlertTransition([])).transition, 'unchanged');
+  assert.equal((await recordWriterCleanupAlertTransition(['cleanup_overdue'])).transition, 'alert');
+  assert.equal((await recordWriterCleanupAlertTransition([])).transition, 'recovered');
+  assert.deepEqual((await pool.query('SELECT warning_state FROM writer_cleanup_alert_state WHERE id=1')).rows,
+    [{ warning_state: '' }]);
+  await assert.rejects(recordWriterCleanupAlertTransition(['PRIVATE_TRANSCRIPT']));
   const legacy = await image('released_at=NULL,orphaned_at=NULL');
   const offline = await image(), device = randomUUID();
   await setMediaReservation(owner, offline, device, true);

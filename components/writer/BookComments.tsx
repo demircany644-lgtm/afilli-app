@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewInstance } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Feather } from '@expo/vector-icons';
 import { makeStyles } from '@/hooks/useTheme';
@@ -78,21 +78,24 @@ const drafts = new Map<string, Draft>();
 const when = (iso: string) => new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 /** General book discussion (chapterId NULL) plus the notification thread. Chapter and paragraph talk lives in the reader. */
-export function BookComments({ bookId, onCount, focusId }: { bookId: string; onCount: () => void; focusId?: string | null }) {
+export function BookComments({ bookId, onCount, focusId, onFocusTarget }: {
+  bookId: string; onCount: () => void; focusId?: string | null; onFocusTarget?: (target: ViewInstance | null) => void;
+}) {
   const cm = useCmStyles();
   return (
     <View style={cm.wrap} testID="book-comments">
       <Text style={cm.h} accessibilityRole="header">Kitap hakkında genel</Text>
       <Text style={cm.meta}>Bölümlerden bağımsız, kitabın bütünü üzerine konuşmalar.</Text>
-      <CommentThreads bookId={bookId} context={{ scope: 'book' }} focusId={focusId} onCount={onCount} placeholder="Kitabın bütünü hakkında ne düşündün?" testID="comment"
+      <CommentThreads bookId={bookId} context={{ scope: 'book' }} focusId={focusId} onFocusTarget={onFocusTarget} onCount={onCount} placeholder="Kitabın bütünü hakkında ne düşündün?" testID="comment"
         empty="Kitap hakkında henüz genel bir konuşma yok. İlk satırı sen yaz." />
     </View>
   );
 }
 
 /** Composer + paged root threads for one discussion context. */
-export function CommentThreads({ bookId, context, onCount, placeholder, testID, empty, locked, focusId }: {
+export function CommentThreads({ bookId, context, onCount, placeholder, testID, empty, locked, focusId, onFocusTarget }: {
   bookId: string; context: DiscussionContext; onCount: () => void; placeholder: string; testID: string; empty: string; locked?: boolean; focusId?: string | null;
+  onFocusTarget?: (target: ViewInstance | null) => void;
 }) {
   const cm = useCmStyles();
   const W = useWriterPalette();
@@ -125,7 +128,7 @@ export function CommentThreads({ bookId, context, onCount, placeholder, testID, 
       ) : userId ? (
         <Composer key={(userId ?? 'guest') + ':' + key} bookId={bookId} parent={null} context={context} onCount={onCount} placeholder={placeholder} testID={testID} />
       ) : <Btn label="Yorum yazmak için giriş yap" ghost onPress={goSignIn} />}
-      {focused && focusId ? <FocusedThread focusId={focusId} bookId={bookId} context={context} onCount={onCount} /> : null}
+      {focused && focusId ? <FocusedThread focusId={focusId} bookId={bookId} context={context} onCount={onCount} onFocusTarget={onFocusTarget} /> : null}
       {denied ? <Text style={cm.err}>Bu yorumlar artık görüntülenemiyor.</Text> : q.isLoading || (!!focusId && focus.isLoading) ? <View style={{ gap: 10 }}><Skeleton h={64} /><Skeleton h={64} /></View> : q.isError && roots.length === 0 ? (
         <View style={{ gap: 8 }}><Text style={cm.err}>{apiError(q.error, 'Yorumlar yüklenemedi.')}</Text><Btn label="Tekrar dene" ghost onPress={() => void q.refetch()} /></View>
       ) : roots.length === 0 && !focused ? (
@@ -145,11 +148,21 @@ export function CommentThreads({ bookId, context, onCount, placeholder, testID, 
 }
 
 /** Notification target: real ancestors root-to-target from the path endpoint, shown as its own labelled discussion. */
-function FocusedThread({ focusId, bookId, context, onCount }: { focusId: string; bookId: string; context: DiscussionContext; onCount: () => void }) {
+function FocusedThread({ focusId, bookId, context, onCount, onFocusTarget }: {
+  focusId: string; bookId: string; context: DiscussionContext; onCount: () => void; onFocusTarget?: (target: ViewInstance | null) => void;
+}) {
   const cm = useCmStyles();
   const W = useWriterPalette();
   const { userId, ready } = useCommunity();
   const q = useGetWriterCommentPath(focusId, { query: { enabled: ready && !!focusId, queryKey: scoped(getGetWriterCommentPathQueryKey(focusId), userId) }, request: actorRequest(userId) });
+  const [highlightActive, setHighlightActive] = useState(false);
+  const hasTarget = !!q.data?.some(c => c.id === focusId);
+  useEffect(() => {
+    if (!hasTarget) return;
+    setHighlightActive(true);
+    const timeout = setTimeout(() => setHighlightActive(false), 3500);
+    return () => clearTimeout(timeout);
+  }, [hasTarget, focusId]);
   const missing = accessDenied(q.error) || !!q.data?.some(c => !commentInContext(c, bookId, context));
   const target = q.data?.find(c => c.id === focusId);
   if (missing || (target?.deleted && target.replyCount === 0)) return null;
@@ -163,7 +176,8 @@ function FocusedThread({ focusId, bookId, context, onCount }: { focusId: string;
         <View>
           {(q.data ?? []).filter(c => !c.deleted || c.id === focusId).map((c, i) => (
             <View key={c.id} style={i > 0 ? [cm.indent, { marginLeft: i < MAX_INDENT ? 0 : -14 }] : null}>
-              <CommentNode c={c} depth={i} bookId={bookId} onCount={onCount} highlight={c.id === focusId} expandable={c.id === focusId} />
+              <CommentNode c={c} depth={i} bookId={bookId} onCount={onCount} highlight={c.id === focusId && highlightActive}
+                onFocusTarget={c.id === focusId ? onFocusTarget : undefined} expandable={c.id === focusId} />
             </View>
           ))}
           {q.isError ? <Text style={cm.err}>Konuşma yenilenemedi. Önceki yorumlar korunuyor.</Text> : null}
@@ -173,7 +187,10 @@ function FocusedThread({ focusId, bookId, context, onCount }: { focusId: string;
   );
 }
 
-function CommentNode({ c, depth, bookId, onCount, highlight, expandable = true }: { c: WriterComment; depth: number; bookId: string; onCount: () => void; highlight?: boolean; expandable?: boolean }) {
+function CommentNode({ c, depth, bookId, onCount, highlight, expandable = true, onFocusTarget }: {
+  c: WriterComment; depth: number; bookId: string; onCount: () => void; highlight?: boolean; expandable?: boolean;
+  onFocusTarget?: (target: ViewInstance | null) => void;
+}) {
   const cm = useCmStyles();
   const W = useWriterPalette();
   const { userId } = useCommunity();
@@ -189,6 +206,10 @@ function CommentNode({ c, depth, bookId, onCount, highlight, expandable = true }
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const lastWanted = useRef<Reaction | null>(null);
+  const focusRef = useRef<ViewInstance>(null);
+  useEffect(() => {
+    if (highlight && focusRef.current) onFocusTarget?.(focusRef.current);
+  }, [highlight, onFocusTarget]);
   const selected = view.reactions.find((r) => r.selected)?.reaction ?? null;
   const count = (r: Reaction) => view.reactions.find((x) => x.reaction === r)?.count ?? 0;
 
@@ -214,7 +235,7 @@ function CommentNode({ c, depth, bookId, onCount, highlight, expandable = true }
     ? <Replies parent={view} depth={depth} bookId={bookId} onCount={onCount} /> : null;
 
   return (
-    <View testID={'comment-' + view.id} style={[cm.node, highlight && cm.highlight]}>
+    <View ref={highlight ? focusRef : undefined} testID={'comment-' + view.id} style={[cm.node, highlight && cm.highlight]}>
       <View style={cm.row}>
         <Avatar person={view.author} size={30} />
         <View style={{ flex: 1, gap: 3 }}>

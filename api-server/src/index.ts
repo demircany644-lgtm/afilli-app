@@ -1,12 +1,15 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { bootstrapAdministrator } from './lib/admin-bootstrap';
-import { getWriterCleanupHealth } from './lib/writer-cleanup-health';
+import { getWriterCleanupHealth, recordWriterCleanupAlertTransition } from './lib/writer-cleanup-health';
 import { assertAuthReleaseReady } from './lib/auth-release';
 import { cleanDeletedAccountMedia } from './lib/admin-account-delete';
 import { assertBookCommunitySchema } from './lib/book-community-schema';
 import { assertDirectMessageSchema } from './lib/direct-messages';
 import { assertGifLibrarySchema } from './lib/gif-library';
+import { assertPremiumSchema } from './lib/premium';
+import { assertAccountAppealsSchema } from './lib/account-appeals';
+import { purgeDirectPhotoQueue, sweepExpiredDirectMedia } from './lib/direct-media';
 
 // Do not accept production traffic with an incomplete legacy-account transition.
 await assertAuthReleaseReady();
@@ -14,6 +17,8 @@ if (process.env.NODE_ENV === 'production') {
   await assertBookCommunitySchema();
   await assertDirectMessageSchema();
   await assertGifLibrarySchema();
+  await assertPremiumSchema();
+  await assertAccountAppealsSchema();
 }
 
 const rawPort = process.env["PORT"];
@@ -47,9 +52,34 @@ app.listen(port, (err) => {
   };
   void cleanAccountMedia();
   setInterval(() => { void cleanAccountMedia(); }, 60_000).unref();
+  let cleaningDirectMedia = false;
+  const cleanDirectMessageMedia = async () => {
+    if (cleaningDirectMedia) return;
+    cleaningDirectMedia = true;
+    try {
+      await sweepExpiredDirectMedia();
+      await purgeDirectPhotoQueue();
+    } catch {
+      logger.warn({ warning: 'direct_media_cleanup_unavailable' }, 'Özel mesaj medyası temizliği yeniden denenecek');
+    } finally { cleaningDirectMedia = false; }
+  };
+  void cleanDirectMessageMedia();
+  setInterval(() => { void cleanDirectMessageMedia(); }, 60_000).unref();
   // Read-only warning, not a cleanup job or a scheduler.
-  void getWriterCleanupHealth().then(health => {
-    if (health.warnings.length) logger.warn({ writerCleanup: health }, 'Yazar temizliği işletmen denetimi gerektiriyor');
+  void getWriterCleanupHealth().then(async health => {
+    try {
+      const result = await recordWriterCleanupAlertTransition(health.warnings);
+      if (result.transition === 'alert') {
+        logger.warn({ writerCleanup: health }, 'Yazar temizliği işletmen denetimi gerektiriyor');
+      } else if (result.transition === 'recovered') {
+        logger.info({ warning: 'writer_cleanup_recovered' }, 'Yazar temizliği uyarıları giderildi');
+      }
+    } catch {
+      // Keep the existing status log useful if the additive alert-state table
+      // has not reached this environment yet; never block API startup.
+      if (health.warnings.length) logger.warn({ writerCleanup: health }, 'Yazar temizliği işletmen denetimi gerektiriyor');
+      logger.warn({ warning: 'cleanup_alert_state_unavailable' }, 'Temizlik uyarısı kaydedilemedi; durum şeması eşitlemesini denetleyin');
+    }
   }).catch(() => {
     logger.warn({ warning: 'cleanup_monitoring_unavailable' }, 'Yazar temizliği durumu okunamadı; şema ve bağlantıyı denetleyin');
   });

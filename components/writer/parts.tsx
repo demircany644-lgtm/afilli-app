@@ -123,7 +123,7 @@ export function useCoverUri(cover: string | null | undefined, localUri?: string 
   return null;
 }
 
-export function WriterCover({ uri, title, author, w, adult, completed, loading }: { uri: string | null; title: string; author?: string; w: number; adult?: boolean; completed?: boolean; loading?: boolean }) {
+export function WriterCover({ uri, title, author, w, adult, completed, loading, copyrighted }: { uri: string | null; title: string; author?: string; w: number; adult?: boolean; completed?: boolean; loading?: boolean; copyrighted?: boolean }) {
   const W = useWriterPalette();
   const st = useStStyles();
   const h = Math.round(w * 1.5);
@@ -142,6 +142,7 @@ export function WriterCover({ uri, title, author, w, adult, completed, loading }
       <View style={st.spine} />
       {loading ? <View style={[StyleSheet.absoluteFill, st.coverShade]}><Feather name="upload-cloud" size={small ? 14 : 26} color={W.paper} /><Text style={[st.coverShadeText, small && { fontSize: 8 }]}>Yükleniyor</Text></View> : null}
       {adult ? <View style={[st.badge, st.badgeTop, small && st.badgeSmall]}><Text style={[st.badgeText, small && { fontSize: 7 }]}>+18</Text></View> : null}
+      {copyrighted ? <View pointerEvents="none" accessibilityLabel="Telif hakkı koruması" style={[st.copyrightCoverBadge, small && { width: 17, height: 17, top: 5, left: 5 }]}><Text style={{ color: W.paper, fontFamily: F.semi, fontSize: small ? 9 : 12 }}>©</Text></View> : null}
       {completed ? <View style={[st.badge, st.badgeBottom, small && st.badgeSmall]}><Text style={[st.badgeText, small && { fontSize: 7 }]}>Tamamlandı</Text></View> : null}
     </View>
   );
@@ -222,6 +223,7 @@ export const useStStyles = makeStyles((t) => {
   badgeTop: { top: 8, right: 8, backgroundColor: W.danger },
   badgeBottom: { bottom: 8, left: 10 },
   badgeSmall: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3 },
+  copyrightCoverBadge: { position: 'absolute', top: 8, left: 8, width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(22,12,13,0.72)', borderWidth: 1, borderColor: W.gold },
   badgeText: { fontFamily: F.semi, fontSize: 10, color: W.paper, letterSpacing: 0.3 },
   backdrop: { flex: 1, backgroundColor: 'rgba(43,29,18,0.45)', justifyContent: 'center', padding: 26 },
   confirm: { backgroundColor: W.paper, borderRadius: 18, padding: 20, gap: 8, maxWidth: 420, width: '100%', alignSelf: 'center' },

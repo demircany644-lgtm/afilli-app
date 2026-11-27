@@ -10,9 +10,10 @@ import { useCommunity } from '@/context/CommunityContext';
 import { FoilButton, PillTabs, Skeleton, StateCard } from './kit';
 import { go, scoped } from './hooks';
 
-export type ContentTab = 'books' | 'bulletins' | 'liked';
-const TABS: { key: ContentTab; label: string }[] = [
-  { key: 'books', label: 'Kitaplarım' }, { key: 'bulletins', label: 'Bültenler' }, { key: 'liked', label: 'Beğenilenler' },
+export type ContentTab = 'books' | 'bulletins';
+type ProfileTabAction = ContentTab | 'rules';
+const TABS: { key: ProfileTabAction; label: string }[] = [
+  { key: 'books', label: 'Kitaplarım' }, { key: 'bulletins', label: 'Bültenler' }, { key: 'rules', label: 'Afilli Kuralları' },
 ];
 
 function BookCard({ book }: { book: ProfileBook }) {
@@ -28,6 +29,7 @@ function BookCard({ book }: { book: ProfileBook }) {
         {!book.isPublic ? <View style={st.private}><Text style={st.privateText}>Gizli</Text></View> : null}
       </View>
       <Text style={st.bookTitle} numberOfLines={2}>{book.title}</Text>
+      {book.author.writerBadges?.length ? <Text style={st.badges}>{book.author.writerBadges.map((badge) => ({ successful: 'Afilli Başarılı Yazar', master: 'Afilli Usta Yazar', popular: 'Afilli Popüler Yazar' })[badge]).join(' · ')}</Text> : null}
       <Text style={st.meta} numberOfLines={1}>{meta || 'Tür ve yıl belirtilmemiş'}</Text>
       <Text style={st.reads}>{book.readCount} okuma</Text>
     </Pressable>
@@ -48,11 +50,10 @@ function ContentPage({ id, tab, cursor, isFirst, isLast, onNext, isMe }: { id: s
     const copy = {
       books: isMe ? ['Rafın seni bekliyor', 'İlk kitabını yaz; okurların seni kelimelerinden tanısın.'] : ['Henüz yayımlanmış kitap yok', 'Bu yazarın yayımladığı kitaplar burada görünecek.'],
       bulletins: isMe ? ['Henüz bülten paylaşmadın', 'Okurlarına kısa bir not bırak.'] : ['Henüz bülten yok', 'Bu yazarın paylaştığı bültenler burada görünecek.'],
-      liked: ['Beğenilen bülten yok', 'Beğenilen bültenler burada toplanır.'],
     }[tab];
     const action = isMe && tab === 'books' ? { label: 'Kitap Yaz', icon: 'feather' as const, testID: 'profile-empty-write', onPress: () => go('/write') }
       : isMe && tab === 'bulletins' ? { label: 'Bülten paylaş', icon: 'edit-3' as const, testID: 'profile-empty-bulletin', onPress: () => go('/bultenler') } : undefined;
-    return <StateCard testID={'profile-empty-' + tab} icon={tab === 'books' ? 'book' : tab === 'liked' ? 'heart' : 'file-text'} title={copy[0]} text={copy[1]} action={action} />;
+    return <StateCard testID={'profile-empty-' + tab} icon={tab === 'books' ? 'book' : 'file-text'} title={copy[0]} text={copy[1]} action={action} />;
   }
   return (
     <View>
@@ -63,12 +64,12 @@ function ContentPage({ id, tab, cursor, isFirst, isLast, onNext, isMe }: { id: s
   );
 }
 
-export function ProfileTabs({ profileId, isMe, tab, onTab }: { profileId: string; isMe: boolean; tab: ContentTab; onTab: (t: ContentTab) => void }) {
-  const [cursors, setCursors] = useState<Record<ContentTab, (string | undefined)[]>>({ books: [undefined], bulletins: [undefined], liked: [undefined] });
+export function ProfileTabs({ profileId, isMe, tab, onTab, onRules }: { profileId: string; isMe: boolean; tab: ContentTab; onTab: (t: ContentTab) => void; onRules: () => void }) {
+  const [cursors, setCursors] = useState<Record<ContentTab, (string | undefined)[]>>({ books: [undefined], bulletins: [undefined] });
   const list = cursors[tab];
   return (
     <View style={{ marginTop: 22, gap: 14 }}>
-      <PillTabs tabs={TABS} value={tab} onChange={onTab} />
+      <PillTabs tabs={TABS} value={tab} onChange={(selected) => selected === 'rules' ? onRules() : onTab(selected)} />
       {list.map((c, i) => (
         <ContentPage key={tab + (c ?? 'first')} id={profileId} tab={tab} cursor={c} isFirst={i === 0} isLast={i === list.length - 1} isMe={isMe}
           onNext={(n) => setCursors((p) => ({ ...p, [tab]: [...p[tab], n] }))} />
@@ -90,5 +91,6 @@ const useStStyles = makeStyles((t) => {
   bookTitle: { fontFamily: F.serifBold, fontSize: 15, color: P.text, marginTop: 6 },
   meta: { fontFamily: F.body, fontSize: 12, color: P.muted },
   reads: { fontFamily: F.med, fontSize: 12, color: S.foilDeep },
+  badges: { fontFamily: F.semi, fontSize: 11, color: S.foilDeep },
   });
 });

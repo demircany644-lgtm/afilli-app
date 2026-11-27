@@ -25,6 +25,17 @@ CREATE TABLE IF NOT EXISTS reader_likes (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS reader_chapter_like_once ON reader_likes(book_id, chapter_id, user_id) WHERE paragraph_id IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS reader_paragraph_like_once ON reader_likes(paragraph_id, user_id) WHERE paragraph_id IS NOT NULL;
+CREATE TABLE IF NOT EXISTS reader_chapter_reads (
+  book_id uuid NOT NULL,
+  chapter_id uuid NOT NULL,
+  reader_id text NOT NULL,
+  day date NOT NULL DEFAULT CURRENT_DATE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT reader_chapter_reads_pkey PRIMARY KEY(book_id, chapter_id, reader_id, day),
+  CONSTRAINT reader_chapter_reads_book_id_fkey FOREIGN KEY(book_id) REFERENCES authored_books(id) ON DELETE CASCADE,
+  CONSTRAINT reader_chapter_reads_reader_id_fkey FOREIGN KEY(reader_id) REFERENCES community_users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS reader_chapter_reads_count ON reader_chapter_reads(book_id, chapter_id, day);
 CREATE TABLE IF NOT EXISTS reader_comment_events (
   id bigserial PRIMARY KEY,
   user_id text NOT NULL REFERENCES community_users(id) ON DELETE CASCADE,

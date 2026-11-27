@@ -124,7 +124,12 @@ function Chat({ id }: { id: string }) {
           return (
             <View style={[st.row, mine ? { justifyContent: 'flex-end' } : null]}>
               {mine && !m.deletedAt ? <ReplyBtn m={m} onReply={setReplyTo} /> : null}
-              <View testID={'chat-message-' + m.id} style={[st.bubble, mine ? st.mine : st.theirs]}>
+              <View testID={'chat-message-' + m.id} style={[
+                st.bubble, mine ? st.mine : st.theirs,
+                m.sender.premiumChatEffect === 'gold' ? { borderColor: S.foilMid, borderWidth: 1.5 } : null,
+                m.sender.premiumChatEffect === 'rose' ? { borderColor: '#B86678', borderWidth: 1.5 } : null,
+                m.sender.premiumChatEffect === 'violet' ? { borderColor: '#8071A6', borderWidth: 1.5 } : null,
+              ]}>
                 {m.deletedAt ? <Text testID={'chat-deleted-' + m.id} style={[mine ? st.mineText : st.theirText, { fontStyle: 'italic', opacity: 0.8 }]}>Bu mesaj silindi</Text> : <>
                   {m.reply ? <Quote q={m.reply} mine={mine} peerId={peer?.id} /> : null}
                   {mediaExpired(m) ? <Text testID={'chat-expired-' + m.id} style={[mine ? st.mineText : st.theirText, { fontStyle: 'italic', opacity: 0.8 }]}>Bu medya süresi dolduğu için silindi</Text> : <>
@@ -163,7 +168,17 @@ function Chat({ id }: { id: string }) {
           <Pressable testID="chat-back" accessibilityRole="button" accessibilityLabel="Geri" hitSlop={10} onPress={() => { tap(); goBack('/messages'); }} style={st.back}>
             <Feather name="arrow-left" size={24} color={P.text} />
           </Pressable>
-          <Text testID="chat-peer-name" accessibilityRole="header" numberOfLines={1} style={st.headerTitle}>{ready && conv.data && peer ? peer.nickname : ''}</Text>
+          <View style={{ flex: 1, alignItems: 'center', minWidth: 0 }}>
+            <Text testID="chat-peer-name" accessibilityRole="header" numberOfLines={1} style={st.headerTitle}>{ready && conv.data && peer ? peer.nickname : ''}</Text>
+            {peer && ((peer.writerBadges?.length ?? 0) > 0 || (peer.premiumChatEffect && peer.premiumChatEffect !== 'none')) ? (
+              <Pressable testID="chat-peer-benefits" accessibilityRole="link" accessibilityLabel="Yazar başarıları ve Premium hakkında" onPress={() => go('/premium')} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 2 }}>
+                <Feather name="award" size={12} color={P.gold} />
+                <Text numberOfLines={1} style={[st.meta, { paddingVertical: 0, color: P.gold }]}>
+                  {[...(peer.writerBadges ?? []).map((b) => ({ successful: 'Afilli Başarılı Yazar', master: 'Afilli Usta Yazar', popular: 'Afilli Popüler Yazar' })[b]), peer.premiumChatEffect && peer.premiumChatEffect !== 'none' ? 'Premium sohbet' : ''].filter(Boolean).join(' · ')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           <View style={st.back} />
         </View>
         <View style={{ flex: 1, minHeight: 0 }}>{body}</View>

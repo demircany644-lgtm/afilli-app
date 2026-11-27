@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -8,18 +8,27 @@ import {
   useUpdateAdminAccount, useGetAdminContent, getGetAdminContentQueryKey, useUpdateAdminContent,
   useDeleteAdminAccount, useGetAdminAccountDeletion, getGetAdminAccountDeletionQueryKey,
   useGetAdminHistory, getGetAdminHistoryQueryKey, useGetReaderReports, getGetReaderReportsQueryKey, resolveReaderReport,
+  useGetAdminPremiumApplications, getGetAdminPremiumApplicationsQueryKey, useDecideAdminPremiumApplication,
+  useGetAdminAccountAppeals, getGetAdminAccountAppealsQueryKey, useDecideAdminAccountAppeal,
+  useGetAdminStoreOrders, getGetAdminStoreOrdersQueryKey, useDecideAdminStoreOrder,
+  useGetAdminStoreSettings, getGetAdminStoreSettingsQueryKey, useUpdateAdminStoreSettings,
   type ReaderReport, type GetReaderReportsStatus,
-  type AdminAccount, type AdminContent, type AdminContentKind, type AdminRole,
+  type AdminAccount, type AdminContent, type AdminContentKind, type AdminRole, type AdminStoreOrder, type AdminAccountAppeal,
 } from '@workspace/api-client-react';
 import { useCommunity } from '@/context/CommunityContext';
 import { F, tap } from '@/components/ui';
 import { apiError, timeAgo } from '@/components/bulletins/common';
 import { FoilButton, MarbleBackground, Notice, PillTabs, Skeleton, StateCard, TopBar , useKitStyles } from '@/components/profile/kit';
 import { AdminGifLibrary } from '@/components/profile/AdminGifLibrary';
+import { AdminStoreProducts } from '@/components/profile/AdminStoreProducts';
+import { AdminProhibitedImages } from '@/components/profile/AdminProhibitedImages';
+import { AdminBookPromotions } from '@/components/profile/AdminBookPromotions';
+import { StoreProductImage } from '@/components/store/StoreProductImage';
+import { mediaUrl } from '@/components/bulletins/common';
 import { actorRequest, go, scoped, useFocusedForeground, useOwnerGuard, withIdentity } from '@/components/profile/hooks';
 
 const PAGE = 25;
-type Tab = 'overview' | 'accounts' | 'content' | 'reports' | 'history' | 'gifs';
+type Tab = 'overview' | 'accounts' | 'content' | 'reports' | 'history' | 'gifs' | 'premium' | 'store' | 'promotions' | 'appeals' | 'prohibited';
 const ROLE_LABEL: Record<AdminRole, string> = { user: 'Okur', admin: 'Yönetici', superadmin: 'Süper yönetici' };
 const KINDS: { key: AdminContentKind; label: string }[] = [
   { key: 'book', label: 'Kitaplar' }, { key: 'bulletin', label: 'Bültenler' },
@@ -112,8 +121,12 @@ function Overview({ o, onTab }: { o: { role: AdminRole; users: number; disabledU
       </View>
       <View style={k.card}>
         {o.role === 'superadmin' ? <NavRow icon="users" label="Hesap yönetimi" sub="Rol, askı ve takma ad" testID="admin-go-accounts" onPress={() => onTab('accounts')} /> : null}
+        {o.role === 'superadmin' ? <NavRow icon="shield" label="Engel Kaldırma Talepleri" sub="Ücretli itirazları incele, hesabı aç veya reddet" testID="admin-go-account-appeals" onPress={() => onTab('appeals')} /> : null}
         {o.role === 'superadmin' ? <NavRow icon="film" label="GIF kitaplığı" sub="Sohbetlerde kullanılacak GIF'leri yükle" testID="admin-go-gifs" onPress={() => onTab('gifs')} /> : null}
         <NavRow icon="shield" label="İçerik denetimi" sub="Kitap, bülten ve yorumları gizle ya da geri getir" testID="admin-go-content" onPress={() => onTab('content')} />
+        <NavRow icon="award" label="Premium başvuruları" sub="Başvuruları incele ve kararını kaydet" testID="admin-go-premium" onPress={() => onTab('premium')} />
+        <NavRow icon="book-open" label="Kitap tanıtım talepleri" sub="Ücretsiz tanıtım süresi ve yayın onayı" testID="admin-go-promotions" onPress={() => onTab('promotions')} />
+        <NavRow icon="shopping-bag" label="Mağaza ve ürün kataloğu" sub="Ürün ekle, talepleri ve mağaza durumunu yönet" testID="admin-go-store" onPress={() => onTab('store')} />
         <NavRow icon="flag" label="Yorum şikâyetleri" sub="Şikâyet edilen yorumları incele, kapat ya da gizle" testID="admin-go-reports" onPress={() => onTab('reports')} />
         <NavRow icon="clock" label="İşlem geçmişi" sub="Tüm yönetici işlemleri ve gerekçeleri" testID="admin-go-history" onPress={() => onTab('history')} />
         <NavRow icon="instagram" label="Instagram Linki" sub="Tüm profillerde görünen ortak hesap" testID="admin-go-settings" onPress={() => go('/social-admin')} />
@@ -356,6 +369,251 @@ function History({ userId, live }: { userId: string; live: boolean }) {
   );
 }
 
+function PremiumApplications({ userId, live }: { userId: string; live: boolean }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
+  const qc = useQueryClient();
+  const [offset, setOffset] = useState(0);
+  const params = { offset };
+  const list = useGetAdminPremiumApplications(params, { request: actorRequest(userId), query: { ...useQ(userId, live), queryKey: scoped(getGetAdminPremiumApplicationsQueryKey(params), userId) } });
+  const decision = useDecideAdminPremiumApplication({ request: actorRequest(userId) });
+  const [reason, setReason] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const decide = async (id: string, choice: 'paid' | 'free' | 'reject') => {
+    if (reason.trim().length < 3 || busyId) { setError('Gerekçe en az 3 karakter olmalı.'); return; }
+    setBusyId(id); setError(''); setNotice('');
+    try {
+      await decision.mutateAsync({ id, data: { decision: choice, reason: reason.trim() } });
+      await qc.invalidateQueries({ queryKey: scoped(getGetAdminPremiumApplicationsQueryKey(params), userId) });
+      setReason('');
+      setNotice(choice === 'paid' ? 'Başvuru ücretli plan için onaylandı.' : choice === 'free' ? 'Başvuru ücretsiz olarak onaylandı.' : 'Başvuru reddedildi.');
+    } catch (e) { setError(apiError(e, 'Karar kaydedilemedi. Yeniden dene.')); }
+    finally { setBusyId(null); }
+  };
+  if (list.isLoading && !list.data) return <ListSkeleton />;
+  if (list.isError && !list.data) return <StateCard icon="wifi-off" title="Premium başvuruları yüklenemedi" text={apiError(list.error, 'Bağlantı yok, tekrar dene.')} action={{ label: 'Tekrar dene', testID: 'admin-premium-retry', onPress: () => void list.refetch() }} />;
+  if (!list.data) return null;
+  if (!list.data.items.length) return <StateCard icon="award" title="Başvuru yok" text="Yeni Premium başvuruları burada görünür." testID="admin-premium-empty" />;
+  return <View style={{ gap: 10, paddingHorizontal: 18 }}>
+    {error ? <Notice tone="error" text={error} /> : null}
+    {notice ? <Notice text={notice} /> : null}
+    <TextInput testID="admin-premium-reason" value={reason} onChangeText={setReason} placeholder="Karar gerekçesi (en az 3 karakter)" placeholderTextColor={P.muted} style={[st.searchInput, { borderWidth: 1, borderColor: P.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: P.card }]} />
+    <View style={k.card}>
+      {list.data.items.map((app) => <View key={app.id} testID={'admin-premium-' + app.id} style={st.item}>
+        <View style={st.itemHead}><Text style={[st.rowTitle, { flex: 1 }]}>{app.nickname}</Text><Chip text={app.status === 'paid_approved' ? 'Kullanıcıdan ödeme bekleniyor' : app.status === 'pending' ? 'Bekliyor' : app.status} tone={app.status === 'pending' ? 'gold' : 'plain'} /></View>
+        <Text style={st.rowSub}>{app.email} · Hesap: {app.userId}</Text>
+        <Text style={st.rowSub}>Plan: {app.planName} · {app.packageIdentifier}</Text>
+        <Text style={st.meta}>Başvuru: {new Date(app.createdAt).toLocaleString('tr-TR')}</Text>
+        {app.status === 'pending' ? <View style={st.actions}>
+          <SmallBtn icon="credit-card" label={busyId === app.id ? 'Kaydediliyor…' : 'Ücretli onayla'} disabled={!!busyId} testID={'admin-premium-paid-' + app.id} onPress={() => void decide(app.id, 'paid')} />
+          <SmallBtn icon="check" label="Ücretsiz onayla" disabled={!!busyId} testID={'admin-premium-free-' + app.id} onPress={() => void decide(app.id, 'free')} />
+          <SmallBtn icon="x" label="Reddet" danger disabled={!!busyId} testID={'admin-premium-reject-' + app.id} onPress={() => void decide(app.id, 'reject')} />
+        </View> : app.status === 'paid_approved' ? <Text style={st.rowSub}>Onaylandı; satın alma için kullanıcı bekleniyor.</Text> : null}
+      </View>)}
+    </View>
+    <Pager id="admin-premium" offset={offset} total={list.data.total} next={list.data.nextOffset} onChange={setOffset} loading={list.isFetching} />
+  </View>;
+}
+
+const APPEAL_STATUS = { pending: 'Beklemede', approved: 'Onaylandı', rejected: 'Reddedildi' } as const;
+
+function AccountAppeals({ userId, live }: { userId: string; live: boolean }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
+  const qc = useQueryClient();
+  const [offset, setOffset] = useState(0);
+  const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const params = { offset };
+  const list = useGetAdminAccountAppeals(params, {
+    request: actorRequest(userId),
+    query: { ...useQ(userId, live), queryKey: scoped(getGetAdminAccountAppealsQueryKey(params), userId) },
+  });
+  const decide = useDecideAdminAccountAppeal({ request: actorRequest(userId) });
+  useEffect(() => {
+    if (list.data && offset > 0 && offset >= list.data.total) setOffset(Math.max(0, Math.floor((list.data.total - 1) / PAGE) * PAGE));
+  }, [list.data?.total, offset]);
+
+  const submit = async (appeal: AdminAccountAppeal, choice: 'approve' | 'reject') => {
+    const reason = (reasons[appeal.id] ?? '').trim();
+    if (reason.length < 3 || busyId) { setError('Yönetici gerekçesi en az 3 karakter olmalı.'); return; }
+    setBusyId(appeal.id); setError(''); setNotice('');
+    try {
+      await decide.mutateAsync({ id: appeal.id, data: { decision: choice, reason } });
+      await qc.invalidateQueries({ queryKey: scoped(getGetAdminAccountAppealsQueryKey(params), userId) });
+      setNotice(choice === 'approve' ? 'Engel kaldırıldı. Kullanıcının oturumu yeniden etkinleştirildi.' : 'Başvuru reddedildi; hesap kısıtlı kaldı.');
+    } catch (e) { setError(apiError(e, 'Başvuru kararı kaydedilemedi. Yeniden dene.')); }
+    finally { setBusyId(null); }
+  };
+
+  if (list.isLoading && !list.data) return <ListSkeleton />;
+  if (list.isError && !list.data) return <StateCard icon="wifi-off" title="Engel kaldırma talepleri yüklenemedi" text={apiError(list.error, 'Bağlantı yok, tekrar dene.')} action={{ label: 'Tekrar dene', testID: 'admin-appeals-retry', onPress: () => void list.refetch() }} />;
+  if (!list.data) return null;
+  if (!list.data.items.length) return <StateCard icon="shield" title="Henüz talep yok" text="RevenueCat ödemesi doğrulanan engel kaldırma talepleri burada görünür." testID="admin-appeals-empty" />;
+
+  return (
+    <View style={{ gap: 10, paddingHorizontal: 18 }}>
+      {error ? <Notice tone="error" text={error} /> : null}
+      {notice ? <Notice text={notice} /> : null}
+      <View style={k.card}>
+        {list.data.items.map(appeal => {
+          const pending = appeal.status === 'pending';
+          return (
+            <View key={appeal.id} testID={`admin-account-appeal-${appeal.id}`} style={st.item}>
+              <View style={[st.itemHead, { alignItems: 'flex-start' }]}>
+                {appeal.avatar
+                  ? <Image source={{ uri: mediaUrl(appeal.avatar) }} style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: P.input }} />
+                  : <View style={[st.avatarPlaceholder, { backgroundColor: P.input }]}><Feather name="user" size={18} color={P.muted} /></View>}
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={st.rowTitle}>{appeal.nickname}</Text>
+                  <Text style={st.rowSub}>{appeal.email}</Text>
+                  <Text style={st.meta}>Hesap: {appeal.userId}</Text>
+                </View>
+                <Chip text={APPEAL_STATUS[appeal.status]} tone={appeal.status === 'pending' ? 'gold' : appeal.status === 'rejected' ? 'danger' : 'plain'} />
+              </View>
+              <Text style={st.meta}>Talep: {new Date(appeal.createdAt).toLocaleString('tr-TR')} · Ödeme: {new Date(appeal.paymentVerifiedAt).toLocaleString('tr-TR')}</Text>
+              <Text style={st.meta}>Engel: {new Date(appeal.blockedAt).toLocaleString('tr-TR')}</Text>
+              <Text style={st.body}>Gerekçe: {appeal.blockReason}</Text>
+              <Text style={st.meta}>Ödeme doğrulandı · {appeal.platform === 'ios' ? 'iOS' : 'Android'} · {appeal.productIdentifier}</Text>
+              {appeal.transactionId ? <Text style={st.meta}>İşlem: {appeal.transactionId}</Text> : null}
+              {appeal.decisionReason ? <Text style={st.meta}>Yönetici notu: {appeal.decisionReason}</Text> : null}
+              {pending ? <>
+                <TextInput testID={`admin-appeal-reason-${appeal.id}`} value={reasons[appeal.id] ?? ''}
+                  onChangeText={value => setReasons(previous => ({ ...previous, [appeal.id]: value }))}
+                  placeholder="Karar gerekçesi (en az 3 karakter)" placeholderTextColor={P.muted}
+                  maxLength={300} style={[st.searchInput, { borderWidth: 1, borderColor: P.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: P.card }]} />
+                <View style={st.actions}>
+                  <SmallBtn icon="user-check" label="Engeli kaldır" disabled={!!busyId || (reasons[appeal.id] ?? '').trim().length < 3}
+                    testID={`admin-appeal-approve-${appeal.id}`} onPress={() => void submit(appeal, 'approve')} />
+                  <SmallBtn icon="x" label="Reddet" danger disabled={!!busyId || (reasons[appeal.id] ?? '').trim().length < 3}
+                    testID={`admin-appeal-reject-${appeal.id}`} onPress={() => void submit(appeal, 'reject')} />
+                </View>
+              </> : null}
+            </View>
+          );
+        })}
+      </View>
+      <Pager id="admin-account-appeals" offset={offset} total={list.data.total} next={list.data.nextOffset}
+        onChange={setOffset} loading={list.isFetching} />
+    </View>
+  );
+}
+
+const STORE_STATUS: Record<AdminStoreOrder['status'], string> = {
+  pending: 'Beklemede', payment_pending: 'Ödeme bekleniyor',
+  approved_free: 'Ücretsiz onaylandı', rejected: 'Reddedildi',
+};
+const storeMoney = (amount: number) => `₺${Math.floor(amount / 100).toLocaleString('tr-TR')}`;
+
+function StoreOrderCard({ order, live, onDecision }: {
+  order: AdminStoreOrder; live: boolean;
+  onDecision: (id: string, decision: 'paid' | 'free' | 'reject' | 'pending') => Promise<void>;
+}) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const [busy, setBusy] = useState(false);
+  const decide = async (decision: 'paid' | 'free' | 'reject' | 'pending') => {
+    setBusy(true);
+    try { await onDecision(order.id, decision); } finally { setBusy(false); }
+  };
+  return (
+    <View testID={'admin-store-order-' + order.id} style={st.item}>
+      <View style={st.itemHead}>
+        {order.avatar ? <Image source={{ uri: mediaUrl(order.avatar) }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: P.input }} /> :
+          <View style={[st.avatarPlaceholder, { backgroundColor: P.input }]}><Feather name="user" size={17} color={P.muted} /></View>}
+        <View style={{ flex: 1 }}>
+          <Text style={st.rowTitle}>{order.nickname}</Text>
+          <Text style={st.rowSub}>Talep: {new Date(order.createdAt).toLocaleString('tr-TR')}</Text>
+        </View>
+        <Chip text={STORE_STATUS[order.status]} tone={order.status === 'pending' ? 'gold' : order.status === 'rejected' ? 'danger' : 'plain'} />
+      </View>
+      <View style={{ gap: 8, marginTop: 6 }}>
+        {order.items.map((item) => (
+          <View key={item.productId} style={st.storeItem}>
+            <View style={st.storeThumb}><StoreProductImage imageKey={item.imageKey} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={st.rowTitle} numberOfLines={2}>{item.name}</Text>
+              <Text style={st.rowSub}>{item.quantity} adet · {item.sizeLabel} · {storeMoney(item.priceKurus)}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={st.itemHead}>
+        <Text style={st.rowTitle}>Toplam</Text>
+        <Text style={[st.rowTitle, { color: P.gold }]}>{storeMoney(order.totalKurus)}</Text>
+      </View>
+      {order.decisionNote ? <Text style={st.rowSub}>Yönetici notu: {order.decisionNote}</Text> : null}
+      {order.status === 'pending' ? <View style={st.actions}>
+        <SmallBtn icon="credit-card" label="Ücretli onayla" disabled={busy || !live} testID={'admin-store-paid-' + order.id} onPress={() => void decide('paid')} />
+        <SmallBtn icon="check" label="Ücretsiz onayla" disabled={busy || !live} testID={'admin-store-free-' + order.id} onPress={() => void decide('free')} />
+        <SmallBtn icon="x" label="Reddet" danger disabled={busy || !live} testID={'admin-store-reject-' + order.id} onPress={() => void decide('reject')} />
+        <SmallBtn icon="clock" label="Beklemede bırak" disabled={busy || !live} testID={'admin-store-pending-' + order.id} onPress={() => void decide('pending')} />
+      </View> : order.status === 'payment_pending' ? <Text style={st.rowSub}>Ödeme sağlayıcısı bağlı değil; bu onay ödeme almadı ve tamamlanmış satış değildir.</Text> : null}
+    </View>
+  );
+}
+
+function StoreOrders({ userId, live }: { userId: string; live: boolean }) {
+  const { magazine: P } = useTheme();
+  const st = useStStyles();
+  const k = useKitStyles();
+  const qc = useQueryClient();
+  const [offset, setOffset] = useState(0);
+  const params = { offset };
+  const list = useGetAdminStoreOrders(params, { request: actorRequest(userId), query: { ...useQ(userId, live), queryKey: scoped(getGetAdminStoreOrdersQueryKey(params), userId) } });
+  const settings = useGetAdminStoreSettings({ request: actorRequest(userId), query: { ...useQ(userId, live), queryKey: scoped(getGetAdminStoreSettingsQueryKey(), userId) } });
+  const updateSettings = useUpdateAdminStoreSettings({ request: actorRequest(userId) });
+  const decideMutation = useDecideAdminStoreOrder({ request: actorRequest(userId) });
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [saving, setSaving] = useState(false);
+  const toggle = async () => {
+    if (reason.trim().length < 3 || saving || settings.data === undefined) { setError('İşlem gerekçesi en az 3 karakter olmalı.'); return; }
+    setSaving(true); setError(''); setNotice('');
+    try {
+      await updateSettings.mutateAsync({ data: { active: !settings.data.active, reason: reason.trim() } });
+      await qc.invalidateQueries({ queryKey: scoped(getGetAdminStoreSettingsQueryKey(), userId) });
+      setReason(''); setNotice(settings.data.active ? 'Mağaza talepleri kapatıldı.' : 'Mağaza talepleri açıldı. Ödeme sistemi hâlâ bağlı değil.');
+    } catch (e) { setError(apiError(e, 'Mağaza durumu güncellenemedi.')); }
+    finally { setSaving(false); }
+  };
+  const decide = async (id: string, decision: 'paid' | 'free' | 'reject' | 'pending') => {
+    if (reason.trim().length < 3) { setError('Karar gerekçesi en az 3 karakter olmalı.'); return; }
+    await decideMutation.mutateAsync({ id, data: { decision, reason: reason.trim() } });
+    await qc.invalidateQueries({ queryKey: scoped(getGetAdminStoreOrdersQueryKey(params), userId) });
+    setReason('');
+  };
+  if (list.isLoading && !list.data) return <ListSkeleton />;
+  if (list.isError && !list.data) return <StateCard icon="wifi-off" title="Mağaza talepleri yüklenemedi" text={apiError(list.error, 'Bağlantıyı kontrol edip yeniden dene.')} action={{ label: 'Tekrar dene', testID: 'admin-store-retry', onPress: () => void list.refetch() }} />;
+  return (
+    <View style={{ gap: 12, paddingHorizontal: 18 }}>
+      <AdminStoreProducts userId={userId} />
+      {error ? <Notice tone="error" text={error} /> : null}
+      {notice ? <Notice text={notice} /> : null}
+      <View style={k.card}>
+        <View style={st.item}>
+          <View style={st.itemHead}><Feather name="shopping-bag" size={18} color={P.gold} /><Text style={[st.rowTitle, { flex: 1 }]}>Sipariş taleplerini kabul et</Text><Chip text={settings.data?.active ? 'Açık' : 'Kapalı'} tone={settings.data?.active ? 'gold' : 'plain'} /></View>
+          <Text style={st.rowSub}>Mağaza kapalıyken ürün inceleme ve talep oluşturma ödeme içermez. Açmak yalnızca talep alınmasını sağlar.</Text>
+          <Text style={st.rowSub}>Şu anda gerçek ödeme sağlayıcısı bağlı değil; ücretli onay, ödeme alındığı anlamına gelmez.</Text>
+          <TextInput testID="admin-store-reason" value={reason} onChangeText={(value) => { setReason(value); setError(''); }} placeholder="Karar veya mağaza durumu gerekçesi" placeholderTextColor={P.muted} style={[st.searchInput, { borderWidth: 1, borderColor: P.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: P.card }]} />
+          <SmallBtn icon={settings.data?.active ? 'pause-circle' : 'play-circle'} label={saving ? 'Kaydediliyor…' : settings.data?.active ? 'Mağazayı kapat' : 'Mağaza taleplerini aç'} disabled={saving || !settings.data || reason.trim().length < 3} testID="admin-store-toggle" onPress={() => void toggle()} />
+        </View>
+      </View>
+      {list.data?.items.length ? <View style={k.card}>
+        {list.data.items.map((order) => <StoreOrderCard key={order.id} order={order} live={live} onDecision={decide} />)}
+      </View> : <StateCard icon="shopping-bag" title="Sipariş talebi yok" text="Kullanıcıların gönderdiği ürün talepleri burada listelenir." testID="admin-store-empty" />}
+      {list.data ? <Pager id="admin-store-orders" offset={offset} total={list.data.total} next={list.data.nextOffset} onChange={setOffset} loading={list.isFetching} /> : null}
+    </View>
+  );
+}
+
 function ConfirmSheet({ pending, userId, onClose, onDone }: { pending: Pending | null; userId: string; onClose: () => void; onDone: (text: string) => void }) {
   const { magazine: P } = useTheme();
   const st = useStStyles();
@@ -470,8 +728,8 @@ function AdminPanel() {
   else if (!o) body = <StateCard testID="admin-error" icon="wifi-off" title="Panel yüklenemedi" text={apiError(ov.error, 'Bağlantı yok, tekrar dene.')} action={{ label: 'Tekrar dene', testID: 'admin-retry', onPress: () => ov.refetch() }} />;
   else if (o.role === 'user') body = <StateCard testID="admin-forbidden" icon="lock" title="Bu sayfa yöneticilere özel" text="Hesabının yönetim yetkisi yok." action={{ label: 'Profile dön', testID: 'admin-back', onPress: () => go('/profile') }} />;
   else {
-    const tabs: { key: Tab; label: string }[] = [{ key: 'overview', label: 'Genel' }, ...(superadmin ? [{ key: 'accounts' as Tab, label: 'Hesaplar' }] : []), { key: 'content', label: 'İçerik' }, { key: 'reports', label: 'Şikâyetler' }, { key: 'history', label: 'Geçmiş' }];
-    const t = (tab === 'accounts' || tab === 'gifs') && !superadmin ? 'overview' : tab;
+     const tabs: { key: Tab; label: string }[] = [{ key: 'overview', label: 'Genel' }, { key: 'premium', label: 'Premium' }, { key: 'promotions', label: 'Kitap tanıtımı' }, { key: 'store', label: 'Mağaza' }, ...(superadmin ? [{ key: 'accounts' as Tab, label: 'Hesaplar' }, { key: 'appeals' as Tab, label: 'Engel itirazları' }, { key: 'prohibited' as Tab, label: 'Yasaklı Paylaşımlar' }] : []), { key: 'content', label: 'İçerik' }, { key: 'reports', label: 'Şikâyetler' }, { key: 'history', label: 'Geçmiş' }];
+     const t = (tab === 'accounts' || tab === 'gifs' || tab === 'appeals' || tab === 'prohibited') && !superadmin ? 'overview' : tab;
     body = (
       <View style={{ gap: 14 }}>
         <View style={st.roleLine}>
@@ -486,6 +744,11 @@ function AdminPanel() {
         {t === 'overview' ? <View style={{ paddingHorizontal: 18 }}><Overview o={o} onTab={setTab} /></View>
           : t === 'accounts' ? <Accounts userId={userId} live={live} onAct={act} />
           : t === 'gifs' ? <AdminGifLibrary userId={userId} />
+          : t === 'premium' ? <PremiumApplications userId={userId} live={live} />
+          : t === 'appeals' ? <AccountAppeals userId={userId} live={live} />
+          : t === 'promotions' ? <AdminBookPromotions userId={userId} live={live} />
+          : t === 'store' ? <StoreOrders userId={userId} live={live} />
+          : t === 'prohibited' ? <AdminProhibitedImages userId={userId} />
           : t === 'content' ? <Content userId={userId} live={live} onAct={act} />
           : t === 'reports' ? <Reports userId={userId} live={live} onAct={act} />
           : <History userId={userId} live={live} />}
@@ -523,6 +786,9 @@ const useStStyles = makeStyles((t) => {
   chip: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
   chipText: { fontFamily: F.semi, fontSize: 11 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
+  avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  storeItem: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 12, backgroundColor: P.input },
+  storeThumb: { width: 56, height: 48, borderRadius: 7, overflow: 'hidden' },
   small: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1, backgroundColor: P.card },
   smallText: { fontFamily: F.semi, fontSize: 13 },
   pager: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },

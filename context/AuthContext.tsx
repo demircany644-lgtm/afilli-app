@@ -12,7 +12,7 @@ import { randomUUID } from 'expo-crypto';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getAccountSession, loginAccount, registerAccount, logoutAccount, resetAccountPassword,
-  setAuthTokenGetter, getAccountDeletionStatus, type AccountSession, type AccountUser,
+  setAuthTokenGetter, setSessionRefreshHandler, getAccountDeletionStatus, type AccountSession, type AccountUser,
 } from '@workspace/api-client-react';
 
 const native = Platform.OS !== 'web';
@@ -35,6 +35,8 @@ export type Session = {
   signOut: () => Promise<void>; retry: () => Promise<void>;
   /** Highest role reported by the server for this account (never derived from email). */
   role: AccountUser['role'] | null;
+  /** Appeal-only sessions are restricted to rules, notifications, and payment review. */
+  accessMode: AccountUser['accessMode'] | null;
   /** Local-only cleanup after the server confirmed self-deletion. Never calls logout. Resolves false if device storage could not be cleared. */
   finalizeDeletion: (deletedUserId: string, requestId: string) => Promise<boolean>;
   /** Persist the deletion marker BEFORE the remote DELETE; throws if it cannot be written (do not send then). */
@@ -157,9 +159,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     mounted.current = true;
     if (native) setAuthTokenGetter(getToken);
+    setSessionRefreshHandler(restore);
     void restore();
     const subscription = AppState.addEventListener('change', state => { if (state === 'active' && !busy.current) void restore(); });
-    return () => { mounted.current = false; revision.current++; subscription.remove(); if (native) setAuthTokenGetter(null); };
+    return () => { mounted.current = false; revision.current++; subscription.remove(); if (native) setAuthTokenGetter(null); setSessionRefreshHandler(null); };
   }, [restore, getToken]);
   const accept = useCallback(async (result: AccountSession) => {
     if (!result.user) throw new Error('Giriş tamamlanamadı. Yeniden dene.');
@@ -224,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return !result.unreadable && result.remaining.length === 0;
   }, [recoverDeletionJobs]);
   return <C.Provider value={{
-    role: user?.role ?? null, finalizeDeletion, beginDeletion, abortDeletion, forgetError, retryForget,
+    role: user?.role ?? null, accessMode: user?.accessMode ?? null, finalizeDeletion, beginDeletion, abortDeletion, forgetError, retryForget,
     isLoaded, userId: user?.id ?? null, isSignedIn: !!user && !offline, offline, error, getToken, signOut, retry: restore,
     login: (email, password) => mutate(() => loginAccount({ email: email.trim().toLowerCase(), password }, transport)),
     register: (email, nickname, password, acceptedRules) => mutate(() => registerAccount({ email: email.trim().toLowerCase(), nickname: nickname.trim(), password, acceptedRules }, transport)),

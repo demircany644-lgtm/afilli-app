@@ -13,6 +13,8 @@ export interface SocialNotification {
   commentId: string | null;
   /** @nullable */
   chapterId: string | null;
+  /** @nullable */
+  applicationId: string | null;
   id: string;
   body: string;
   read: boolean;

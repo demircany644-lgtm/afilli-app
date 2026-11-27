@@ -12,17 +12,24 @@ import { TabTitle } from '@/components/TabTitle';
 import { Empty, GoldButton } from '@/components/ui';
 import { Btn, apiError, goSignIn } from '@/components/bulletins/common';
 import { useCommunity } from '@/context/CommunityContext';
+import { useAuth } from '@/context/AuthContext';
 import { scoped, actorRequest, useOwnerGuard } from '@/components/profile/hooks';
 
 const KIND: Record<SocialNotification['kind'], { icon: keyof typeof Feather.glyphMap; label: string }> = {
   chapter: { icon: 'book-open', label: 'Yeni bölüm' },
+  book_like: { icon: 'heart', label: 'Kitabını beğendi' },
   book_comment: { icon: 'message-circle', label: 'Kitabına yorum' },
   comment_reply: { icon: 'corner-down-right', label: 'Yorumuna yanıt' },
+  premium_status: { icon: 'award', label: 'Premium durumu' },
+  store_order: { icon: 'shopping-bag', label: 'Mağaza siparişi' },
+  account_appeal: { icon: 'shield', label: 'Engel kaldırma başvurusu' },
 };
 
 export default function Notifications() {
   const c = useColors();
   const { ready, userId } = useCommunity();
+  const { accessMode } = useAuth();
+  const appealOnly = accessMode === 'appeal';
   const qc = useQueryClient();
   const alive = useOwnerGuard(userId);
   const [openErr, setOpenErr] = useState<string | null>(null);
@@ -48,6 +55,30 @@ export default function Notifications() {
   };
   const open = async (n: SocialNotification) => {
     setOpenErr(null);
+    if (n.kind === 'premium_status') {
+      if (!n.read && userId) {
+        try { await readBookNotification(n.id, actorRequest(userId)); if (alive()) refresh(); }
+        catch (e) { if (alive()) setOpenErr(apiError(e, 'Bildirim okundu olarak işaretlenemedi.')); }
+      }
+      if (alive()) router.push('/premium');
+      return;
+    }
+    if (n.kind === 'store_order') {
+      if (!n.read && userId) {
+        try { await readBookNotification(n.id, actorRequest(userId)); if (alive()) refresh(); }
+        catch (e) { if (alive()) setOpenErr(apiError(e, 'Bildirim okundu olarak işaretlenemedi.')); }
+      }
+      if (alive()) router.push('/cart');
+      return;
+    }
+    if (n.kind === 'account_appeal') {
+      if (!n.read && userId) {
+        try { await readBookNotification(n.id, actorRequest(userId)); if (alive()) refresh(); }
+        catch (e) { if (alive()) setOpenErr(apiError(e, 'Bildirim okundu olarak işaretlenemedi.')); }
+      }
+      if (alive()) router.push('/account-appeal');
+      return;
+    }
     if (!n.bookId) return;
     const params: Record<string, string> = { id: n.bookId };
     if (n.commentId) params.focusComment = n.commentId;
@@ -64,10 +95,10 @@ export default function Notifications() {
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-        <TabTitle title="Bildirimler" sub={unread > 0 ? unread + ' okunmamış kitap bildirimi' : 'Kitaplarından ve yorumlarından haberler'} />
+        <TabTitle title="Bildirimler" sub={unread > 0 ? unread + (appealOnly ? ' okunmamış başvuru bildirimi' : ' okunmamış kitap bildirimi') : appealOnly ? 'Başvurunun durumu ve yönetici kararları' : 'Kitapların ve yorumlarınla ilgili haberler'} />
         {openErr ? <Text style={[styles.err, { color: c.destructive }]}>{openErr}</Text> : null}
         {!ready ? null : !userId ? (
-          <Empty icon="bell" title="Bildirimler hesabına bağlı" text="Kaydettiğin kitapların yeni bölümleri ve yorumlarına gelen yanıtlar burada görünür.">
+          <Empty icon="bell" title="Bildirimler hesabına bağlı" text="Kitaplarına gelen beğeni ve yorumlar, yorumlarına gelen yanıtlar ve kaydettiğin kitapların yeni bölümleri burada görünür.">
             <GoldButton label="Giriş yap" testID="notifications-signin" onPress={goSignIn} style={{ marginTop: 8 }} />
           </Empty>
         ) : q.isLoading ? (
@@ -77,8 +108,8 @@ export default function Notifications() {
             <GoldButton label="Tekrar dene" testID="notifications-retry" onPress={() => void q.refetch()} style={{ marginTop: 8 }} />
           </Empty>
         ) : items.length === 0 ? (
-          <Empty icon="bell" title="Henüz bildirimin yok" text="Kaydettiğin bir kitaba yeni bölüm geldiğinde ya da yorumuna yanıt yazıldığında haber vereceğiz.">
-            <GoldButton label="Ana sayfaya dön" testID="notifications-home" onPress={() => router.navigate('/')} style={{ marginTop: 8 }} />
+          <Empty icon="bell" title="Henüz bildirimin yok" text={appealOnly ? 'Başvuru kararın ve hesabının durumu burada gösterilir.' : 'Kitaplarına beğeni veya yorum geldiğinde, yorumuna yanıt yazıldığında ya da kaydettiğin kitaba yeni bölüm eklendiğinde haber vereceğiz.'}>
+            <GoldButton label={appealOnly ? 'Başvuru durumuna dön' : 'Ana sayfaya dön'} testID="notifications-home" onPress={() => router.navigate(appealOnly ? '/account-appeal' : '/')} style={{ marginTop: 8 }} />
           </Empty>
         ) : <>
           {items.map((n) => {

@@ -4,7 +4,7 @@ import { SetReaderLikeBody, ReportWriterCommentBody, ResolveReaderReportBody,
   ResolveReaderReportResponse, GetReaderReportsQueryParams } from '@workspace/api-zod';
 import { route, requirePerson, parse, uuid, viewer, transaction } from '../lib/community';
 import { adminActor, adminWrite } from '../lib/admin';
-import { readerChapter, readerContext, readerLike } from '../lib/reader-interactions';
+import { readerChapter, readerContext, readerLike, recordChapterRead } from '../lib/reader-interactions';
 import { reportComment, reportPage, resolveReport } from '../lib/reader-reports';
 
 const router: IRouter = Router();
@@ -15,6 +15,14 @@ router.get('/authored-books/:id/chapters/:chapterId/interactions', route(async (
 router.put('/authored-books/:id/chapters/:chapterId/interactions', route(async (req, res) => {
   const actor = await requirePerson(req), book = uuid(req.params.id), chapter = uuid(req.params.chapterId), input = parse(SetReaderLikeBody, req.body);
   res.json(SetReaderLikeResponse.parse(await transaction(db => readerLike(db, book, chapter, actor.id, input.liked, input.paragraphId ?? null))));
+}));
+router.post('/authored-books/:id/chapters/:chapterId/read', route(async (req, res) => {
+  const actor = await requirePerson(req), book = uuid(req.params.id), chapter = uuid(req.params.chapterId);
+  const result = await transaction(async db => {
+    const context = await readerContext(book, chapter, db, true);
+    return recordChapterRead(db, context, actor.id);
+  });
+  res.json(GetReaderChapterResponse.parse(result));
 }));
 router.post('/writer-comments/:id/reports', route(async (req, res) => {
   const actor = await requirePerson(req), id = uuid(req.params.id), input = parse(ReportWriterCommentBody, req.body);

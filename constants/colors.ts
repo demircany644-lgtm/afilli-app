@@ -37,6 +37,10 @@ const colors = {
     scrim: 'rgba(10,6,4,0.18)', headline: '#FBF4EA', link: '#E9C27A', pill: '#F4ECDC', pillText: '#2B211B',
     card: '#FFFCF7', cardBorder: 'rgba(255,255,255,0.7)', track: 'rgba(255,255,255,0.22)',
   },
+  store: {
+    bg: '#100807', card: '#1D0D0C', raised: '#2B1111', text: '#FFF4E6', muted: '#D5BE9D',
+    border: '#6F3A20', gold: '#E5BC62', goldLight: '#F5D991', danger: '#D96B5C',
+  },
   radius: 14,
 };
 export default colors;

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Afilli",
     "slug": "bilmem",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "afilli",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.afilli.app",
-      "versionCode": 8
+      "versionCode": 9
     },
     "web": {
       "favicon": "./assets/images/icon.png",

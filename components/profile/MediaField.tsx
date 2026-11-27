@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { makeStyles, useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { useRequestProfileUpload } from '@workspace/api-client-react';
 import { F, tap } from '@/components/ui';
 import { apiError, mediaUrl } from '@/components/bulletins/common';
-import { pickProfileImage, uploadProfileImage, type ProfilePurpose } from '@/lib/profile-media';
+import { pickProfileImage, uploadProfileImage, ProfileMediaPermissionError, type PickedImage, type ProfilePurpose } from '@/lib/profile-media';
 import { useCommunity } from '@/context/CommunityContext';
 
 import { useKitStyles } from './kit';
+import { ProfileCropSheet } from './ProfileCropSheet';
 import { actorRequest, useOwnerGuard } from './hooks';
 
 /** keep = untouched; set = new uploaded id; remove = send null. */
@@ -23,31 +24,58 @@ export function MediaField({ purpose, current, value, onChange, onBusy }: { purp
   const req = useRequestProfileUpload({ request: actorRequest(userId) });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [settingsNeeded, setSettingsNeeded] = useState(false);
+  const [cropSource, setCropSource] = useState<PickedImage | null>(null);
+  const [picked, setPicked] = useState<PickedImage | null>(null);
   const gen = useRef(0);
+  const pendingRef = useRef(false);
+  const setPending = (next: boolean) => {
+    if (pendingRef.current === next) return;
+    pendingRef.current = next;
+    onBusy(next);
+  };
   // Cancel stale uploads when the account changes or the screen unmounts.
   useEffect(() => { gen.current += 1; }, [userId]);
   useEffect(() => () => { gen.current += 1; }, []);
 
-  const shown = value.kind === 'set' ? value.uri : value.kind === 'remove' ? null : current ? mediaUrl(current) : null;
+  const shown = picked?.uri ?? (value.kind === 'set' ? value.uri : value.kind === 'remove' ? null : current ? mediaUrl(current) : null);
   const label = purpose === 'avatar' ? 'Profil fotoğrafı' : 'Kapak fotoğrafı';
 
   const pick = async (source: 'library' | 'camera') => {
-    tap(); setErr(null);
+    tap(); setErr(null); setSettingsNeeded(false);
     const mine = ++gen.current;
-    let started = false;
     try {
       const img = await pickProfileImage(source, purpose);
       if (!img || mine !== gen.current || !alive()) return;
-      started = true; setBusy(true); onBusy(true);
-      const uploadId = await uploadProfileImage(img, purpose, req.mutateAsync);
+      setPending(true);
+      setCropSource(img);
+    } catch (e) {
+      if (mine === gen.current && alive()) {
+        setErr(e instanceof Error && !('status' in e) ? e.message : apiError(e, 'Fotoğraf açılamadı.'));
+        setSettingsNeeded(e instanceof ProfileMediaPermissionError && !e.canAskAgain && Platform.OS !== 'web');
+      }
+    }
+  };
+  const uploadPicked = async () => {
+    if (!picked || busy) return;
+    const mine = gen.current;
+    setErr(null); setBusy(true);
+    try {
+      const uploadId = await uploadProfileImage(picked, purpose, req.mutateAsync);
       if (mine !== gen.current || !alive()) return;
-      onChange({ kind: 'set', uploadId, uri: img.uri });
+      onChange({ kind: 'set', uploadId, uri: picked.uri });
+      setPicked(null); setPending(false);
     } catch (e) {
       if (mine === gen.current && alive()) setErr(e instanceof Error && !('status' in e) ? e.message : apiError(e, 'Fotoğraf yüklenemedi.'));
     } finally {
-      if (mine === gen.current && alive()) { setBusy(false); if (started) onBusy(false); }
+      if (mine === gen.current && alive()) setBusy(false);
     }
   };
+  const cancelCrop = () => {
+    setCropSource(null);
+    if (!picked) setPending(false);
+  };
+  const cancelPreview = () => { setPicked(null); setPending(false); setErr(null); };
 
   return (
     <View style={{ gap: 8 }}>
@@ -60,11 +88,17 @@ export function MediaField({ purpose, current, value, onChange, onBusy }: { purp
       <View style={st.row}>
         <Chip icon="image" label="Galeriden seç" testID={`profile-edit-${purpose}-library`} onPress={() => pick('library')} disabled={busy} />
         {Platform.OS !== 'web' ? <Chip icon="camera" label="Fotoğraf çek" testID={`profile-edit-${purpose}-camera`} onPress={() => pick('camera')} disabled={busy} /> : null}
-        {(shown || value.kind === 'set') ? <Chip icon="trash-2" label="Kaldır" danger testID={`profile-edit-${purpose}-remove`} disabled={busy}
-          onPress={() => { tap(); gen.current += 1; onChange(current ? { kind: 'remove' } : { kind: 'keep' }); }} /> : null}
-        {value.kind !== 'keep' ? <Chip icon="rotate-ccw" label="Geri al" testID={`profile-edit-${purpose}-undo`} disabled={busy} onPress={() => { tap(); onChange({ kind: 'keep' }); }} /> : null}
+        {picked ? <Chip icon="upload-cloud" label="Fotoğrafı yükle" testID={`profile-edit-${purpose}-upload`} disabled={busy} onPress={() => { void uploadPicked(); }} /> : null}
+        {picked ? <Chip icon="x" label="Önizlemeyi iptal et" testID={`profile-edit-${purpose}-preview-cancel`} disabled={busy} onPress={cancelPreview} /> : null}
+        {!picked && (shown || value.kind === 'set') ? <Chip icon="trash-2" label="Kaldır" danger testID={`profile-edit-${purpose}-remove`} disabled={busy}
+          onPress={() => { tap(); gen.current += 1; setPending(false); onChange(current ? { kind: 'remove' } : { kind: 'keep' }); }} /> : null}
+        {!picked && value.kind !== 'keep' ? <Chip icon="rotate-ccw" label="Geri al" testID={`profile-edit-${purpose}-undo`} disabled={busy} onPress={() => { tap(); onChange({ kind: 'keep' }); }} /> : null}
       </View>
+      {picked ? <Text style={k.hint} accessibilityLiveRegion="polite">Kırpılmış önizleme hazır. Yükle düğmesine bas, ardından profil formundaki Kaydet’e dokun.</Text> : null}
       {err ? <Text style={k.err} accessibilityLiveRegion="polite">{err}</Text> : null}
+      {settingsNeeded ? <Chip icon="settings" label="Ayarları aç" testID={`profile-edit-${purpose}-settings`} onPress={() => { Linking.openSettings().catch(() => setErr('Ayarlar açılamadı. Cihaz ayarlarından Afilli izinlerini aç.')); }} /> : null}
+      <ProfileCropSheet source={cropSource} purpose={purpose} onCancel={cancelCrop}
+        onDone={(image) => { setCropSource(null); setPicked(image); }} />
     </View>
   );
 }

@@ -3,6 +3,12 @@ import type { Conversation, DirectMessage, MessageGif } from '@workspace/api-zod
 import { fail, type Transaction } from './community';
 import { PERSON } from './social';
 
+const CHAT_PERSON = `json_build_object('id',u.id,'nickname',u.nickname,'avatar',u.avatar,
+  'premiumChatEffect',(SELECT p.chat_effect FROM premium_style_preferences p
+    JOIN premium_memberships m ON m.user_id=p.user_id
+    WHERE p.user_id=u.id AND m.status='active'
+      AND (m.source='free' OR m.expires_at>now()) LIMIT 1))`;
+
 export async function assertDirectMessageSchema() {
   const { rows } = await pool.query(`SELECT
     (SELECT count(*) FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='direct_messages'
@@ -35,7 +41,7 @@ export async function threads(actor: string, id: string | null = null): Promise<
 export async function messageData(ids: string[]): Promise<DirectMessage[]> {
   const active = (a: string) => `${a}.deleted_at IS NULL AND ${a}.media_expired_at IS NULL AND ${a}.created_at>now()-interval '7 days'`;
   const expired = (a: string) => `(${a}.media_expired_at IS NOT NULL OR (${a}.gif IS NOT NULL OR ${a}.photo_id IS NOT NULL) AND ${a}.created_at<=now()-interval '7 days')`;
-  const rows = (await pool.query<DirectMessage>(`SELECT m.id,m.thread_id AS "threadId",${PERSON} AS sender,
+  const rows = (await pool.query<DirectMessage>(`SELECT m.id,m.thread_id AS "threadId",${CHAT_PERSON} AS sender,
     CASE WHEN m.deleted_at IS NULL THEN m.body ELSE '' END AS body,
     m.client_id AS "clientId",m.sequence::text AS sequence,m.change_sequence::text AS "changeSequence",
     m.deleted_at AS "deletedAt",${expired('m')} AS "mediaExpired",

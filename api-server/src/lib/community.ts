@@ -3,6 +3,7 @@ import { authenticatedUserId } from './auth-session';
 import { pool, type PoolClient } from '@workspace/db';
 import type { Bulletin, BulletinComment, CommunityPerson, AuthoredBook, BulletinReaction } from '@workspace/api-zod';
 import { publicBook } from './book-access';
+import { writerBadgesSql } from './writer-achievements';
 
 export const EMOJIS = ['❤️', '😍', '😂', '😮', '😢', '👏', '📖', '👍'];
 export class CommunityError extends Error {
@@ -56,7 +57,8 @@ export async function notify(_client: Transaction, _recipient: string, _actor: s
 }
 const PERSON_SQL = `json_build_object('id',u.id,'nickname',u.nickname,'avatar',u.avatar)`;
 const BOOK_SQL = `json_build_object('id',b.id,'title',b.title,'body','','coverUrl',b.cover,'cover',b.published_data->>'cover',
-  'published',${publicBook()},'author',json_build_object('id',bu.id,'nickname',bu.nickname,'avatar',bu.avatar))`;
+  'published',${publicBook()},'author',json_build_object('id',bu.id,'nickname',bu.nickname,'avatar',bu.avatar,
+    'writerBadges',${writerBadgesSql('bu.id')}))`;
 export async function bookData(id: string): Promise<AuthoredBook> {
   const result = await pool.query<{ value: AuthoredBook }>(
     `SELECT ${BOOK_SQL} AS value FROM authored_books b JOIN community_users bu ON bu.id=b.author_id WHERE b.id=$1`, [id],
@@ -93,8 +95,10 @@ export async function postData(ids: string[], userId: string | null): Promise<Bu
 }
 export async function commentsData(postId: string, userId: string | null): Promise<BulletinComment[]> {
   const result = await pool.query<BulletinComment & { createdAt: Date }>(
-    `SELECT c.id,c.post_id AS "postId",${PERSON_SQL} AS author,c.parent_id AS "parentId",c.depth,
-       CASE WHEN c.moderation_hidden THEN '' ELSE c.body END AS body,(c.deleted OR c.moderation_hidden) AS deleted,
+    `SELECT c.id,c.post_id AS "postId",
+        CASE WHEN c.deleted OR c.moderation_hidden THEN json_build_object('id','deleted','nickname','','avatar',NULL)
+          ELSE ${PERSON_SQL} END AS author,c.parent_id AS "parentId",c.depth,
+       CASE WHEN c.deleted OR c.moderation_hidden THEN '' ELSE c.body END AS body,(c.deleted OR c.moderation_hidden) AS deleted,
        c.created_at AS "createdAt",(c.author_id=$2 AND NOT c.deleted AND NOT c.moderation_hidden) IS TRUE AS "canEdit",
        ((c.author_id=$2 OR p.author_id=$2) AND NOT c.deleted AND NOT c.moderation_hidden) IS TRUE AS "canDelete"
      FROM bulletin_comments c JOIN community_users u ON u.id=c.author_id JOIN bulletins p ON p.id=c.post_id

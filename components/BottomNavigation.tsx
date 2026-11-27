@@ -36,7 +36,7 @@ export function BottomNavigation() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { ready, userId } = useCommunity();
-  // Canonical server unread total for book notifications only (chapter, book_comment, comment_reply).
+  // Canonical server unread total for book notifications (chapter, book_like, book_comment, comment_reply).
   const book = useGetBookNotifications(undefined, { query: { enabled: ready && !!userId, queryKey: scoped(getGetBookNotificationsQueryKey(), userId), refetchInterval: 15000 }, request: actorRequest(userId) });
   const unreadCount = userId ? book.data?.unreadCount ?? 0 : 0;
   const hasUnread = unreadCount > 0;

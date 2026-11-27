@@ -15,22 +15,74 @@ import { Avatar, BookCover, Sheet, SheetRow, ConfirmDelete, apiError, mediaUrl, 
 import { ReactionPicker, ReactionBuckets, ReactionPeopleSheet, LikesSheet } from '@/components/bulletins/Reactions';
 import { Composer } from '@/components/bulletins/Composer';
 
-function Photo({ p }: { p: BulletinPhoto }) {
+const MAX_BULLETIN_PHOTO_HEIGHT = 320;
+
+function Photo({ p, width, frameHeight }: { p: BulletinPhoto; width: number; frameHeight?: number }) {
   const { magazine: b } = useTheme();
   const st = useStStyles();
   const [ratio, setRatio] = useState<number | null>(null);
   const [failed, setFailed] = useState(false);
   const uri = mediaUrl(p.url);
+  const height = frameHeight ?? (width > 0 ? Math.min(width / (ratio ?? 4 / 3), MAX_BULLETIN_PHOTO_HEIGHT) : 0);
   useEffect(() => {
     let live = true;
     Image.getSize(uri, (w, h) => { if (live && w && h) setRatio(w / h); }, () => {});
     return () => { live = false; };
   }, [uri]);
-  if (failed) return <View style={[st.photo, st.photoFail]}><Feather name="image" size={22} color={b.muted} /><Text style={st.muted}>Fotoğraf yüklenemedi</Text></View>;
+  if (failed) return <View style={[st.photo, st.photoFail, { width, height }]}><Feather name="image" size={22} color={b.muted} /><Text style={st.muted}>Fotoğraf yüklenemedi</Text></View>;
   return (
     <Image source={{ uri }} resizeMode="contain" accessibilityLabel="Bülten fotoğrafı" onError={() => setFailed(true)}
       onLoad={(e) => { const src = e.nativeEvent?.source; if (!ratio && src?.width && src?.height) setRatio(src.width / src.height); }}
-      style={[st.photo, { aspectRatio: ratio ?? 4 / 3 }]} />
+      style={[st.photo, { width, height }]} />
+  );
+}
+
+function BulletinPhotos({ photos }: { photos: BulletinPhoto[] }) {
+  const st = useStStyles();
+  const [width, setWidth] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const multiple = photos.length > 1;
+  const visibleIndex = Math.min(activeIndex, Math.max(photos.length - 1, 0));
+
+  return (
+    <View
+      testID="bulletin-photo-gallery"
+      accessibilityLabel={multiple ? `${photos.length} fotoğraflı bülten galerisi` : 'Bülten fotoğrafı'}
+      onLayout={(event) => {
+        const nextWidth = event.nativeEvent.layout.width;
+        setWidth((current) => Math.abs(current - nextWidth) > 1 ? nextWidth : current);
+      }}
+    >
+      {multiple ? (
+        <>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            decelerationRate="fast"
+            showsHorizontalScrollIndicator={false}
+            scrollEnabled={width > 0}
+            accessibilityHint="Diğer fotoğraflar için sağa veya sola kaydır"
+            testID="bulletin-photo-carousel"
+            onMomentumScrollEnd={(event) => {
+              if (width > 0) setActiveIndex(Math.min(photos.length - 1, Math.max(0, Math.round(event.nativeEvent.contentOffset.x / width))));
+            }}
+          >
+            {photos.map((photo) => (
+              <View key={photo.id} style={{ width, height: MAX_BULLETIN_PHOTO_HEIGHT }}>
+                <Photo p={photo} width={width} frameHeight={MAX_BULLETIN_PHOTO_HEIGHT} />
+              </View>
+            ))}
+          </ScrollView>
+          <View pointerEvents="none" style={st.photoCount}>
+            <Text accessibilityLabel={`Fotoğraf ${visibleIndex + 1} / ${photos.length}`} style={st.photoCountText}>
+              {visibleIndex + 1} / {photos.length}
+            </Text>
+          </View>
+        </>
+      ) : photos.length === 1 ? (
+        <Photo p={photos[0]} width={width} />
+      ) : null}
+    </View>
   );
 }
 
@@ -107,7 +159,7 @@ export function BulletinCard({ post, onChange, onRemoved, detail }: { post: Bull
         ) : null}
       </View>
       {post.body ? <Text style={st.body} selectable>{post.body}</Text> : null}
-      {post.photos.length ? <View style={{ gap: 8, marginTop: 10 }}>{post.photos.map((p) => <Photo key={p.id} p={p} />)}</View> : null}
+      {post.photos.length ? <View style={{ marginTop: 10 }}><BulletinPhotos photos={post.photos} /></View> : null}
       {post.book ? (
         <Pressable testID={'bulletin-book-' + post.book.id} accessibilityRole="link" accessibilityLabel={post.book.title + ', ' + post.book.author.nickname + ', kitabı aç'}
           onPress={() => { tap(); router.push({ pathname: '/authored-book/[id]', params: { id: post.book!.id } }); }}
@@ -175,8 +227,10 @@ const useStStyles = makeStyles((t) => {
   muted: { fontFamily: F.body, fontSize: 12, color: b.muted },
   iconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   body: { fontFamily: F.body, fontSize: 15, lineHeight: 23, color: b.text, marginTop: 10 },
-  photo: { width: '100%', borderRadius: 12, backgroundColor: b.input },
-  photoFail: { aspectRatio: 3, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  photo: { borderRadius: 12, backgroundColor: b.input },
+  photoFail: { alignItems: 'center', justifyContent: 'center', gap: 4 },
+  photoCount: { position: 'absolute', right: 10, bottom: 10, minWidth: 44, alignItems: 'center', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, backgroundColor: b.card, borderWidth: 1, borderColor: b.border },
+  photoCountText: { fontFamily: F.semi, fontSize: 12, color: b.text },
   book: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12, padding: 10, borderRadius: 14, backgroundColor: b.background, borderWidth: 1, borderColor: b.gold },
   kicker: { fontFamily: F.semi, fontSize: 10, letterSpacing: 1.2, color: b.gold },
   bookTitle: { fontFamily: F.serifBold, fontSize: 16, color: b.text },

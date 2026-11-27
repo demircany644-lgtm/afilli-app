@@ -85,17 +85,18 @@ function CommentNode({ c, byParent, byId, postId, focusId }: { c: BulletinCommen
       <Text style={st.link}>{label}</Text>
     </Pressable>
   );
+  if (c.deleted) return <>{kids.map((k) => <CommentNode key={k.id} c={k} byParent={byParent} byId={byId} postId={postId} focusId={focusId} />)}</>;
   return (
     <View style={[c.depth > 1 && st.nested]}>
       <Pressable onLongPress={openReact} delayLongPress={350} accessibilityHint="Uzun basarak tepki ver"
         style={[st.comment, focusId === c.id && st.focus]} testID={'comment-' + c.id}>
         <Avatar person={c.deleted ? null : c.author} size={30} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={st.name} numberOfLines={1}>{c.deleted ? 'Silinmiş yorum' : c.author.nickname}<Text style={st.time}>  {timeAgo(c.createdAt)}</Text></Text>
+          <Text style={st.name} numberOfLines={1}>{c.author.nickname}<Text style={st.time}>  {timeAgo(c.createdAt)}</Text></Text>
           {edit ? <CommentInput postId={postId} placeholder="Yorumunu düzenle..." initial={{ id: c.id, body: c.body }} onDone={() => setEdit(false)} autoFocus testID={'edit-' + c.id} /> : (
-            <Text style={[st.body, c.deleted && st.deleted]} selectable>
-              {!c.deleted && parent ? <Text style={st.mention}>@{parent.deleted ? 'silinmiş' : parent.author.nickname} </Text> : null}
-              {c.deleted ? 'Bu yorum silindi.' : c.body}
+            <Text style={st.body} selectable>
+              {parent && !parent.deleted ? <Text style={st.mention}>@{parent.author.nickname} </Text> : null}
+              {c.body}
             </Text>
           )}
           {!c.deleted ? <ReactionBuckets reactions={c.reactions} onBucket={(e) => setPeople(e)} /> : null}
@@ -113,7 +114,10 @@ function CommentNode({ c, byParent, byId, postId, focusId }: { c: BulletinCommen
       </Pressable>
       {kids.map((k) => <CommentNode key={k.id} c={k} byParent={byParent} byId={byId} postId={postId} focusId={focusId} />)}
       <ConfirmDelete visible={confirm} busy={del.isPending} onCancel={() => setConfirm(false)} text="Bu yorum silinecek."
-        onConfirm={() => del.mutate({ id: c.id }, { onSuccess: () => { setConfirm(false); refresh(); }, onError: (e) => { setConfirm(false); setErr(apiError(e, 'Yorum silinemedi.')); } })} />
+        onConfirm={() => del.mutate({ id: c.id }, { onSuccess: () => {
+          setConfirm(false); refresh();
+          qc.invalidateQueries({ queryKey: getGetBulletinReactionPeopleQueryKey({ targetId: c.id, targetType: 'comment' }) });
+        }, onError: (e) => { setConfirm(false); setErr(apiError(e, 'Yorum silinemedi.')); } })} />
       <ReactionPicker visible={picker} onClose={() => setPicker(false)} current={mine} onPick={doReact} busy={react.isPending} />
       <ReactionPeopleSheet target={people ? { id: c.id, type: 'comment' } : null} emoji={people} onClose={() => setPeople(null)} />
     </View>
@@ -123,7 +127,7 @@ function CommentNode({ c, byParent, byId, postId, focusId }: { c: BulletinCommen
 export function CommentsThread({ postId, focusId }: { postId: string; focusId?: string }) {
   const st = useStStyles();
   const q = useGetBulletinComments(postId, { query: { enabled: !!postId, queryKey: getGetBulletinCommentsQueryKey(postId), refetchInterval: 20000 } });
-  const { byParent, byId, roots } = useMemo(() => {
+  const { byParent, byId, roots, hasVisible } = useMemo(() => {
     const list = [...(q.data ?? [])].sort((a, z) => a.createdAt.localeCompare(z.createdAt));
     const byParent = new Map<string, BulletinComment[]>(); const byId = new Map<string, BulletinComment>();
     list.forEach((c) => byId.set(c.id, c));
@@ -132,14 +136,18 @@ export function CommentsThread({ postId, focusId }: { postId: string; focusId?: 
       if (c.parentId && byId.has(c.parentId)) byParent.set(c.parentId, [...(byParent.get(c.parentId) ?? []), c]);
       else roots.push(c);
     });
-    return { byParent, byId, roots };
+    const hasVisibleComment = (id: string): boolean => {
+      const comment = byId.get(id);
+      return !!comment && (!comment.deleted || (byParent.get(id) ?? []).some(child => hasVisibleComment(child.id)));
+    };
+    return { byParent, byId, roots, hasVisible: roots.some(root => hasVisibleComment(root.id)) };
   }, [q.data]);
   return (
     <View style={st.wrap}>
       <Text style={st.heading} accessibilityRole="header">Yorumlar</Text>
       {q.isLoading ? <View style={{ gap: 10 }}>{[0, 1].map((i) => <View key={i} style={st.skel} />)}</View> :
         q.isError ? <View style={{ gap: 8 }}><Text style={st.err}>{apiError(q.error, OFFLINE)}</Text><Btn label="Tekrar dene" ghost onPress={() => q.refetch()} testID="comments-retry" /></View> :
-        roots.length === 0 ? <Text style={st.empty}>Henüz yorum yok. Sohbeti sen başlat.</Text> :
+        !hasVisible ? <Text style={st.empty}>Henüz yorum yok. Sohbeti sen başlat.</Text> :
         roots.map((c) => <CommentNode key={c.id} c={c} byParent={byParent} byId={byId} postId={postId} focusId={focusId} />)}
       <CommentInput postId={postId} placeholder="Yorumunu yaz..." testID="root-comment" />
     </View>
@@ -157,7 +165,6 @@ const useStStyles = makeStyles((t) => {
   name: { fontFamily: F.semi, fontSize: 13, color: b.text },
   time: { fontFamily: F.body, fontSize: 11, color: b.muted },
   body: { fontFamily: F.body, fontSize: 14, lineHeight: 20, color: b.text, marginTop: 2 },
-  deleted: { fontStyle: 'italic', color: b.muted },
   mention: { fontFamily: F.semi, color: b.gold },
   acts: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   act: { minHeight: 30, justifyContent: 'center' },

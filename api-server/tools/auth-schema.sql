@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS afilli_auth_accounts (
 CREATE TABLE IF NOT EXISTS afilli_auth_sessions (
   token_hash text PRIMARY KEY,
   user_id text NOT NULL REFERENCES afilli_auth_accounts(user_id),
+  access_mode text NOT NULL DEFAULT 'normal'
+    CONSTRAINT afilli_auth_sessions_access_mode CHECK (access_mode IN ('normal','appeal')),
   expires_at timestamptz NOT NULL,
   revoked_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()

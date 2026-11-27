@@ -104,7 +104,7 @@ function ProfileEdit() {
       <Field testID="profile-edit-bio" label="Biyografi" value={form.bio} onChangeText={set('bio')} multiline maxLength={500} hint={`${form.bio.length}/500 · Örn. Yazar | Hayalperest | Kitap Kurdu`} />
       <Field testID="profile-edit-quote" label="Alıntı" value={form.quote} onChangeText={set('quote')} maxLength={200} hint="İtalik olarak görünür." />
       {err ? <Notice tone="error" text={err} testID="profile-edit-error" /> : null}
-      <FoilButton label={uploading > 0 ? 'Fotoğraf yükleniyor' : 'Kaydet'} icon="check" testID="profile-edit-save" busy={update.isPending} disabled={invalid || uploading > 0} onPress={save} style={{ flex: 0, minHeight: 46, flexShrink: 0 }} />
+      <FoilButton label={uploading > 0 ? 'Önce fotoğrafı yükle' : 'Kaydet'} icon="check" testID="profile-edit-save" busy={update.isPending} disabled={invalid || uploading > 0} onPress={save} style={{ flex: 0, minHeight: 46, flexShrink: 0 }} />
       <FoilButton variant="outline" label="Vazgeç" testID="profile-edit-cancel" onPress={() => goBack('/profile')} style={{ flex: 0, minHeight: 46, flexShrink: 0 }} />
     </View>
   );

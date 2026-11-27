@@ -2,7 +2,7 @@ import type { PoolClient } from '@workspace/db';
 import { pool } from '@workspace/db';
 import { adminAccount, audit } from './admin';
 import { fail, transaction } from './community';
-import { bulletinObject, profileObject, writerObject } from './bulletin-storage';
+import { bulletinObject, moderationObject, profileObject, writerObject } from './bulletin-storage';
 import { logger } from './logger';
 
 export async function deletionScope(db: PoolClient | typeof pool, id: string) {
@@ -15,7 +15,8 @@ export async function deletionScope(db: PoolClient | typeof pool, id: string) {
     (SELECT count(*)::int FROM conversations WHERE user_low=$1 OR user_high=$1) AS conversations,
     ((SELECT count(*) FROM writer_uploads WHERE owner_id=$1)+
       (SELECT count(*) FROM profile_uploads WHERE owner_id=$1)+
-      (SELECT count(*) FROM bulletin_uploads WHERE owner_id=$1))::int AS media`, [id]);
+      (SELECT count(*) FROM bulletin_uploads WHERE owner_id=$1)+
+      (SELECT count(*) FROM prohibited_image_attempts WHERE user_id=$1))::int AS media`, [id]);
   return { nickname: account.nickname, ...result.rows[0] };
 }
 
@@ -45,6 +46,9 @@ async function purgeAccount(db: PoolClient, actor: string, id: string, confirmat
       SELECT $2,id,now()+interval '20 minutes' FROM ${table} WHERE owner_id=$1
       ON CONFLICT(media_id) DO NOTHING`, [id, kind]);
   }
+  await db.query(`INSERT INTO account_media_deletions(kind,media_id,eligible_at)
+    SELECT 'moderation_attempt',id,now()+interval '20 minutes' FROM prohibited_image_attempts WHERE user_id=$1
+    ON CONFLICT(media_id) DO NOTHING`, [id]);
   // Keep other authors' posts/replies, detaching links to deleted content.
   await db.query(`UPDATE bulletins SET book_id=NULL,
     body=CASE WHEN length(trim(body))=0 AND cardinality(photo_ids)=0 THEN 'Paylaşılan kitap kaldırıldı.' ELSE body END
@@ -58,6 +62,9 @@ async function purgeAccount(db: PoolClient, actor: string, id: string, confirmat
   await db.query(`DELETE FROM bulletin_notifications WHERE recipient_id=$1 OR actor_id=$1
     OR comment_id IN (SELECT id FROM bulletin_comments WHERE author_id=$1)`, [id]);
   await db.query('DELETE FROM social_notifications WHERE recipient_id=$1 OR actor_id=$1', [id]);
+  await db.query(`DELETE FROM prohibited_image_contact_messages WHERE user_id=$1
+    OR attempt_id IN (SELECT id FROM prohibited_image_attempts WHERE user_id=$1)`, [id]);
+  await db.query('DELETE FROM prohibited_image_attempts WHERE user_id=$1', [id]);
   await db.query('DELETE FROM conversations WHERE user_low=$1 OR user_high=$1', [id]);
   await db.query('DELETE FROM direct_messages WHERE sender_id=$1', [id]);
   for (const [table, column] of [
@@ -85,8 +92,21 @@ export async function cleanDeletedAccountMedia(
     if (kind === 'writer') {
       await writerObject(`${id}/source`).delete({ ignoreNotFound: true });
       await writerObject(`${id}/image`).delete({ ignoreNotFound: true });
-    } else if (kind === 'profiles') await profileObject(id).delete({ ignoreNotFound: true });
-    else if (kind === 'bulletins') await bulletinObject(id).delete({ ignoreNotFound: true });
+    } else if (kind === 'profiles') {
+      await Promise.all([
+        profileObject(id).delete({ ignoreNotFound: true }),
+        profileObject(`${id}/source`).delete({ ignoreNotFound: true }),
+        profileObject(`${id}/image`).delete({ ignoreNotFound: true }),
+      ]);
+    } else if (kind === 'bulletins') {
+      await Promise.all([
+        bulletinObject(id).delete({ ignoreNotFound: true }),
+        bulletinObject(`${id}/source`).delete({ ignoreNotFound: true }),
+        bulletinObject(`${id}/image`).delete({ ignoreNotFound: true }),
+      ]);
+    } else if (kind === 'moderation_attempt') {
+      await moderationObject(`attempts/${id}.jpg`).delete({ ignoreNotFound: true });
+    }
     else throw new Error('Unknown deletion media kind');
   },
 ) {
